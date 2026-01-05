@@ -1,0 +1,335 @@
+-- ============================================================================
+-- INIT DATABASE
+-- Urbanist Reform Map
+-- Supports data from:
+--  * Parking Reform Network (PRN) 
+--  * Zoning Reform Tracker (ZRT)
+-- ============================================================================
+
+  -- Enable PostGIS extension
+  CREATE EXTENSION IF NOT EXISTS postgis;
+  CREATE EXTENSION IF NOT EXISTS postgis_topology;
+
+  -- ============================================================================
+  -- CORE TABLES
+  -- ============================================================================
+
+  -- States table with geometry
+  CREATE TABLE IF NOT EXISTS states (
+    id SERIAL PRIMARY KEY,
+    state_code VARCHAR(2) UNIQUE NOT NULL,
+    state_name VARCHAR(100) NOT NULL,
+    region VARCHAR(50),                                    -- Northeast, Midwest, South, West
+    subregion VARCHAR(50),                                 -- New England, Middle Atlantic, etc.
+    geom GEOMETRY(POLYGON, 4326),
+    population INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- Create spatial index on states geometry
+  CREATE INDEX IF NOT EXISTS states_geom_idx ON states USING GIST(geom);
+
+  -- Reform types table - normalized for both PRN and ZRT
+  CREATE TABLE IF NOT EXISTS reform_types (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,  -- prn:rm_min, zrt:adu, etc.
+    source VARCHAR(10) NOT NULL DEFAULT 'PRN',       -- PRN or ZRT
+    name VARCHAR(100) NOT NULL,        -- Display name
+    description TEXT,
+    color_hex VARCHAR(7),              -- Color for UI
+    icon_name VARCHAR(50),
+    sort_order INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  -- Place types table (level of government)
+   CREATE TYPE place_type AS ENUM ('city','county','state');
+
+  -- Places table (normalized municipalities/counties/states)
+  CREATE TABLE IF NOT EXISTS places (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    place_type place_type NOT NULL,
+    state_code VARCHAR(2),
+    population INT,
+    latitude DECIMAL(10,8),
+    longitude DECIMAL(11,8),
+    encoded_name VARCHAR(255),
+    source_url TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (name, state_code, place_type)
+  );
+  
+  CREATE INDEX IF NOT EXISTS places_state_code_idx ON places(state_code);
+  CREATE INDEX IF NOT EXISTS places_name_idx ON places(name);
+
+  -- Normalized reforms table (place-based) - supports both PRN and ZRT data
+  CREATE TABLE IF NOT EXISTS reforms (
+    id SERIAL NOT NULL,
+    place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+    reform_type_id INTEGER NOT NULL REFERENCES reform_types(id) ON DELETE CASCADE,
+    -- status and details
+    status VARCHAR(50),
+    scope TEXT[],
+    land_use TEXT[],
+    adoption_date DATE,
+    summary TEXT,
+    reporter VARCHAR(255),
+    requirements TEXT[],
+    -- Added fields from the denormalized schema
+    reform_mechanism VARCHAR(100),
+    reform_phase VARCHAR(50),
+    legislative_number VARCHAR(255),
+    source_url TEXT,
+    primary_source TEXT,
+    secondary_source TEXT,
+    -- metadata
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(id),
+    UNIQUE(place_id, reform_type_id, adoption_date, status)
+  );
+
+  -- Indexes for common queries on reforms
+  CREATE INDEX IF NOT EXISTS reforms_place_idx ON reforms(place_id);
+  CREATE INDEX IF NOT EXISTS reforms_type_idx ON reforms(reform_type_id);
+  CREATE INDEX IF NOT EXISTS reforms_adoption_idx ON reforms(adoption_date);
+
+CREATE TABLE reform_citations (
+    id SERIAL NOT NULL,
+    reform_id integer NOT NULL,
+    citation_description text,
+    citation_url text,
+    citation_notes text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT reform_citations_reform_fkey FOREIGN KEY (reform_id) REFERENCES reforms(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS reform_citations_reform_idx ON public.reform_citations USING btree (reform_id);
+
+-- Unique index to allow ON CONFLICT DO NOTHING to work and prevent duplicate citations
+CREATE UNIQUE INDEX IF NOT EXISTS reform_citations_uniq
+ON public.reform_citations (
+    reform_id,
+    COALESCE(citation_url, ''),
+    COALESCE(citation_description, '')
+);
+
+  -- Data ingestion metadata
+  CREATE TABLE IF NOT EXISTS data_ingestion (
+    id SERIAL PRIMARY KEY,
+    ingestion_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    source_name VARCHAR(50),  -- PRN or ZRT
+    source_url TEXT,
+    records_processed INT,
+    places_created INT,
+    places_updated INT,
+    reforms_created INT,
+    reforms_updated INT,
+    status VARCHAR(50),  -- success, failed, partial
+    error_message TEXT,
+    duration_seconds INT
+  );
+
+  -- ============================================================================
+  -- SEED DATA: Reform Types (from both sources)
+  -- ============================================================================
+
+  -- PRN Reform Types (Parking)
+  INSERT INTO reform_types (code, source, name, description, color_hex, icon_name, sort_order) VALUES
+    ('prn:rm_min', 'PRN', 'Parking Minimums Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 1),
+    ('prn:reduce_min', 'PRN', 'Parking Minimums Reduced', 'Reduced or eliminated parking minimum requirements', '#2ecc71', 'minus-circle', 2),
+    ('prn:add_max', 'PRN', 'Parking Maximums', 'Maximum parking limits introduced', '#e74c3c', 'arrows-alt', 3)
+  ON CONFLICT (code) DO NOTHING;
+
+  -- ZRT Reform Types (Zoning)
+  INSERT INTO reform_types (code, source, name, description, color_hex, icon_name, sort_order) VALUES
+    ('zrt:adu', 'ZRT', 'ADU Reform', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 4),
+    ('zrt:plex', 'ZRT', 'Plex Reform', 'Multi-unit (duplex, triplex, etc.) housing reforms', '#9b59b6', 'building', 5),
+    ('zrt:tod', 'ZRT', 'TOD Reform', 'Transit-oriented development reforms', '#f39c12', 'train', 6),
+    ('zrt:other', 'ZRT', 'Other Reform', 'Other zoning or land use reforms', '#95a5a6', 'cog', 7)
+  ON CONFLICT (code) DO NOTHING;
+
+  -- ============================================================================
+  -- US STATES SEED DATA
+  -- Per US Census Bureau Regions and Divisions
+  -- ============================================================================
+
+  INSERT INTO states (state_code, state_name, region, subregion) VALUES
+    -- Northeast Region
+    ('CT', 'Connecticut', 'Northeast', 'New England'),
+    ('ME', 'Maine', 'Northeast', 'New England'),
+    ('MA', 'Massachusetts', 'Northeast', 'New England'),
+    ('NH', 'New Hampshire', 'Northeast', 'New England'),
+    ('RI', 'Rhode Island', 'Northeast', 'New England'),
+    ('VT', 'Vermont', 'Northeast', 'New England'),
+    ('NJ', 'New Jersey', 'Northeast', 'Middle Atlantic'),
+    ('NY', 'New York', 'Northeast', 'Middle Atlantic'),
+    ('PA', 'Pennsylvania', 'Northeast', 'Middle Atlantic'),
+    -- Midwest Region
+    ('IL', 'Illinois', 'Midwest', 'East North Central'),
+    ('IN', 'Indiana', 'Midwest', 'East North Central'),
+    ('MI', 'Michigan', 'Midwest', 'East North Central'),
+    ('OH', 'Ohio', 'Midwest', 'East North Central'),
+    ('WI', 'Wisconsin', 'Midwest', 'East North Central'),
+    ('IA', 'Iowa', 'Midwest', 'West North Central'),
+    ('KS', 'Kansas', 'Midwest', 'West North Central'),
+    ('MN', 'Minnesota', 'Midwest', 'West North Central'),
+    ('MO', 'Missouri', 'Midwest', 'West North Central'),
+    ('NE', 'Nebraska', 'Midwest', 'West North Central'),
+    ('ND', 'North Dakota', 'Midwest', 'West North Central'),
+    ('SD', 'South Dakota', 'Midwest', 'West North Central'),  
+    -- South Region
+    ('DE', 'Delaware', 'South', 'South Atlantic'),
+    ('FL', 'Florida', 'South', 'South Atlantic'),
+    ('GA', 'Georgia', 'South', 'South Atlantic'),
+    ('MD', 'Maryland', 'South', 'South Atlantic'),
+    ('NC', 'North Carolina', 'South', 'South Atlantic'),
+    ('SC', 'South Carolina', 'South', 'South Atlantic'),
+    ('VA', 'Virginia', 'South', 'South Atlantic'),
+    ('WV', 'West Virginia', 'South', 'South Atlantic'),
+    ('DC', 'District of Columbia', 'South', 'South Atlantic'),
+    ('AL', 'Alabama', 'South', 'East South Central'),
+    ('KY', 'Kentucky', 'South', 'East South Central'),
+    ('MS', 'Mississippi', 'South', 'East South Central'),
+    ('TN', 'Tennessee', 'South', 'East South Central'),
+    ('AR', 'Arkansas', 'South', 'West South Central'),
+    ('LA', 'Louisiana', 'South', 'West South Central'),
+    ('OK', 'Oklahoma', 'South', 'West South Central'),
+    ('TX', 'Texas', 'South', 'West South Central'),
+    -- West Region
+    ('AZ', 'Arizona', 'West', 'Mountain'),
+    ('CO', 'Colorado', 'West', 'Mountain'),
+    ('ID', 'Idaho', 'West', 'Mountain'),
+    ('MT', 'Montana', 'West', 'Mountain'),
+    ('NV', 'Nevada', 'West', 'Mountain'),
+    ('NM', 'New Mexico', 'West', 'Mountain'),
+    ('UT', 'Utah', 'West', 'Mountain'),
+    ('WY', 'Wyoming', 'West', 'Mountain'),
+    ('AK', 'Alaska', 'West', 'Pacific'),
+    ('CA', 'California', 'West', 'Pacific'),
+    ('HI', 'Hawaii', 'West', 'Pacific'),
+    ('OR', 'Oregon', 'West', 'Pacific'),
+    ('WA', 'Washington', 'West', 'Pacific')
+  ON CONFLICT (state_code) DO NOTHING;
+
+  -- ============================================================================
+  -- VIEWS FOR API ACCESS
+  -- ============================================================================
+
+  -- View: All reforms with state and type info
+  CREATE OR REPLACE VIEW v_state_reforms_detailed AS
+  SELECT
+    r.id,
+    s.state_code,
+    s.state_name,
+    rt.code as reform_code,
+    rt.name as reform_type,
+    rt.color_hex,
+    p.name as municipality_name,
+    CASE 
+      WHEN p.place_type = 'city' THEN 'Municipality'
+      WHEN p.place_type = 'county' THEN 'County'
+      WHEN p.place_type = 'state' THEN 'State'
+      ELSE 'Municipality'
+    END as governance_level,
+    s.region,
+    r.summary as reform_name,
+    r.notes as description,
+    ARRAY_TO_STRING(r.scope, ', ') as scope,
+    r.reform_mechanism,
+    r.reform_phase,
+    r.adoption_date,
+    p.latitude,
+    p.longitude,
+    COALESCE(r.primary_source, r.source_url) as source,
+    r.source_url,
+    r.notes,
+    r.created_at
+  FROM reforms r
+  JOIN places p ON r.place_id = p.id
+  JOIN states s ON p.state_code = s.state_code
+  JOIN reform_types rt ON r.reform_type_id = rt.id
+  ORDER BY s.state_name, p.name, rt.sort_order;
+
+  -- View: Summary of reforms by state and type
+  CREATE OR REPLACE VIEW v_reforms_by_state_summary AS
+  SELECT
+    s.id,
+    s.state_code,
+    s.state_name,
+    rt.id as reform_type_id,
+    rt.code as reform_code,
+    rt.name as reform_type,
+    rt.color_hex,
+    COUNT(r.id) as reform_count
+  FROM states s
+  LEFT JOIN places p ON p.state_code = s.state_code
+  LEFT JOIN reforms r ON r.place_id = p.id
+  LEFT JOIN reform_types rt ON r.reform_type_id = rt.id
+  GROUP BY s.id, s.state_code, s.state_name, rt.id, rt.code, rt.name, rt.color_hex
+  ORDER BY s.state_name, rt.sort_order;
+
+  -- View: States with at least one reform
+  CREATE OR REPLACE VIEW v_states_with_reforms AS
+  SELECT DISTINCT
+    s.id,
+    s.state_code,
+    s.state_name,
+    COUNT(DISTINCT r.id) as total_reforms,
+    COUNT(DISTINCT r.reform_type_id) as type_count,
+    COUNT(DISTINCT COALESCE(r.primary_source, r.source_url)) as source_count,
+    MAX(r.adoption_date) as most_recent_reform
+  FROM states s
+  JOIN places p ON p.state_code = s.state_code
+  JOIN reforms r ON r.place_id = p.id
+  GROUP BY s.id, s.state_code, s.state_name;
+
+  -- View: Reforms by municipality and source
+  CREATE OR REPLACE VIEW v_reforms_by_municipality AS
+  SELECT
+    p.name as municipality_name,
+    s.state_code,
+    s.state_name,
+    COALESCE(r.primary_source, r.source_url) as source,
+    COUNT(DISTINCT r.id) as reform_count,
+    COUNT(DISTINCT r.reform_type_id) as type_count,
+    p.latitude,
+    p.longitude
+  FROM reforms r
+  JOIN places p ON r.place_id = p.id
+  JOIN states s ON p.state_code = s.state_code
+  WHERE p.name IS NOT NULL
+  GROUP BY p.name, s.state_code, s.state_name, COALESCE(r.primary_source, r.source_url), p.latitude, p.longitude
+  ORDER BY reform_count DESC;
+
+  -- ============================================================================
+  -- FUNCTIONS FOR DATA MANAGEMENT
+  -- ============================================================================
+
+  -- Update timestamp on row modification
+  CREATE OR REPLACE FUNCTION update_timestamp()
+  RETURNS TRIGGER AS $$
+  BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+  END;
+  $$ LANGUAGE plpgsql;
+
+  -- Trigger for reforms update
+  DROP TRIGGER IF EXISTS reforms_update_timestamp ON reforms;
+  CREATE TRIGGER reforms_update_timestamp
+  BEFORE UPDATE ON reforms
+  FOR EACH ROW
+  EXECUTE FUNCTION update_timestamp();
+
+  -- ============================================================================
+  -- PERMISSIONS (uncomment and adjust for your setup)
+  -- ============================================================================
+  -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO read_only_user;
+  -- GRANT SELECT ON ALL VIEWS IN SCHEMA public TO read_only_user;
+  -- GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO read_only_user;
