@@ -17,24 +17,28 @@ Usage:
     python ingest_zoning_tracker.py --file data.csv --database postgresql://user:pass@localhost/db
 """
 
-import os
 import sys
 import csv
-import json
 import logging
 import argparse
 import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
-import urllib.request
-import urllib.error
-
-import psycopg2
-from psycopg2.extras import execute_values
 
 from dotenv import load_dotenv
 from helpers import normalize_place_name
+from db_utils import (
+    build_citation_rows,
+    bulk_insert_citations,
+    bulk_upsert_places,
+    bulk_upsert_reforms,
+    close_db_connection,
+    get_db_connection,
+    load_reform_type_map,
+    log_ingestion,
+    place_key,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -57,223 +61,28 @@ logger = logging.getLogger(__name__)
 BATCH_SIZE = 100
 
 # ============================================================================
-# DATABASE CLASS
+# HELPERS
 # ============================================================================
 
-class ZoningTrackerDB:
-    """Handles all database operations for Zoning Reform Tracker data"""
-    
-    def __init__(self, database_url: Optional[str] = None):
-        """Initialize database connection"""
-        self.database_url = database_url or os.getenv('DATABASE_URL')
-        if not self.database_url:
-            raise ValueError("DATABASE_URL not set and not provided")
-        
-        self.conn = None
-        self.cursor = None
-        self.place_id_map = {}  # (state_code, municipality_name_lower) -> id
-        self.reform_type_map = {}  # code -> id
-        
-    def connect(self):
-        """Establish database connection"""
-        try:
-            self.conn = psycopg2.connect(self.database_url)
-            self.cursor = self.conn.cursor()
-            logger.info("✓ Connected to database")
-        except psycopg2.Error as e:
-            logger.error(f"✗ Database connection failed: {e}")
-            raise
-    
-    def disconnect(self):
-        """Close database connection"""
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
-            logger.info("✓ Disconnected from database")
-    
-    def load_lookup_tables(self):
-        """Load state IDs and reform type IDs into memory"""
-        try:
-            # Load place IDs (by state_code + municipality name lowercased)
-            self.cursor.execute("SELECT id, name, state_code FROM places")
-            for place_id, name, state_code in self.cursor.fetchall():
-                key = (state_code, (name or '').strip().lower())
-                self.place_id_map[key] = place_id
 
-            # Load reform type IDs
-            self.cursor.execute("SELECT id, code FROM reform_types")
-            for reform_type_id, code in self.cursor.fetchall():
-                self.reform_type_map[code] = reform_type_id
-
-            logger.info(f"✓ Loaded {len(self.place_id_map)} places and {len(self.reform_type_map)} reform types")
-        except psycopg2.Error as e:
-            logger.error(f"✗ Failed to load lookup tables: {e}")
-            raise
-    
-    def bulk_upsert_places(self, place_records: List[Dict]) -> int:
-        """
-        Bulk upsert places and update place_id_map.
-        
-        Args:
-            place_records: List of dicts with keys (state_short, municipality_name)
-            
-        Returns:
-            Number of places created
-        """
-        if not place_records:
-            return 0
-        
-        # Deduplicate by (state_code, name)
-        seen = {}
-        for rec in place_records:
-            key = (rec['state_short'], rec['municipality_name'].lower())
-            if key not in seen:
-                seen[key] = rec
-        
-        deduped = list(seen.values())
-        if len(deduped) != len(place_records):
-            logger.info(f"  ⚐ Deduplicated places: {len(place_records)} -> {len(deduped)}")
-        
-        # Filter out places that already exist
-        new_places = []
-        for rec in deduped:
-            key = (rec['state_short'], rec['municipality_name'].lower())
-            if key not in self.place_id_map:
-                new_places.append(rec)
-        
-        if not new_places:
-            logger.info(f"  ⚐ All {len(deduped)} places already exist")
-            return 0
-        
-        # Insert new places
-        rows = [
-            (
-                rec['municipality_name'],
-                'city',  # Default place_type for ZRT municipalities
-                rec['state_short'],
-                None,  # population
-                None,  # latitude
-                None,  # longitude
-                None,  # encoded_name
-                None   # source_url
-            )
-            for rec in new_places
-        ]
-        
-        sql = """
-            INSERT INTO places (
-                name, place_type, state_code,
-                population, latitude, longitude, encoded_name, source_url
-            )
-            VALUES %s
-            ON CONFLICT (name, state_code, place_type) DO NOTHING
-            RETURNING id, name, state_code
-        """
-        
-        try:
-            execute_values(self.cursor, sql, rows, page_size=1000, fetch=True)
-            results = self.cursor.fetchall()
-            self.conn.commit()
-            
-            # Update place_id_map with newly created places
-            for place_id, name, state_code in results:
-                key = (state_code, name.lower())
-                self.place_id_map[key] = place_id
-            
-            logger.info(f"  ✓ Created {len(results)} new places")
-            return len(results)
-        
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            logger.error(f"  ✗ Error upserting places: {e}")
-            raise
-    
-    def bulk_upsert_reforms(self, reform_rows: List[Tuple]) -> Tuple[int, int]:
-        """
-        Bulk upsert reforms using ON CONFLICT DO UPDATE
-        
-        Args:
-            reform_rows: List of tuples with reform data
-            
-        Returns:
-            (reforms_created, reforms_updated)
-        """
-        if not reform_rows:
-            return 0, 0
-
-        # Deduplicate by (place_id, reform_type_id, adoption_date, status)
-        seen = {}
-        for row in reform_rows:
-            key = (row[0], row[1], row[5], row[2])
-            seen[key] = row
-        deduped_rows = list(seen.values())
-        if len(deduped_rows) != len(reform_rows):
-            logger.info(f"  ⚐ Deduplicated batch: {len(reform_rows)} -> {len(deduped_rows)}")
-
-        sql = """
-        INSERT INTO reforms (
-            place_id, reform_type_id, status, scope, land_use,
-            adoption_date, summary, reporter, requirements, notes, source_url,
-            reform_mechanism, reform_phase, legislative_number, primary_source, secondary_source
-        ) VALUES %s
-        ON CONFLICT (place_id, reform_type_id, adoption_date, status)
-        DO UPDATE SET
-            scope = EXCLUDED.scope,
-            land_use = EXCLUDED.land_use,
-            summary = EXCLUDED.summary,
-            reporter = EXCLUDED.reporter,
-            requirements = EXCLUDED.requirements,
-            notes = EXCLUDED.notes,
-            source_url = EXCLUDED.source_url,
-            reform_mechanism = EXCLUDED.reform_mechanism,
-            reform_phase = EXCLUDED.reform_phase,
-            legislative_number = EXCLUDED.legislative_number,
-            primary_source = EXCLUDED.primary_source,
-            secondary_source = EXCLUDED.secondary_source,
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING (xmax = 0)::int as is_insert
-        """
-
-        try:
-            execute_values(self.cursor, sql, deduped_rows, page_size=1000, fetch=True)
-            results = self.cursor.fetchall()
-            self.conn.commit()
-
-            inserts = sum(1 for r in results if r[0])
-            updates = len(results) - inserts
-
-            logger.info(f"  ✓ Bulk upserted: {inserts} new, {updates} updated")
-            return inserts, updates
-
-        except psycopg2.Error as e:
-            self.conn.rollback()
-            logger.error(f"  ✗ Error upserting reforms: {e}")
-            raise
-    
-    def log_ingestion(self, records_processed: int, places_created: int, places_updated: int,
-                      reforms_created: int, reforms_updated: int, status: str,
-                      error_message: Optional[str] = None):
-        """Log ingestion metadata matching data_ingestion schema."""
-        try:
-            duration = int((datetime.now() - self.start_time).total_seconds())
-            self.cursor.execute("""
-                INSERT INTO data_ingestion (
-                    source_name, records_processed,
-                    places_created, places_updated,
-                    reforms_created, reforms_updated,
-                    status, error_message, duration_seconds
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, ('ZRT', records_processed, places_created, places_updated,
-                  reforms_created, reforms_updated, status, error_message, duration))
-            self.conn.commit()
-            logger.info(
-                f"✓ Logged ingestion: {records_processed} processed, "
-                f"{places_created} places created, {places_updated} places updated, "
-                f"{reforms_created} reforms created, {reforms_updated} reforms updated"
-            )
-        except psycopg2.Error as e:
-            logger.error(f"✗ Error logging ingestion: {e}")
+def collect_place_records(rows: List[Dict]) -> List[Dict]:
+    """Build place payloads from CSV rows."""
+    records: List[Dict] = []
+    for row in rows:
+        state_short = (row.get('state_short') or '').strip()
+        municipality_name = normalize_place_name((row.get('municipality_name') or '').strip())
+        if state_short and municipality_name:
+            records.append({
+                'name': municipality_name,
+                'place_type': 'city',
+                'state_code': state_short,
+                'population': None,
+                'latitude': None,
+                'longitude': None,
+                'encoded_name': None,
+                'source_url': None,
+            })
+    return records
 
 # ============================================================================
 # DATA PARSING & NORMALIZATION
@@ -340,77 +149,56 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
     # Default to other if no match
     return 'zrt:other'
 
-def parse_csv_row(row: Dict, state_id_map: Dict, reform_type_map: Dict) -> Optional[Tuple]:
-    """
-    Parse a single CSV row and return reform tuple for insertion
-    
-    Returns None if row is invalid or missing required fields
-    """
+def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optional[Dict]:
+    """Parse a single CSV row into a reform payload for upsert."""
     try:
-        # Required fields
         state_short = (row.get('state_short') or '').strip()
         municipality_name = normalize_place_name((row.get('municipality_name') or '').strip())
         reform_type_str = (row.get('reform_type') or '').strip()
         reform_phase = (row.get('reform_phase') or '').strip()
 
-        # Validate required fields
         if not all([state_short, municipality_name, reform_type_str]):
             return None
 
-        # Find place_id by (state_code, municipality_name)
-        place_key = (state_short, municipality_name.lower())
-        place_id = state_id_map.get(place_key)
-        if place_id is None:
-            logger.debug(f"  ⚠ Unknown place: {place_key} (will be created)")
+        pid = place_id_map.get(place_key(municipality_name, state_short, 'city'))
+        if pid is None:
+            logger.debug(f"  ⚠ Unknown place: {(state_short, municipality_name)}")
             return None
 
-        # Map reform type to ID
         reform_code = normalize_reform_type(reform_type_str)
         if not reform_code or reform_code not in reform_type_map:
             logger.warning(f"  ⚠ Unknown reform type: {reform_type_str} -> {reform_code}")
             return None
-        reform_type_id = reform_type_map[reform_code]
 
-        # Parse optional fields
         adoption_date = parse_flexible_date(row.get('time_R'))
-
-        # Scope -> text[] (split on comma)
         raw_scope = row.get('scope') or row.get('category') or ''
         scope = [s.strip() for s in str(raw_scope).split(',') if s.strip()] if raw_scope else None
-
         land_use = None
-
         summary = row.get('reform_name') or row.get('legislative_number_policy_name') or row.get('title') or ''
         reporter = row.get('reporter')
         requirements = None
         notes = f"From ZRT: {row.get('time_status', '')}"
         source_url = row.get('primary_source')
 
-        reform_mechanism = row.get('reform_mechanism')
-        reform_phase_val = reform_phase
-        legislative_number = row.get('legislative_number_policy_name')
-        primary_source = row.get('primary_source')
-        secondary_source = row.get('secondary_source')
-
-        # Build tuple matching INSERT order in bulk_upsert_reforms
-        return (
-            place_id,             # place_id
-            reform_type_id,       # reform_type_id
-            reform_phase_val,     # status
-            scope,                # scope (text[])
-            land_use,             # land_use (text[])
-            adoption_date,        # adoption_date
-            summary,              # summary
-            reporter,             # reporter
-            requirements,         # requirements
-            notes,                # notes
-            source_url,           # source_url
-            reform_mechanism,     # reform_mechanism
-            reform_phase_val,     # reform_phase
-            legislative_number,   # legislative_number
-            primary_source,       # primary_source
-            secondary_source      # secondary_source
-        )
+        return {
+            'place_id': pid,
+            'reform_type_id': reform_type_map[reform_code],
+            'status': reform_phase,
+            'scope': scope,
+            'land_use': land_use,
+            'adoption_date': adoption_date,
+            'summary': summary,
+            'reporter': reporter,
+            'requirements': requirements,
+            'notes': notes,
+            'source_url': source_url,
+            'reform_mechanism': row.get('reform_mechanism'),
+            'reform_phase': reform_phase,
+            'legislative_number': row.get('legislative_number_policy_name'),
+            'primary_source': row.get('primary_source'),
+            'secondary_source': row.get('secondary_source'),
+            'citations': [],
+        }
 
     except Exception as e:
         logger.error(f"  ✗ Error parsing row: {e}")
@@ -466,99 +254,101 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
         (records_processed, reforms_created, reforms_updated)
     """
     
-    # Initialize database
-    db = ZoningTrackerDB(database_url)
-    db.start_time = datetime.now()
-    
+    start_time = datetime.now()
+    conn = cursor = None
+
     try:
-        # Connect and load lookup tables
-        db.connect()
-        db.load_lookup_tables()
-        
-        # Read CSV file
+        conn, cursor = get_db_connection(database_url)
+        reform_type_map = load_reform_type_map(cursor)
+
         if not csv_file:
             csv_file = 'zoning-tracker-spreadsheet.csv'
             if not Path(csv_file).exists():
                 download_zoning_tracker_data()
-        
+
         rows = read_csv_file(csv_file)
-        
-        # First pass: collect all unique places and upsert them
+
         logger.info("Collecting places from CSV...")
-        place_records = []
-        for row in rows:
-            state_short = (row.get('state_short') or '').strip()
-            municipality_name = normalize_place_name((row.get('municipality_name') or '').strip())
-            if state_short and municipality_name:
-                place_records.append({
-                    'state_short': state_short,
-                    'municipality_name': municipality_name
-                })
-        
-        # Upsert all places (creates missing ones)
-        places_created = 0
-        places_updated = 0  # Not tracked separately (ON CONFLICT DO NOTHING)
+        place_records = collect_place_records(rows)
+        places_created, places_updated, place_id_map = bulk_upsert_places(conn, cursor, place_records)
         if place_records:
-            logger.info(f"Upserting {len(place_records)} places...")
-            places_created = db.bulk_upsert_places(place_records)
-            # Reload place_id_map to include newly created places
-            db.load_lookup_tables()
-        
-        # Process in batches
+            logger.info(
+                f"Upserted {len(place_records)} places (created {places_created}, updated {places_updated})"
+            )
+
         total_created = 0
         total_updated = 0
-        reform_rows = []
-        
+        reform_rows: List[Dict] = []
+
         for i, row in enumerate(rows, 1):
-            parsed = parse_csv_row(row, db.place_id_map, db.reform_type_map)
+            parsed = parse_csv_row(row, place_id_map, reform_type_map)
             if parsed:
                 reform_rows.append(parsed)
-            
-            # Batch insert every BATCH_SIZE rows
+
             if len(reform_rows) >= BATCH_SIZE or i == len(rows):
                 if reform_rows:
-                    logger.info(f"Processing batch {(i-1)//BATCH_SIZE + 1} ({len(reform_rows)} reforms)...")
-                    created, updated = db.bulk_upsert_reforms(reform_rows)
+                    logger.info(
+                        f"Processing batch {(i - 1)//BATCH_SIZE + 1} ({len(reform_rows)} reforms)..."
+                    )
+                    created, updated, reform_ids, deduped_reforms = bulk_upsert_reforms(
+                        conn, cursor, reform_rows
+                    )
+                    citation_rows = build_citation_rows(reform_ids, deduped_reforms)
+                    bulk_insert_citations(conn, cursor, citation_rows)
                     total_created += created
                     total_updated += updated
                     reform_rows = []
-        
-        # Log ingestion
-        db.log_ingestion(
+
+        log_ingestion(
+            conn,
+            cursor,
+            source_name='ZRT',
             records_processed=len(rows),
             places_created=places_created,
             places_updated=places_updated,
             reforms_created=total_created,
             reforms_updated=total_updated,
-            status='success'
+            status='success',
+            start_time=start_time,
+            source_url=ZONING_TRACKER_URL,
         )
-        
-        # Summary
+
+        duration = int((datetime.now() - start_time).total_seconds())
         logger.info("\n" + "="*60)
         logger.info("✓ Ingestion complete!")
         logger.info(f"  Total records processed: {len(rows)}")
         logger.info(f"  Reforms created: {total_created}")
         logger.info(f"  Reforms updated: {total_updated}")
+        logger.info(f"  Duration: {duration}s")
         logger.info("="*60 + "\n")
-        
+
         return len(rows), total_created, total_updated
-        
+
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
         traceback.print_exc()
-        db.log_ingestion(
-            records_processed=0,
-            places_created=0,
-            places_updated=0,
-            reforms_created=0,
-            reforms_updated=0,
-            status='failed',
-            error_message=str(e)
-        )
+        try:
+            if conn and cursor:
+                log_ingestion(
+                    conn,
+                    cursor,
+                    source_name='ZRT',
+                    records_processed=0,
+                    places_created=0,
+                    places_updated=0,
+                    reforms_created=0,
+                    reforms_updated=0,
+                    status='failed',
+                    start_time=start_time,
+                    source_url=ZONING_TRACKER_URL,
+                    error_message=str(e),
+                )
+        except Exception:
+            pass
         raise
-        
+
     finally:
-        db.disconnect()
+        close_db_connection(conn, cursor)
 
 # ============================================================================
 # CLI

@@ -20,12 +20,21 @@ from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 import tempfile
 import zipfile
-import psycopg2
-from psycopg2.extras import execute_values
 import requests
 
 from dotenv import load_dotenv
 from helpers import normalize_place_name
+from db_utils import (
+    build_citation_rows,
+    bulk_insert_citations,
+    bulk_upsert_places,
+    bulk_upsert_reforms,
+    close_db_connection,
+    get_db_connection,
+    load_reform_type_map,
+    log_ingestion,
+    place_key,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -319,257 +328,68 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
 
 
 # ============================================================================
-# DATABASE OPERATIONS (OPTIMIZED)
-# ============================================================================
+def _build_reform_records(
+    places_batch: List[Dict],
+    place_id_map: Dict[Tuple[str, str, str], int],
+    reform_type_map: Dict[str, int],
+) -> List[Dict]:
+    """Transform normalized place data into reform payloads for upsert."""
+    reform_records: List[Dict] = []
 
-class DatabaseManager:
-    def __init__(self, connection_string: str):
-        self.conn_string = connection_string
-        self.conn = None
-        self.cursor = None
-        self.reform_type_ids = {}  # Cache of code -> id
+    for place in places_batch:
+        key = place_key(place['name'], place['state_code'], place['place_type'])
+        place_id = place_id_map.get(key)
+        if place_id is None:
+            logger.warning(f"Place not found after upsert: {key}")
+            continue
 
-    def connect(self):
-        """Connect to database."""
-        try:
-            self.conn = psycopg2.connect(self.conn_string)
-            self.cursor = self.conn.cursor()
-            logger.info("Connected to database")
-        except psycopg2.Error as e:
-            logger.error(f"Database connection failed: {e}")
-            raise
-
-    def disconnect(self):
-        """Close database connection."""
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
-        logger.info("Disconnected from database")
-
-    def load_reform_type_ids(self):
-        """Load all reform type IDs in a single query and accept both 'prn:code' and 'code'."""
-        self.cursor.execute("SELECT code, id FROM reform_types")
-        rows = self.cursor.fetchall()
-        mapping = {}
-        for code, rid in rows:
-            mapping[code] = rid
-            if isinstance(code, str) and code.startswith('prn:'):
-                short = code.split(':', 1)[1]
-                mapping[short] = rid
-        self.reform_type_ids = mapping
-        logger.info(f"Loaded {len(rows)} reform types")
-
-    def bulk_upsert_places(self, places: List[Dict]) -> Dict[Tuple, int]:
-        """
-        Bulk upsert places with ON CONFLICT.
-        Returns mapping of (name, state_code, place_type) -> place_id.
-        """
-        if not places:
-            return {}
-        rows = [
-            (
-                p['name'], p['place_type'], p['state_code'],
-                p.get('population'), p.get('latitude'), p.get('longitude'),
-                p.get('encoded_name'), p.get('source_url')
-            )
-            for p in places
-        ]
-
-        sql = """
-            INSERT INTO places (
-                name, place_type, state_code,
-                population, latitude, longitude, encoded_name, source_url
-            )
-            VALUES %s
-            ON CONFLICT (name, state_code, place_type) DO UPDATE
-            SET population = EXCLUDED.population,
-                latitude = EXCLUDED.latitude,
-                longitude = EXCLUDED.longitude,
-                encoded_name = EXCLUDED.encoded_name,
-                source_url = EXCLUDED.source_url,
-                updated_at = CURRENT_TIMESTAMP
-        """
-
-        try:
-            execute_values(self.cursor, sql, rows, page_size=1000)
-            self.conn.commit()
-            logger.debug(f"Upserted {len(places)} places")
-        except psycopg2.Error as e:
-            logger.error(f"Error upserting places: {e}")
-            self.conn.rollback()
-            raise
-
-        # Build parallel arrays for unnest
-        names = [p['name'] for p in places]
-        state_codes = [p['state_code'] for p in places]
-        types = [p['place_type'] for p in places]
-
-        self.cursor.execute("""
-            SELECT id, name, state_code, place_type
-            FROM places
-            WHERE (name, state_code, place_type) IN (
-                SELECT n, s, t
-                FROM unnest(%s::text[], %s::text[], %s::place_type[]) AS u(n, s, t)
-            )
-        """, (names, state_codes, types))
-
-        place_id_map = {}
-        for row in self.cursor.fetchall():
-            key = (row[1], row[2], row[3])
-            place_id_map[key] = row[0]
-
-        return place_id_map
-
-    def bulk_upsert_reforms(self, reform_rows: List[Tuple]) -> Tuple[int, int]:
-        """
-        Bulk upsert reforms with ON CONFLICT.
-        Returns (inserts, updates).
-        """
-        if not reform_rows:
-            return (0, 0)
-
-        sql = """
-            INSERT INTO reforms (
-                place_id, reform_type_id, status, scope, land_use,
-                adoption_date, summary, reporter, requirements, notes, source_url
-            )
-            VALUES %s
-            ON CONFLICT (place_id, reform_type_id, adoption_date, status)
-            DO UPDATE SET
-                scope = EXCLUDED.scope,
-                land_use = EXCLUDED.land_use,
-                summary = EXCLUDED.summary,
-                reporter = EXCLUDED.reporter,
-                requirements = EXCLUDED.requirements,
-                notes = EXCLUDED.notes,
-                source_url = EXCLUDED.source_url,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING (xmax = 0)::int as is_insert
-        """
-
-        try:
-            results = execute_values(self.cursor, sql, reform_rows, page_size=1000, fetch=True)
-            self.conn.commit()
-
-            inserts = sum(1 for row in results if row[0])
-            updates = len(results) - inserts
-
-            logger.debug(f"Upserted {len(reform_rows)} reforms ({inserts} new, {updates} updated)")
-            return (inserts, updates)
-
-        except psycopg2.Error as e:
-            logger.error(f"Error upserting reforms: {e}")
-            self.conn.rollback()
-            raise
-
-    def bulk_insert_citations(self, citation_rows: List[Tuple]):
-        """Bulk insert citations with ON CONFLICT DO NOTHING."""
-        if not citation_rows:
-            return
-
-        sql = """
-            INSERT INTO reform_citations (
-                reform_id, citation_description, citation_url, citation_notes
-            )
-            VALUES %s
-            ON CONFLICT DO NOTHING
-        """
-
-        try:
-            execute_values(self.cursor, sql, citation_rows, page_size=1000)
-            self.conn.commit()
-            logger.debug(f"Inserted {len(citation_rows)} citations")
-        except psycopg2.Error as e:
-            logger.error(f"Error inserting citations: {e}")
-            self.conn.rollback()
-
-    def ingest_places_batch(self, places_batch: List[Dict]) -> Tuple[int, int, int]:
-        """
-        Ingest a batch of places and their reforms.
-        Returns (places_count, reforms_created, reforms_updated).
-        """
-        # Bulk upsert places
-        place_id_map = self.bulk_upsert_places(places_batch)
-
-        reform_rows = []
-        citation_rows = []
-        reform_to_citations = {}  # Track which citations go with which reform (temp)
-
-        # Prepare reform and citation rows
-        for place in places_batch:
-            place_key = (place['name'], place['state_code'], place['place_type'])
-            place_id = place_id_map.get(place_key)
-
-            if place_id is None:
-                logger.warning(f"Place not found after upsert: {place_key}")
+        for reform in place['reforms']:
+            reform_type_id = reform_type_map.get(reform['reform_type'])
+            if reform_type_id is None:
+                logger.warning(f"Unknown reform type: {reform['reform_type']}")
                 continue
 
-            for reform_idx, reform in enumerate(place['reforms']):
-                reform_type_code = reform['reform_type']
-                reform_type_id = self.reform_type_ids.get(reform_type_code)
+            reform_records.append({
+                'place_id': place_id,
+                'reform_type_id': reform_type_id,
+                'status': reform['status'],
+                'scope': reform['scope'],
+                'land_use': reform['land_use'],
+                'adoption_date': reform['adoption_date'],
+                'summary': reform['summary'],
+                'reporter': reform['reporter'],
+                'requirements': reform['requirements'],
+                'notes': reform['notes'],
+                'source_url': reform['source_url'],
+                'citations': reform.get('citations', []),
+                'reform_mechanism': None,
+                'reform_phase': None,
+                'legislative_number': None,
+                'primary_source': None,
+                'secondary_source': None,
+            })
 
-                if reform_type_id is None:
-                    logger.warning(f"Unknown reform type: {reform_type_code}")
-                    continue
+    return reform_records
 
-                reform_row = (
-                    place_id, reform_type_id, reform['status'],
-                    reform['scope'], reform['land_use'],
-                    reform['adoption_date'], reform['summary'],
-                    reform['reporter'], reform['requirements'],
-                    reform['notes'], reform['source_url']
-                )
 
-                reform_rows.append(reform_row)
+def ingest_places_batch(
+    conn,
+    cursor,
+    places_batch: List[Dict],
+    reform_type_map: Dict[str, int],
+) -> Tuple[int, int, int, int]:
+    """Upsert places, then reforms and citations for a batch."""
+    places_created, places_updated, place_id_map = bulk_upsert_places(conn, cursor, places_batch)
+    reform_records = _build_reform_records(places_batch, place_id_map, reform_type_map)
 
-                # Track citations for this reform
-                temp_reform_key = (place_id, reform_type_id, reform_idx)
-                if reform.get('citations'):
-                    reform_to_citations[temp_reform_key] = reform['citations']
+    reforms_created, reforms_updated, reform_ids, deduped_reforms = bulk_upsert_reforms(
+        conn, cursor, reform_records
+    )
 
-        # Bulk upsert reforms
-        reforms_created, reforms_updated = self.bulk_upsert_reforms(reform_rows)
+    citation_rows = build_citation_rows(reform_ids, deduped_reforms)
+    bulk_insert_citations(conn, cursor, citation_rows)
 
-        # Insert citations
-        for (place_id, reform_type_id, _), citations in reform_to_citations.items():
-            # Get the reform ID we just inserted
-            self.cursor.execute(
-                "SELECT id FROM reforms WHERE place_id = %s AND reform_type_id = %s LIMIT 1",
-                (place_id, reform_type_id)
-            )
-
-            result = self.cursor.fetchone()
-            if result:
-                reform_id = result[0]
-                for citation in citations:
-                    if isinstance(citation, dict):
-                        citation_rows.append((
-                            reform_id,
-                            citation.get('description'),
-                            citation.get('url'),
-                            citation.get('notes')
-                        ))
-
-        self.bulk_insert_citations(citation_rows)
-
-        return (len(places_batch), reforms_created, reforms_updated)
-
-    def log_ingestion(self, total_places: int, reforms_created: int,
-                      reforms_updated: int, duration: int, status: str,
-                      error_msg: Optional[str] = None):
-        """Log ingestion metadata."""
-        self.cursor.execute(
-            """INSERT INTO data_ingestion
-            (source_url, records_processed, places_created, places_updated,
-            reforms_created, reforms_updated, status, error_message, duration_seconds)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-            (PRN_DATA_URL, total_places, 0, total_places, reforms_created,
-             reforms_updated, status, error_msg, duration)
-        )
-
-        self.conn.commit()
-        logger.info(f"Logged ingestion: {reforms_created} new reforms, {reforms_updated} updated")
+    return places_created, places_updated, reforms_created, reforms_updated
 
 
 # ============================================================================
@@ -583,7 +403,7 @@ def main():
     args = parser.parse_args()
 
     start_time = datetime.now()
-    db = DatabaseManager(DATABASE_URL)
+    conn = cursor = None
     temp_dir = None
 
     try:
@@ -601,13 +421,15 @@ def main():
         raw_data = parse_prn_data(json_file)
         normalized_data = normalize_place_data(raw_data)
 
-        # Connect to database
-        db.connect()
-        db.load_reform_type_ids()
+        # Connect to database and load reform type map
+        conn, cursor = get_db_connection(DATABASE_URL)
+        reform_type_map = load_reform_type_map(cursor)
 
         # Ingest in batches
         logger.info(f"Ingesting {len(normalized_data)} places in batches of {BATCH_SIZE}...")
 
+        total_places_created = 0
+        total_places_updated = 0
         total_reforms_created = 0
         total_reforms_updated = 0
 
@@ -616,7 +438,12 @@ def main():
             batch_num = batch_idx // BATCH_SIZE + 1
 
             try:
-                places_count, reforms_created, reforms_updated = db.ingest_places_batch(batch)
+                places_created, places_updated, reforms_created, reforms_updated = ingest_places_batch(
+                    conn, cursor, batch, reform_type_map
+                )
+                places_count = len(batch)
+                total_places_created += places_created
+                total_places_updated += places_updated
                 total_reforms_created += reforms_created
                 total_reforms_updated += reforms_updated
 
@@ -630,9 +457,21 @@ def main():
                 raise
 
         # Log
+        log_ingestion(
+            conn,
+            cursor,
+            source_name='PRN',
+            records_processed=len(normalized_data),
+            places_created=total_places_created,
+            places_updated=total_places_updated,
+            reforms_created=total_reforms_created,
+            reforms_updated=total_reforms_updated,
+            status='success',
+            start_time=start_time,
+            source_url=PRN_DATA_URL,
+        )
+
         duration = int((datetime.now() - start_time).total_seconds())
-        db.log_ingestion(len(normalized_data), total_reforms_created, total_reforms_updated,
-                         duration, 'success')
 
         logger.info(
             f"\n{'='*60}\n"
@@ -645,19 +484,29 @@ def main():
 
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
-        duration = int((datetime.now() - start_time).total_seconds())
-
         try:
-            if not db.conn:
-                db.connect()
-            db.log_ingestion(0, 0, 0, duration, 'failed', str(e))
+            if conn and cursor:
+                log_ingestion(
+                    conn,
+                    cursor,
+                    source_name='PRN',
+                    records_processed=0,
+                    places_created=0,
+                    places_updated=0,
+                    reforms_created=0,
+                    reforms_updated=0,
+                    status='failed',
+                    start_time=start_time,
+                    source_url=PRN_DATA_URL,
+                    error_message=str(e),
+                )
         except Exception:
             pass
 
         raise
 
     finally:
-        db.disconnect()
+        close_db_connection(conn, cursor)
 
         # Cleanup
         if temp_dir:
