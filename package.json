@@ -1,0 +1,14 @@
+{
+  "name": "urbanist-reform-map",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo \"No build step yet\""
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.38.1"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

@@ -1,0 +1,7 @@
+[build]
+  publish = "src/public"
+
+[dev]
+  command = ""        # no framework dev command yet
+  publish = "src/public"
+  port = 8888
