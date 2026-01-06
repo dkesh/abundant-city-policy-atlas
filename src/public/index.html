@@ -468,6 +468,66 @@
             color: var(--color-text);
         }
 
+        /* ============ DATA SOURCES ============ */
+
+        .sources-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--color-light);
+        }
+
+        .sources-section strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--color-text);
+            font-size: 13px;
+        }
+
+        .sources-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            text-decoration: none;
+            color: var(--color-text);
+            transition: all 0.2s;
+        }
+
+        .source-badge:hover {
+            background: #e8e9ea;
+            border-color: var(--color-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .source-logo {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        .source-name {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--color-dark);
+        }
+
+        .source-reporter {
+            font-size: 11px;
+            color: #7f8c8d;
+            padding-left: 6px;
+            border-left: 1px solid #ddd;
+        }
+
         .reporter-info {
             display: flex;
             align-items: center;
@@ -1054,13 +1114,32 @@
                 `<div class="tag">${escapeHtml(r)}</div>`
             ).join('');
 
-            // Reporter with PRN logo
-            const reporterHtml = reform.reform.reporter ? `
-                <div class="reporter-info">
-                    <span class="prn-logo" title="Parking Reform Network">PRN</span>
-                    <span>${escapeHtml(reform.reform.reporter)}</span>
-                </div>
-            ` : '';
+            // Sources with logos and reporters
+            const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
+                reform.reform.sources.map(source => {
+                    const reporterInfo = source.reporter ? `<span class="source-reporter">${escapeHtml(source.reporter)}</span>` : '';
+                    const sourceUrl = source.source_url || source.website_url || '';
+                    const logoUrl = source.logo ? `${source.logo}` : '';
+                    
+                    if (sourceUrl) {
+                        return `
+                            <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="source-badge">
+                                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />` : ''}
+                                <span class="source-name">${escapeHtml(source.short_name)}</span>
+                                ${reporterInfo}
+                            </a>
+                        `;
+                    } else {
+                        return `
+                            <div class="source-badge">
+                                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />` : ''}
+                                <span class="source-name">${escapeHtml(source.short_name)}</span>
+                                ${reporterInfo}
+                            </div>
+                        `;
+                    }
+                }).join('')
+            : '';
 
             card.innerHTML = `
                 <div class="reform-header">
@@ -1113,24 +1192,21 @@
                         <div class="tag-list">${requirementsTags}</div>
                     </div>
                     ` : ''}
-
-                    ${reporterHtml ? `
-                    <div class="detail-item">
-                        <strong>Reporter</strong>
-                        ${reporterHtml}
-                    </div>
-                    ` : ''}
                 </div>
+
+                ${sourcesHtml ? `
+                <div class="sources-section">
+                    <strong>Data Sources</strong>
+                    <div class="sources-list">
+                        ${sourcesHtml}
+                    </div>
+                </div>
+                ` : ''}
 
                 <div class="reform-footer">
                     <span style="color: #95a5a6; font-size: 11px;">
                         ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
                     </span>
-                    ${reform.reform.url ? `
-                    <a href="${escapeHtml(reform.reform.url)}" target="_blank" rel="noopener" class="reform-link">
-                        View Source ↗
-                    </a>
-                    ` : ''}
                 </div>
             `;
 

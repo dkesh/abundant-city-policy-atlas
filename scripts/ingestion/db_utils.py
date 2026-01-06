@@ -137,15 +137,11 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             r.get('land_use'),
             r.get('adoption_date'),
             r.get('summary'),
-            r.get('reporter'),
             r.get('requirements'),
             r.get('notes'),
-            r.get('source_url'),
             r.get('reform_mechanism'),
             r.get('reform_phase'),
-            r.get('legislative_number'),
-            r.get('primary_source'),
-            r.get('secondary_source')
+            r.get('legislative_number')
         )
         for r in deduped
     ]
@@ -153,8 +149,8 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
     sql = """
         INSERT INTO reforms (
             place_id, reform_type_id, status, scope, land_use,
-            adoption_date, summary, reporter, requirements, notes, source_url,
-            reform_mechanism, reform_phase, legislative_number, primary_source, secondary_source
+            adoption_date, summary, requirements, notes,
+            reform_mechanism, reform_phase, legislative_number
         )
         VALUES %s
         ON CONFLICT (place_id, reform_type_id, adoption_date, status)
@@ -162,15 +158,11 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             scope = EXCLUDED.scope,
             land_use = EXCLUDED.land_use,
             summary = EXCLUDED.summary,
-            reporter = EXCLUDED.reporter,
             requirements = EXCLUDED.requirements,
             notes = EXCLUDED.notes,
-            source_url = EXCLUDED.source_url,
             reform_mechanism = EXCLUDED.reform_mechanism,
             reform_phase = EXCLUDED.reform_phase,
             legislative_number = EXCLUDED.legislative_number,
-            primary_source = EXCLUDED.primary_source,
-            secondary_source = EXCLUDED.secondary_source,
             updated_at = CURRENT_TIMESTAMP
         RETURNING id, (xmax = 0)::int AS is_insert
     """
@@ -216,6 +208,51 @@ def bulk_insert_citations(conn, cursor, citation_rows: List[Tuple]) -> int:
     execute_values(cursor, sql, citation_rows, page_size=1000)
     conn.commit()
     return len(citation_rows)
+
+
+def bulk_link_reform_sources(
+    conn, cursor, reform_ids: List[int], reforms: List[Dict], source_short_name: str
+) -> int:
+    """Link reforms to a data source via reform_sources junction table."""
+    if not reform_ids or not reforms:
+        return 0
+    
+    # Get source ID
+    cursor.execute("SELECT id FROM sources WHERE short_name = %s", (source_short_name,))
+    result = cursor.fetchone()
+    if not result:
+        raise ValueError(f"Source '{source_short_name}' not found in sources table")
+    
+    source_id = result[0]
+    
+    # Build rows for reform_sources
+    rows = []
+    for reform_id, reform in zip(reform_ids, reforms):
+        rows.append((
+            reform_id,
+            source_id,
+            reform.get('reporter'),
+            reform.get('source_url'),
+            reform.get('source_notes'),
+            reform.get('is_primary', True)  # Default to primary
+        ))
+    
+    sql = """
+        INSERT INTO reform_sources (
+            reform_id, source_id, reporter, source_url, notes, is_primary
+        )
+        VALUES %s
+        ON CONFLICT (reform_id, source_id) 
+        DO UPDATE SET
+            reporter = COALESCE(EXCLUDED.reporter, reform_sources.reporter),
+            source_url = COALESCE(EXCLUDED.source_url, reform_sources.source_url),
+            notes = COALESCE(EXCLUDED.notes, reform_sources.notes),
+            is_primary = EXCLUDED.is_primary
+    """
+    
+    execute_values(cursor, sql, rows, page_size=1000)
+    conn.commit()
+    return len(rows)
 
 
 def log_ingestion(

@@ -76,15 +76,11 @@
     land_use TEXT[],
     adoption_date DATE,
     summary TEXT,
-    reporter VARCHAR(255),
     requirements TEXT[],
     -- Added fields from the denormalized schema
     reform_mechanism VARCHAR(100),
     reform_phase VARCHAR(50),
     legislative_number VARCHAR(255),
-    source_url TEXT,
-    primary_source TEXT,
-    secondary_source TEXT,
     -- metadata
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +94,33 @@
   CREATE INDEX IF NOT EXISTS reforms_type_idx ON reforms(reform_type_id);
   CREATE INDEX IF NOT EXISTS reforms_adoption_idx ON reforms(adoption_date);
 
+-- Data sources table - tracks intermediate sources (PRN, ZRT, etc.)
+CREATE TABLE IF NOT EXISTS sources (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    short_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    website_url TEXT,
+    logo_filename VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Junction table for many-to-many relationship between reforms and sources
+CREATE TABLE IF NOT EXISTS reform_sources (
+    reform_id INTEGER NOT NULL REFERENCES reforms(id) ON DELETE CASCADE,
+    source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    reporter VARCHAR(255),              -- Person who reported to this source
+    source_url TEXT,                    -- Source-specific URL for this reform
+    notes TEXT,                         -- Source-specific notes
+    ingestion_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_primary BOOLEAN DEFAULT FALSE,   -- Designate primary source for ordering
+    PRIMARY KEY (reform_id, source_id)
+);
+
+CREATE INDEX IF NOT EXISTS reform_sources_reform_idx ON reform_sources(reform_id);
+CREATE INDEX IF NOT EXISTS reform_sources_source_idx ON reform_sources(source_id);
+
+-- Ultimate sources/citations table (different from intermediate data sources)
 CREATE TABLE reform_citations (
     id SERIAL NOT NULL,
     reform_id integer NOT NULL,
@@ -153,6 +176,15 @@ ON public.reform_citations (
     ('zrt:tod', 'ZRT', 'TOD Reform', 'Transit-oriented development reforms', '#f39c12', 'train', 6),
     ('zrt:other', 'ZRT', 'Other Reform', 'Other zoning or land use reforms', '#95a5a6', 'cog', 7)
   ON CONFLICT (code) DO NOTHING;
+
+  -- ============================================================================
+  -- SEED DATA: Sources (intermediate data sources)
+  -- ============================================================================
+
+  INSERT INTO sources (name, short_name, description, website_url, logo_filename) VALUES
+    ('Parking Reform Network', 'PRN', 'A grassroots advocacy organization working to eliminate parking mandates across North America', 'https://parkingreform.org/', 'prn-logo.svg'),
+    ('Berkeley Zoning Reform Tracker', 'ZRT', 'Zoning reform tracking project by UC Berkeley Othering & Belonging Institute', 'https://belonging.berkeley.edu/', 'zrt-logo.svg')
+  ON CONFLICT (short_name) DO NOTHING;
 
   -- ============================================================================
   -- US STATES SEED DATA
@@ -246,14 +278,17 @@ ON public.reform_citations (
     r.adoption_date,
     p.latitude,
     p.longitude,
-    COALESCE(r.primary_source, r.source_url) as source,
-    r.source_url,
+    STRING_AGG(DISTINCT src.short_name, ', ') as sources,
+    STRING_AGG(DISTINCT rs.source_url, ', ') FILTER (WHERE rs.source_url IS NOT NULL) as source_urls,
     r.notes,
     r.created_at
   FROM reforms r
   JOIN places p ON r.place_id = p.id
   JOIN states s ON p.state_code = s.state_code
   JOIN reform_types rt ON r.reform_type_id = rt.id
+  LEFT JOIN reform_sources rs ON r.id = rs.reform_id
+  LEFT JOIN sources src ON rs.source_id = src.id
+  GROUP BY r.id, s.state_code, s.state_name, rt.code, rt.name, rt.color_hex, rt.sort_order, p.name, p.place_type, s.region, r.summary, r.notes, r.scope, r.reform_mechanism, r.reform_phase, r.adoption_date, p.latitude, p.longitude, r.created_at
   ORDER BY s.state_name, p.name, rt.sort_order;
 
   -- View: Summary of reforms by state and type
@@ -282,11 +317,12 @@ ON public.reform_citations (
     s.state_name,
     COUNT(DISTINCT r.id) as total_reforms,
     COUNT(DISTINCT r.reform_type_id) as type_count,
-    COUNT(DISTINCT COALESCE(r.primary_source, r.source_url)) as source_count,
+    COUNT(DISTINCT rs.source_id) as source_count,
     MAX(r.adoption_date) as most_recent_reform
   FROM states s
   JOIN places p ON p.state_code = s.state_code
   JOIN reforms r ON r.place_id = p.id
+  LEFT JOIN reform_sources rs ON r.id = rs.reform_id
   GROUP BY s.id, s.state_code, s.state_name;
 
   -- View: Reforms by municipality and source
@@ -295,7 +331,7 @@ ON public.reform_citations (
     p.name as municipality_name,
     s.state_code,
     s.state_name,
-    COALESCE(r.primary_source, r.source_url) as source,
+    STRING_AGG(DISTINCT src.short_name, ', ') as sources,
     COUNT(DISTINCT r.id) as reform_count,
     COUNT(DISTINCT r.reform_type_id) as type_count,
     p.latitude,
@@ -303,8 +339,10 @@ ON public.reform_citations (
   FROM reforms r
   JOIN places p ON r.place_id = p.id
   JOIN states s ON p.state_code = s.state_code
+  LEFT JOIN reform_sources rs ON r.id = rs.reform_id
+  LEFT JOIN sources src ON rs.source_id = src.id
   WHERE p.name IS NOT NULL
-  GROUP BY p.name, s.state_code, s.state_name, COALESCE(r.primary_source, r.source_url), p.latitude, p.longitude
+  GROUP BY p.name, s.state_code, s.state_name, p.latitude, p.longitude
   ORDER BY reform_count DESC;
 
   -- ============================================================================

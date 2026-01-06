@@ -27,6 +27,7 @@ from helpers import normalize_place_name
 from db_utils import (
     build_citation_rows,
     bulk_insert_citations,
+    bulk_link_reform_sources,
     bulk_upsert_places,
     bulk_upsert_reforms,
     close_db_connection,
@@ -357,16 +358,17 @@ def _build_reform_records(
                 'land_use': reform['land_use'],
                 'adoption_date': reform['adoption_date'],
                 'summary': reform['summary'],
-                'reporter': reform['reporter'],
                 'requirements': reform['requirements'],
                 'notes': reform['notes'],
-                'source_url': reform['source_url'],
                 'citations': reform.get('citations', []),
                 'reform_mechanism': None,
                 'reform_phase': None,
                 'legislative_number': None,
-                'primary_source': None,
-                'secondary_source': None,
+                # Source-specific fields (for reform_sources table)
+                'reporter': reform['reporter'],
+                'source_url': reform['source_url'],
+                'source_notes': None,
+                'is_primary': True
             })
 
     return reform_records
@@ -386,6 +388,10 @@ def ingest_places_batch(
         conn, cursor, reform_records
     )
 
+    # Link reforms to PRN source
+    bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'PRN')
+
+    # Insert citations
     citation_rows = build_citation_rows(reform_ids, deduped_reforms)
     bulk_insert_citations(conn, cursor, citation_rows)
 

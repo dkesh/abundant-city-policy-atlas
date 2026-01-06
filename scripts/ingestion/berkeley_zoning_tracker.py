@@ -31,6 +31,7 @@ from helpers import normalize_place_name
 from db_utils import (
     build_citation_rows,
     bulk_insert_citations,
+    bulk_link_reform_sources,
     bulk_upsert_places,
     bulk_upsert_reforms,
     close_db_connection,
@@ -179,6 +180,8 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
         requirements = None
         notes = f"From ZRT: {row.get('time_status', '')}"
         source_url = row.get('primary_source')
+        secondary_source = row.get('secondary_source')
+        source_notes = f"Secondary: {secondary_source}" if secondary_source else None
 
         return {
             'place_id': pid,
@@ -188,16 +191,17 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
             'land_use': land_use,
             'adoption_date': adoption_date,
             'summary': summary,
-            'reporter': reporter,
             'requirements': requirements,
             'notes': notes,
-            'source_url': source_url,
             'reform_mechanism': row.get('reform_mechanism'),
             'reform_phase': reform_phase,
             'legislative_number': row.get('legislative_number_policy_name'),
-            'primary_source': row.get('primary_source'),
-            'secondary_source': row.get('secondary_source'),
             'citations': [],
+            # Source-specific fields (for reform_sources table)
+            'reporter': reporter,
+            'source_url': source_url,
+            'source_notes': source_notes,
+            'is_primary': True
         }
 
     except Exception as e:
@@ -293,6 +297,10 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
                     created, updated, reform_ids, deduped_reforms = bulk_upsert_reforms(
                         conn, cursor, reform_rows
                     )
+                    
+                    # Link reforms to ZRT source
+                    bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'ZRT')
+                    
                     citation_rows = build_citation_rows(reform_ids, deduped_reforms)
                     bulk_insert_citations(conn, cursor, citation_rows)
                     total_created += created

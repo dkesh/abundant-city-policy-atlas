@@ -126,7 +126,7 @@ exports.handler = async (event, context) => {
     console.log('Query params:', JSON.stringify(queryParams));
     console.log('============================');
 
-    // Query reforms with all related data
+    // Query reforms with all related data including sources
     const query = `
       SELECT
         r.id,
@@ -149,16 +149,36 @@ exports.handler = async (event, context) => {
         r.land_use,
         r.adoption_date,
         r.summary,
-        r.reporter,
         r.requirements,
-        r.source_url as reform_url,
         r.notes,
-        r.created_at
+        r.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', src.id,
+              'name', src.name,
+              'short_name', src.short_name,
+              'logo', src.logo_filename,
+              'website_url', src.website_url,
+              'reporter', rs.reporter,
+              'source_url', rs.source_url,
+              'notes', rs.notes,
+              'is_primary', rs.is_primary
+            ) ORDER BY rs.is_primary DESC, src.name
+          ) FILTER (WHERE src.id IS NOT NULL),
+          '[]'::json
+        ) as sources
       FROM reforms r
       JOIN places p ON r.place_id = p.id
       JOIN states s ON p.state_code = s.state_code
       JOIN reform_types rt ON r.reform_type_id = rt.id
+      LEFT JOIN reform_sources rs ON r.id = rs.reform_id
+      LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
+      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, p.source_url,
+               s.state_code, s.state_name, s.region,
+               rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
+               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at
       ORDER BY s.state_name, p.name, rt.sort_order, r.adoption_date DESC
       LIMIT $${paramCount}
     `;
@@ -193,10 +213,9 @@ exports.handler = async (event, context) => {
         land_use: row.land_use || [],
         adoption_date: row.adoption_date ? row.adoption_date.toISOString().split('T')[0] : null,
         summary: row.summary || '',
-        reporter: row.reporter || '',
         requirements: row.requirements || [],
         notes: row.notes || '',
-        url: row.reform_url || ''
+        sources: row.sources || []
       }
     }));
 
