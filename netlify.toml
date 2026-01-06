@@ -1,7 +1,19 @@
 [build]
+  functions = "netlify/functions"
   publish = "src/public"
 
 [dev]
-  command = ""        # no framework dev command yet
+  command = ""
   publish = "src/public"
   port = 8888
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
