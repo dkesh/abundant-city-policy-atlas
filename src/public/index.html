@@ -106,7 +106,7 @@
 
                 <!-- Reform Type Filter (Multi-select Checkboxes) -->
                 <div class="filter-group">
-                    <label>Reform Types</label>
+                    <label>Reform Type</label>
                     <div class="checkbox-group">
                         <label><input type="checkbox" class="reformTypeCheckbox" value="rm_min" checked> Parking mandates eliminated</label>
                         <label><input type="checkbox" class="reformTypeCheckbox" value="reduce_min" checked> Parking mandates reduced</label>
@@ -124,6 +124,38 @@
                     </div>
                 </div>
 
+                <!-- Region/State Filter (Hierarchical) -->
+                <div class="filter-group">
+                    <label>Location</label>
+                    <div class="checkbox-group" id="locationCheckboxes">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="filter-group">
+                    <label>Adoption Date Range</label>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+                        <input type="number" id="fromYear" placeholder="From" min="1900" max="2100" style="width: 80px;">
+                        <span>to</span>
+                        <input type="number" id="toYear" placeholder="To" min="1900" max="2100" style="width: 80px;">
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 6px; font-weight: normal;">
+                        <input type="checkbox" id="includeUnknownDates" checked>
+                        <span>Include unknown dates</span>
+                    </label>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <label>Reform Status</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" class="statusCheckbox" value="adopted" checked> Adopted</label>
+                        <label><input type="checkbox" class="statusCheckbox" value="proposed"> Proposed</label>
+                        <label><input type="checkbox" class="statusCheckbox" value="failed"> Failed</label>
+                    </div>
+                </div>
+
                 <!-- Population Filter (Range Slider) -->
                 <div class="filter-group">
                     <label>Population Range</label>
@@ -134,14 +166,6 @@
                     <div class="slider-values">
                         <span id="minPopulationLabel">0</span>
                         <span id="maxPopulationLabel">10,000,000</span>
-                    </div>
-                </div>
-
-                <!-- Region/State Filter (Hierarchical) -->
-                <div class="filter-group">
-                    <label>Location</label>
-                    <div class="checkbox-group" id="locationCheckboxes">
-                        <!-- Populated by JavaScript -->
                     </div>
                 </div>
 
@@ -219,11 +243,15 @@
 
         const reformTypeCheckboxes = document.querySelectorAll('.reformTypeCheckbox');
         const placeTypeCheckboxes = document.querySelectorAll('.placeTypeCheckbox');
+        const statusCheckboxes = document.querySelectorAll('.statusCheckbox');
         const minPopulationSlider = document.getElementById('minPopulation');
         const maxPopulationSlider = document.getElementById('maxPopulation');
         const minPopulationLabel = document.getElementById('minPopulationLabel');
         const maxPopulationLabel = document.getElementById('maxPopulationLabel');
         const locationCheckboxes = document.getElementById('locationCheckboxes');
+        const fromYear = document.getElementById('fromYear');
+        const toYear = document.getElementById('toYear');
+        const includeUnknownDates = document.getElementById('includeUnknownDates');
         const applyFiltersBtn = document.getElementById('applyFilters');
         const resetFiltersBtn = document.getElementById('resetFilters');
         const reformsList = document.getElementById('reformsList');
@@ -406,6 +434,16 @@
             return selected;
         }
 
+        function getSelectedStatuses() {
+            const selected = [];
+            statusCheckboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    selected.push(checkbox.value);
+                }
+            });
+            return selected;
+        }
+
         function getSelectedLocations() {
             const checkboxes = document.querySelectorAll('#locationCheckboxes input[data-state]:checked');
             const states = [];
@@ -543,9 +581,13 @@
         async function applyFilters() {
             const reformTypes = getSelectedReformTypes();
             const placeTypes = getSelectedPlaceTypes();
+            const statuses = getSelectedStatuses();
             const minPopulation = parseInt(minPopulationSlider.value);
             const maxPopulation = parseInt(maxPopulationSlider.value);
             const states = getSelectedLocations();
+            const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
+            const toYearVal = toYear.value ? parseInt(toYear.value) : null;
+            const includeUnknown = includeUnknownDates.checked;
 
             showLoading(true);
             hideError();
@@ -555,9 +597,13 @@
                 const params = new URLSearchParams();
                 reformTypes.forEach(t => params.append('reform_type', t));
                 placeTypes.forEach(t => params.append('place_type', t));
+                statuses.forEach(s => params.append('status', s));
                 if (minPopulation > 0) params.append('min_population', minPopulation);
                 if (maxPopulation < 10000000) params.append('max_population', maxPopulation);
                 states.forEach(s => params.append('state', s));
+                if (fromYearVal) params.append('from_year', fromYearVal);
+                if (toYearVal) params.append('to_year', toYearVal);
+                if (includeUnknown) params.append('include_unknown_dates', 'true');
 
                 const query = params.toString();
                 const url = query ? `/.netlify/functions/get-reforms?${query}` : '/.netlify/functions/get-reforms';
@@ -609,12 +655,20 @@
             placeTypeCheckboxes.forEach(cb => {
                 cb.checked = cb.value === 'city';
             });
+            statusCheckboxes.forEach(cb => {
+                cb.checked = cb.value === 'adopted';
+            });
             document.querySelectorAll('#locationCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
 
             // Reset sliders
             minPopulationSlider.value = 0;
             maxPopulationSlider.value = 10000000;
             updatePopulationLabels();
+
+            // Reset date range
+            fromYear.value = '';
+            toYear.value = '';
+            includeUnknownDates.checked = true;
 
             applyFilters();
         }

@@ -66,10 +66,14 @@ exports.handler = async (event, context) => {
     const reformTypes = parseMultiValue(params.reform_type);
     const placeTypes = parseMultiValue(params.place_type);
     const states = parseMultiValue(params.state);
+    const statuses = parseMultiValue(params.status);
     
     const minPopulation = params.min_population ? parseInt(params.min_population) : null;
     const maxPopulation = params.max_population ? parseInt(params.max_population) : null;
     const region = params.region ? params.region.trim() : null;
+    const fromYear = params.from_year ? parseInt(params.from_year) : null;
+    const toYear = params.to_year ? parseInt(params.to_year) : null;
+    const includeUnknownDates = params.include_unknown_dates === 'true';
     const limit = params.limit ? Math.min(parseInt(params.limit), 5000) : 1000;
 
     // Build dynamic query with filters
@@ -116,6 +120,40 @@ exports.handler = async (event, context) => {
       whereClauses.push(`s.state_name = ANY($${paramCount})`);
       queryParams.push(states);
       paramCount++;
+    }
+
+    // Status filter (MULTI - uses ANY)
+    if (statuses.length > 0) {
+      whereClauses.push(`LOWER(r.status) = ANY($${paramCount})`);
+      queryParams.push(statuses);
+      paramCount++;
+    }
+
+    // Date range filters
+    if (fromYear !== null || toYear !== null) {
+      const dateConditions = [];
+      
+      if (fromYear !== null) {
+        dateConditions.push(`EXTRACT(YEAR FROM r.adoption_date) >= $${paramCount}`);
+        queryParams.push(fromYear);
+        paramCount++;
+      }
+      
+      if (toYear !== null) {
+        dateConditions.push(`EXTRACT(YEAR FROM r.adoption_date) <= $${paramCount}`);
+        queryParams.push(toYear);
+        paramCount++;
+      }
+      
+      // If we should include unknown dates, OR with IS NULL
+      if (includeUnknownDates) {
+        whereClauses.push(`(${dateConditions.join(' AND ')} OR r.adoption_date IS NULL)`);
+      } else {
+        whereClauses.push(`(${dateConditions.join(' AND ')})`);
+      }
+    } else if (!includeUnknownDates) {
+      // If no year range but excluding unknowns, filter out nulls
+      whereClauses.push(`r.adoption_date IS NOT NULL`);
     }
 
     // Build final WHERE clause
