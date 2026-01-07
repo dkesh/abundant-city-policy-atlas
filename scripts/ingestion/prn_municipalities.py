@@ -65,10 +65,17 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
 # Reform type mapping (codes used in JSON)
-REFORM_TYPE_MAP = {
-    'rm_min': 'Parking Mandates Eliminated',
-    'reduce_min': 'Parking Mandates Reduced',
-    'add_max': 'Parking Maximums'
+REFORM_TYPE_KEYS = [
+    'rm_min',
+    'reduce_min',
+    'add_max'
+]
+
+# Map JSON keys to Universal DB Codes
+DB_TYPE_MAPPING = {
+    'rm_min': 'parking:eliminated',
+    'reduce_min': 'parking:reduced',
+    'add_max': 'parking:maximums'
 }
 
 # State name to state code mapping
@@ -266,7 +273,7 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
                 pass
 
         # Extract reforms by type
-        for reform_type in REFORM_TYPE_MAP.keys():
+        for reform_type in REFORM_TYPE_KEYS:
             if reform_type in place_data and place_data[reform_type]:
                 for reform in place_data[reform_type]:
                     if not isinstance(reform, dict):
@@ -345,9 +352,12 @@ def _build_reform_records(
             continue
 
         for reform in place['reforms']:
-            reform_type_id = reform_type_map.get(reform['reform_type'])
+            # Map JSON code (rm_min) -> Universal Code (parking:eliminated) -> DB ID
+            universal_code = DB_TYPE_MAPPING.get(reform['reform_type'])
+            reform_type_id = reform_type_map.get(universal_code)
+            
             if reform_type_id is None:
-                logger.warning(f"Unknown reform type: {reform['reform_type']}")
+                logger.warning(f"Unknown reform type: {reform['reform_type']} -> {universal_code}")
                 continue
 
             reform_records.append({

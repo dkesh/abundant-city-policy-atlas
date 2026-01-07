@@ -30,7 +30,7 @@ exports.handler = async (event, context) => {
       SELECT 
         id,
         code,
-        source,
+        category,
         name,
         description,
         color_hex,
@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
     const reformTypes = result.rows.map(row => ({
       id: row.id,
       code: row.code,
-      source: row.source,
+      category: row.category,
       name: row.name,
       description: row.description,
       colorHex: row.color_hex,

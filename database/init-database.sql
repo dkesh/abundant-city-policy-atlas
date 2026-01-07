@@ -30,11 +30,11 @@
   -- Create spatial index on states geometry
   CREATE INDEX IF NOT EXISTS states_geom_idx ON states USING GIST(geom);
 
-  -- Reform types table - normalized for both PRN and ZRT
+  -- Reform types table - Universal (Source Agnostic)
   CREATE TABLE IF NOT EXISTS reform_types (
     id SERIAL PRIMARY KEY,
-    code VARCHAR(50) UNIQUE NOT NULL,  -- prn:rm_min, zrt:adu, etc.
-    source VARCHAR(10) NOT NULL DEFAULT 'PRN',       -- PRN or ZRT
+    code VARCHAR(50) UNIQUE NOT NULL,  -- e.g., 'parking:eliminated', 'housing:adu'
+    category VARCHAR(50),              -- New Parent Category (e.g., 'Parking', 'Housing Types')
     name VARCHAR(100) NOT NULL,        -- Display name
     description TEXT,
     color_hex VARCHAR(7),              -- Color for UI
@@ -180,23 +180,58 @@ ON public.reform_citations (
   );
 
   -- ============================================================================
-  -- SEED DATA: Reform Types (from both sources)
+  -- SEED DATA: Reform Types (Universal)
   -- ============================================================================
 
-  -- PRN Reform Types (Parking)
-  INSERT INTO reform_types (code, source, name, description, color_hex, icon_name, sort_order) VALUES
-    ('prn:rm_min', 'PRN', 'Parking Minimums Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 1),
-    ('prn:reduce_min', 'PRN', 'Parking Minimums Reduced', 'Reduced or eliminated parking minimum requirements', '#2ecc71', 'minus-circle', 2),
-    ('prn:add_max', 'PRN', 'Parking Maximums', 'Maximum parking limits introduced', '#e74c3c', 'arrows-alt', 3)
-  ON CONFLICT (code) DO NOTHING;
+  INSERT INTO reform_types (code, category, name, description, color_hex, icon_name, sort_order) VALUES
+    -- PARKING
+    ('parking:eliminated', 'Parking', 'Parking Minimums Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
+    ('parking:reduced', 'Parking', 'Parking Minimums Reduced', 'Reduced or eliminated parking minimum requirements', '#2ecc71', 'minus-circle', 11),
+    ('parking:maximums', 'Parking', 'Parking Maximums', 'Maximum parking limits introduced', '#e74c3c', 'arrows-alt', 12),
+    ('parking:general', 'Parking', 'General Parking Reform', 'Other parking policy changes', '#27ae60', 'car', 13),
 
-  -- ZRT Reform Types (Zoning)
-  INSERT INTO reform_types (code, source, name, description, color_hex, icon_name, sort_order) VALUES
-    ('zrt:adu', 'ZRT', 'ADU Reform', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 4),
-    ('zrt:plex', 'ZRT', 'Plex Reform', 'Multi-unit (duplex, triplex, etc.) housing reforms', '#9b59b6', 'building', 5),
-    ('zrt:tod', 'ZRT', 'TOD Reform', 'Transit-oriented development reforms', '#f39c12', 'train', 6),
-    ('zrt:other', 'ZRT', 'Other Reform', 'Other zoning or land use reforms', '#95a5a6', 'cog', 7)
-  ON CONFLICT (code) DO NOTHING;
+    -- HOUSING TYPES
+    ('housing:adu', 'Housing Types', 'ADU Reform', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
+    ('housing:plex', 'Housing Types', 'Middle Housing', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
+    ('housing:multifamily', 'Housing Types', 'Multifamily', 'General multifamily housing reforms', '#8e44ad', 'city', 22),
+    ('housing:mixed_use', 'Housing Types', 'Mixed-Use', 'Residential + Commercial combined', '#d35400', 'store', 23),
+    ('housing:sro', 'Housing Types', 'Single Room Occupancy', 'SRO housing reforms', '#c0392b', 'bed', 24),
+    ('housing:manufactured', 'Housing Types', 'Manufactured Housing', 'Manufactured housing reforms', '#16a085', 'home', 25),
+    ('housing:tiny_homes', 'Housing Types', 'Tiny Homes', 'Tiny home regulations', '#27ae60', 'leaf', 26),
+    ('housing:cottage_courts', 'Housing Types', 'Cottage Courts', 'Cottage court developments', '#f1c40f', 'home', 27),
+    ('housing:group_housing', 'Housing Types', 'Group Housing', 'Group housing regulations', '#e67e22', 'users', 28),
+    ('housing:courtyard', 'Housing Types', 'Courtyard Apartments', 'Courtyard apartment reforms', '#2980b9', 'building', 29),
+    ('housing:sf_detached', 'Housing Types', 'Single-Family Detached', 'Single-family detached housing reforms', '#95a5a6', 'home', 30),
+
+    -- PROCESS
+    ('process:permitting', 'Process', 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 40),
+    ('process:by_right', 'Process', 'By-Right', 'By-right approval processes', '#27ae60', 'check-circle', 41),
+    ('process:hearings', 'Process', 'Public Hearings', 'Public hearing requirements', '#c0392b', 'bullhorn', 42),
+    ('process:design_review', 'Process', 'Design Review', 'Design review standards', '#8e44ad', 'pencil-ruler', 43),
+    ('process:impact_fees', 'Process', 'Impact Fees', 'Development impact fee reforms', '#f39c12', 'hand-holding-usd', 44),
+    ('process:environmental', 'Process', 'Environmental Review', 'Environmental review reforms', '#2ecc71', 'leaf', 45),
+
+    -- LAND USE
+    ('landuse:tod', 'Land Use', 'TOD Reform', 'Transit-oriented development reforms', '#2980b9', 'subway', 50),
+    ('landuse:lot_size', 'Land Use', 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 51),
+    ('landuse:setbacks', 'Land Use', 'Setbacks', 'Setback requirement reforms', '#8e44ad', 'compress-arrows-alt', 52),
+    ('landuse:far', 'Land Use', 'Floor Area Ratio', 'FAR regulations', '#d35400', 'expand', 53),
+    ('landuse:height', 'Land Use', 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 54),
+    ('landuse:density', 'Land Use', 'Density Limits', 'Dwelling unit density reforms', '#e74c3c', 'th', 55),
+    ('landuse:zoning', 'Land Use', 'General Zoning', 'General zoning reforms', '#2c3e50', 'map', 56),
+
+    -- BUILDING CODE
+    ('building:staircases', 'Building Code', 'Staircases', 'Single-stair reforms and related codes', '#95a5a6', 'stream', 60),
+
+    -- Catch-all
+    ('other:general', 'Other', 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 99)
+  ON CONFLICT (code) DO UPDATE SET
+    category = EXCLUDED.category,
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    color_hex = EXCLUDED.color_hex,
+    icon_name = EXCLUDED.icon_name,
+    sort_order = EXCLUDED.sort_order;
 
   -- ============================================================================
   -- SEED DATA: Sources (intermediate data sources)

@@ -136,10 +136,10 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
     types = [t.strip() for t in str(zrt_type).split(',')]
     
     mapping = {
-        'ADU Reform': 'zrt:adu',
-        'Plex Reform': 'zrt:plex',
-        'TOD Reform': 'zrt:tod',
-        'Other Reform': 'zrt:other',
+        'ADU Reform': 'housing:adu',
+        'Plex Reform': 'housing:plex',
+        'TOD Reform': 'landuse:tod',
+        'Other Reform': 'other:general',
     }
     
     # Return the first matching type
@@ -148,7 +148,7 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
             return mapping[t]
     
     # Default to other if no match
-    return 'zrt:other'
+    return 'other:general'
 
 def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optional[Dict]:
     """Parse a single CSV row into a reform payload for upsert."""

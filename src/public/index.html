@@ -290,17 +290,57 @@
                 const container = document.querySelector('.filter-group .checkbox-group');
                 container.innerHTML = '';
 
+                // Group Types by Category
+                const byCategory = {};
                 data.reformTypes.forEach(rt => {
-                    const label = document.createElement('label');
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.className = 'reformTypeCheckbox';
-                    checkbox.value = rt.code;
-                    checkbox.checked = true;
-                    
-                    label.appendChild(checkbox);
-                    label.appendChild(document.createTextNode(' ' + rt.name));
-                    container.appendChild(label);
+                    const cat = rt.category || 'Other';
+                    if (!byCategory[cat]) byCategory[cat] = [];
+                    byCategory[cat].push(rt);
+                });
+
+                // Define order
+                const catOrder = ['Parking', 'Housing Types', 'Process', 'Land Use', 'Building Code', 'Other'];
+
+                // Render Groups
+                catOrder.forEach(cat => {
+                    if (!byCategory[cat]) return;
+
+                    // Category Header
+                    const catHeader = document.createElement('h4');
+                    catHeader.style.marginTop = '12px';
+                    catHeader.style.marginBottom = '6px';
+                    catHeader.style.fontSize = '0.85rem';
+                    catHeader.style.textTransform = 'uppercase';
+                    catHeader.style.letterSpacing = '0.05em';
+                    catHeader.style.color = '#7f8c8d';
+                    catHeader.style.borderBottom = '1px solid #eee';
+                    catHeader.style.paddingBottom = '4px';
+                    catHeader.textContent = cat;
+                    container.appendChild(catHeader);
+
+                    // Items
+                    byCategory[cat].forEach(rt => {
+                        const label = document.createElement('label');
+                        label.style.display = 'flex';
+                        label.style.alignItems = 'center';
+                        label.style.marginBottom = '4px';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'reformTypeCheckbox';
+                        checkbox.value = rt.code;
+                        checkbox.checked = true;
+                        
+                        // Add color indicator?
+                        if (rt.color_hex) {
+                           label.style.borderLeft = `3px solid ${rt.color_hex}`;
+                           label.style.paddingLeft = '8px';
+                        }
+
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(' ' + rt.name));
+                        container.appendChild(label);
+                    });
                 });
             } catch (error) {
                 console.error('Error loading reform types:', error);

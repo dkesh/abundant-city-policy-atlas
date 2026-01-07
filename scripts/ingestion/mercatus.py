@@ -30,6 +30,29 @@ logger = logging.getLogger(__name__)
 
 MERCATUS_SOURCE = 'Mercatus (2025 Housing Bills)'
 
+# Mapping from Mercatus Issue tags to Universal Reform Codes
+MERCATUS_TYPE_MAPPING = {
+    'adu': 'housing:adu',
+    'adus': 'housing:adu',
+    'building code': 'building:staircases', # Best fit for now
+    'permitting': 'process:permitting',
+    'urbanity': 'landuse:zoning', # Generic zoning reform
+    'parking': 'parking:general',
+    'minimum lot size': 'landuse:lot_size',
+    'tod': 'landuse:tod',
+    'far': 'landuse:far',
+    'floor area ratio': 'landuse:far',
+    'height limit': 'landuse:height',
+    'missing middle': 'housing:plex',
+    'shot clock': 'process:permitting',
+    'shot clocks': 'process:permitting',
+    'vesting': 'process:permitting',
+    'townhouses': 'housing:plex',
+    'tiffs': 'process:impact_fees', # Maybe?
+    'tif': 'process:impact_fees',
+    'anti-investor': 'other:general'
+}
+
 # Status mapping
 STATUS_MAP = {
     'Effective': 'Adopted',
@@ -94,41 +117,37 @@ def get_normalized_status(mercatus_status: str) -> str:
 
 def ensure_reform_types(conn, cursor, issues: Set[str]) -> Dict[str, int]:
     """
-    Ensures Compass/Mercatus reform types exist.
+    Maps Mercatus issues to Universal Reform Types.
     Returns mapping of lowercase issue name -> reform_type_id.
     """
-    # 1. Fetch existing 'Mercatus' source types
-    cursor.execute("SELECT id, name FROM reform_types WHERE source = 'Mercatus'")
-    # Map name.lower() -> id
-    existing = {name.lower(): rid for rid, name in cursor.fetchall()}
+    # 1. Load Universal Map (code -> id)
+    cursor.execute("SELECT id, code FROM reform_types")
+    code_to_id = {code: rid for rid, code in cursor.fetchall()}
     
-    mapping = existing.copy()
+    mapping = {}
     
-    # 2. Identify missing
-    missing = [i for i in issues if i and i.lower() not in existing]
-    
-    if missing:
-        logger.info(f"Creating {len(missing)} new reform types using Mercatus issues.")
-        rows = []
-        for issue in missing:
-            # Generate code: mercatus:permitting_urbanity -> mercatus:permitting_urbanity
-            slug = re.sub(r'[^a-z0-9]+', '_', issue.lower()).strip('_')
-            code = f"mercatus:{slug}"
-            # Name: Issue string
-            rows.append((code, 'Mercatus', issue, '#8FBC8F')) # DarkSeaGreen for Mercatus
-            
-        sql = """
-            INSERT INTO reform_types (code, source, name, color_hex)
-            VALUES %s
-            ON CONFLICT (code) DO NOTHING
-            RETURNING id, name
-        """
-        execute_values(cursor, sql, rows)
+    for issue in issues:
+        issue_lower = issue.lower().strip()
         
-        # 3. Fetch again to get new IDs (since ON CONFLICT DO NOTHING might skip, we must query)
-        cursor.execute("SELECT id, name FROM reform_types WHERE source = 'Mercatus'")
-        for rid, name in cursor.fetchall():
-            mapping[name.lower()] = rid
+        # Try mapped lookup
+        universal_code = MERCATUS_TYPE_MAPPING.get(issue_lower)
+        
+        # Heuristics/Fallbacks
+        if not universal_code:
+            if 'adu' in issue_lower: universal_code = 'housing:adu'
+            elif 'parking' in issue_lower: universal_code = 'parking:general'
+            elif 'permit' in issue_lower: universal_code = 'process:permitting'
+            elif 'zoning' in issue_lower: universal_code = 'landuse:zoning'
+            elif 'stair' in issue_lower: universal_code = 'building:staircases'
+            else: universal_code = 'other:general'
+        
+        if universal_code in code_to_id:
+            mapping[issue.lower()] = code_to_id[universal_code]
+        else:
+            logger.warning(f"  ⚠ Could not map issue '{issue}' to universal code '{universal_code}' (ID not found in DB)")
+            # Fallback to 'other:general' if valid
+            if 'other:general' in code_to_id:
+                mapping[issue.lower()] = code_to_id['other:general']
             
     return mapping
 
