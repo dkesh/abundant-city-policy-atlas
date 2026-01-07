@@ -305,41 +305,78 @@
                 catOrder.forEach(cat => {
                     if (!byCategory[cat]) return;
 
-                    // Category Header
-                    const catHeader = document.createElement('h4');
-                    catHeader.style.marginTop = '12px';
-                    catHeader.style.marginBottom = '6px';
-                    catHeader.style.fontSize = '0.85rem';
-                    catHeader.style.textTransform = 'uppercase';
-                    catHeader.style.letterSpacing = '0.05em';
-                    catHeader.style.color = '#7f8c8d';
-                    catHeader.style.borderBottom = '1px solid #eee';
-                    catHeader.style.paddingBottom = '4px';
-                    catHeader.textContent = cat;
+                    // 1. Create Header (Chevron + Checkbox + Label)
+                    const catHeader = document.createElement('div');
+                    catHeader.className = 'category-header'; // Reuses region-header style via CSS
+
+                    // Chevron
+                    const chevron = document.createElement('span');
+                    chevron.className = 'chevron';
+                    chevron.textContent = '▼';
+                    chevron.style.transform = 'rotate(-90deg)'; // Start collapsed
+                    
+                    // Label wrapper
+                    const labelGroup = document.createElement('label');
+                    labelGroup.className = 'category-group'; // Reuses region-group style
+                    labelGroup.style.display = 'flex';
+                    labelGroup.style.alignItems = 'center';
+                    labelGroup.style.fontWeight = '600';
+                    
+                    // Parent Checkbox
+                    const parentCb = document.createElement('input');
+                    parentCb.type = 'checkbox';
+                    parentCb.className = 'category-cb';
+                    parentCb.checked = true;
+                    parentCb.dataset.category = cat;
+                    parentCb.addEventListener('change', (e) => updateReformHierarchy(e.target));
+
+                    labelGroup.appendChild(parentCb);
+                    labelGroup.appendChild(document.createTextNode(' ' + cat));
+
+                    catHeader.appendChild(chevron);
+                    catHeader.appendChild(labelGroup);
                     container.appendChild(catHeader);
+
+                    // 2. Create Reform Items Container (Hidden by default)
+                    const reformsContainer = document.createElement('div');
+                    reformsContainer.className = 'reforms-container'; // Reuses states-container style
+                    reformsContainer.style.display = 'none';
 
                     // Items
                     byCategory[cat].forEach(rt => {
                         const label = document.createElement('label');
+                        label.className = 'reform-item'; // Reuses state-item style
                         label.style.display = 'flex';
                         label.style.alignItems = 'center';
-                        label.style.marginBottom = '4px';
                         
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
                         checkbox.className = 'reformTypeCheckbox';
                         checkbox.value = rt.code;
                         checkbox.checked = true;
+                        checkbox.dataset.category = cat;
+                        checkbox.dataset.color = rt.color_hex;
+                        checkbox.addEventListener('change', (e) => updateCategoryCheckbox(e.target));
                         
-                        // Add color indicator?
+                        // Color indicator
                         if (rt.color_hex) {
                            label.style.borderLeft = `3px solid ${rt.color_hex}`;
-                           label.style.paddingLeft = '8px';
+                           label.style.paddingLeft = '5px'; // slightly adjusted
                         }
 
                         label.appendChild(checkbox);
                         label.appendChild(document.createTextNode(' ' + rt.name));
-                        container.appendChild(label);
+                        reformsContainer.appendChild(label);
+                    });
+                    
+                    container.appendChild(reformsContainer);
+
+                    // Toggle click handler
+                    chevron.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isHidden = reformsContainer.style.display === 'none';
+                        reformsContainer.style.display = isHidden ? 'block' : 'none';
+                        chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
                     });
                 });
             } catch (error) {
@@ -408,6 +445,39 @@
 
             regionCheckbox.checked = allChecked;
             regionCheckbox.indeterminate = someChecked && !allChecked;
+        }
+
+        // --- Reform Type Hierarchy Helpers ---
+
+        function updateReformHierarchy(categoryCheckbox) {
+            const category = categoryCheckbox.dataset.category;
+            const reformCheckboxes = document.querySelectorAll(
+                `.reformTypeCheckbox[data-category="${category}"]`
+            );
+
+            reformCheckboxes.forEach(cb => {
+                cb.checked = categoryCheckbox.checked;
+            });
+        }
+
+        function updateCategoryCheckbox(reformCheckbox) {
+            const category = reformCheckbox.dataset.category;
+            // Find parent category checkbox (it has data-category but NOT class 'reformTypeCheckbox' in my new design, 
+            // or I can give it a specific class like 'category-cb')
+            const categoryCheckbox = document.querySelector(
+                `input.category-cb[data-category="${category}"]`
+            );
+
+            if (!categoryCheckbox) return;
+
+            const siblings = document.querySelectorAll(
+                `.reformTypeCheckbox[data-category="${category}"]`
+            );
+            const allChecked = Array.from(siblings).every(cb => cb.checked);
+            const someChecked = Array.from(siblings).some(cb => cb.checked);
+
+            categoryCheckbox.checked = allChecked;
+            categoryCheckbox.indeterminate = someChecked && !allChecked;
         }
 
         function initializeLocationFilter() {
@@ -531,7 +601,11 @@
 
         function resetFilters() {
             // Reset checkboxes
-            reformTypeCheckboxes.forEach(cb => cb.checked = true);
+            document.querySelectorAll('.reformTypeCheckbox').forEach(cb => cb.checked = true);
+            document.querySelectorAll('.category-cb').forEach(cb => {
+                cb.checked = true;
+                cb.indeterminate = false;
+            });
             placeTypeCheckboxes.forEach(cb => {
                 cb.checked = cb.value === 'city';
             });

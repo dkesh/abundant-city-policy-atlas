@@ -260,14 +260,13 @@ code {
 }
 
 /* Hierarchical checkboxes */
-.region-header {
+.region-header, .category-header {
     display: flex;
     align-items: center;
-    /* Removed justify-content: space-between to keep chevron on left next to text */
     padding: 2px 0;
 }
 
-.checkbox-group .region-group {
+.checkbox-group .region-group, .checkbox-group .category-group {
     margin-left: 0;
     flex-grow: 1;
 }
@@ -290,7 +289,8 @@ code {
     color: var(--color-text);
 }
 
-.states-container {
+.states-container,
+.reforms-container {
     padding-left: 10px;
     border-left: 1px solid #eee;
     margin-left: 10px; /* Center under the chevron/text gap */
