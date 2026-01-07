@@ -347,7 +347,10 @@ def main():
         links_created = db_utils.bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'Mercatus')
         logger.info(f"Source links created: {links_created}")
         
-        # 10. Log Ingestion
+        # 10. Geocode places without coordinates
+        db_utils.geocode_missing_places(conn, cursor)
+        
+        # 11. Log Ingestion
         db_utils.log_ingestion(
             conn, cursor,
             source_name=MERCATUS_SOURCE,

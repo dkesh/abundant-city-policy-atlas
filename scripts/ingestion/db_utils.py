@@ -6,13 +6,156 @@ citation insertion, and ingestion logging aligned with the schema.
 """
 
 import os
+import re
 from datetime import datetime
+from time import sleep
 from typing import Dict, List, Optional, Tuple
 
 import psycopg2
+import requests
 from psycopg2.extras import execute_values
 
 PlaceKey = Tuple[str, str, str]  # (state_code, name_lower, place_type)
+
+
+def place_key(name: str, state_code: str, place_type: str) -> PlaceKey:
+    """Normalized key for place lookups and maps."""
+    return (state_code or '', (name or '').strip().lower(), place_type)
+
+
+def geocode_place(place_name: str, state_code: Optional[str] = None, place_type: str = 'city') -> Tuple[Optional[float], Optional[float]]:
+    """
+    Geocode a place using OpenStreetMap Nominatim API.
+    Returns (latitude, longitude) or (None, None) if geocoding fails.
+    
+    Args:
+        place_name: Name of the place (e.g., "Berkeley")
+        state_code: US state code (e.g., "CA")
+        place_type: Type of place ('city', 'state', 'county')
+    
+    Returns:
+        Tuple of (latitude, longitude) or (None, None)
+    """
+    try:
+        # Build query
+        if place_type == 'state' and state_code:
+            query = f"{state_code}, USA"
+        elif state_code:
+            query = f"{place_name}, {state_code}, USA"
+        else:
+            query = f"{place_name}, USA"
+        
+        # Nominatim API
+        url = 'https://nominatim.openstreetmap.org/search'
+        params = {
+            'q': query,
+            'format': 'json',
+            'limit': 1
+        }
+        headers = {
+            'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
+        }
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        results = response.json()
+        if results:
+            lat = float(results[0]['lat'])
+            lon = float(results[0]['lon'])
+            return (lat, lon)
+        
+        return (None, None)
+    
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Geocoding failed for '{place_name}' ({state_code}): {e}")
+        return (None, None)
+    finally:
+        # Be respectful to Nominatim - small delay between requests
+        sleep(1)
+
+
+def bulk_update_place_coordinates(conn, cursor, places: List[Dict]) -> int:
+    """
+    Update coordinates for places that are missing them using Nominatim geocoding.
+    
+    Args:
+        conn: Database connection
+        cursor: Database cursor
+        places: List of dicts with 'id', 'name', 'state_code', 'place_type'
+    
+    Returns:
+        Number of places updated
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    updated = 0
+    
+    for place in places:
+        place_id = place.get('id')
+        name = place.get('name')
+        state_code = place.get('state_code')
+        place_type = place.get('place_type', 'city')
+        
+        if not name or not place_id:
+            continue
+        
+        lat, lon = geocode_place(name, state_code, place_type)
+        
+        if lat is not None and lon is not None:
+            cursor.execute("""
+                UPDATE places
+                SET latitude = %s, longitude = %s
+                WHERE id = %s
+            """, (lat, lon, place_id))
+            updated += 1
+            logger.info(f"  ✓ {name}, {state_code}: ({lat:.4f}, {lon:.4f})")
+        else:
+            logger.warning(f"  ✗ {name}, {state_code}: geocoding failed")
+    
+    conn.commit()
+    return updated
+
+
+def geocode_missing_places(conn, cursor, limit: int = 500) -> int:
+    """
+    Find and geocode all places missing both latitude and longitude.
+    
+    Args:
+        conn: Database connection
+        cursor: Database cursor
+        limit: Maximum number of places to geocode in one call
+    
+    Returns:
+        Number of places successfully geocoded
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    logger.info("Geocoding places without coordinates...")
+    cursor.execute("""
+        SELECT id, name, state_code, place_type
+        FROM places
+        WHERE latitude IS NULL AND longitude IS NULL
+        AND state_code IS NOT NULL
+        LIMIT %s
+    """, (limit,))
+    
+    places_to_geocode = [
+        dict(zip([d[0] for d in cursor.description], row))
+        for row in cursor.fetchall()
+    ]
+    
+    if not places_to_geocode:
+        logger.info("No places need geocoding")
+        return 0
+    
+    geocoded = bulk_update_place_coordinates(conn, cursor, places_to_geocode)
+    logger.info(f"Geocoded {geocoded}/{len(places_to_geocode)} places")
+    return geocoded
 
 
 def place_key(name: str, state_code: str, place_type: str) -> PlaceKey:

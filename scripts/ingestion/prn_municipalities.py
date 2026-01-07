@@ -472,6 +472,9 @@ def main():
                 logger.error(f"Error ingesting batch {batch_num}: {e}")
                 raise
 
+        # Geocode places without coordinates
+        geocode_missing_places(conn, cursor)
+
         # Log
         log_ingestion(
             conn,

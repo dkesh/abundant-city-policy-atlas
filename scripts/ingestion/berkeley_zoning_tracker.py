@@ -375,6 +375,9 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
                     total_updated += updated
                     reform_rows = []
 
+        # Geocode places without coordinates
+        geocode_missing_places(conn, cursor)
+
         log_ingestion(
             conn,
             cursor,
@@ -397,6 +400,7 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
         logger.info(f"  Reforms updated: {total_updated}")
         logger.info(f"  Duration: {duration}s")
         logger.info("="*60 + "\n")
+
 
         return len(rows), total_created, total_updated
 
