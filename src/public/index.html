@@ -374,7 +374,11 @@
             locationCheckboxes.innerHTML = '';
 
             Object.keys(REGIONS).forEach(region => {
-                // Region checkbox
+                // Region container
+                const regionHeader = document.createElement('div');
+                regionHeader.className = 'region-header';
+                
+                // Region checkbox label
                 const regionLabel = document.createElement('label');
                 regionLabel.className = 'region-group';
                 const regionCheckbox = document.createElement('input');
@@ -382,10 +386,25 @@
                 regionCheckbox.dataset.region = region;
                 regionCheckbox.addEventListener('change', (e) => updateLocationHierarchy(e.target));
                 regionLabel.appendChild(regionCheckbox);
-                regionLabel.appendChild(document.createTextNode(region));
-                locationCheckboxes.appendChild(regionLabel);
+                regionLabel.appendChild(document.createTextNode(' ' + region));
+                
+                // Chevron toggle
+                const chevron = document.createElement('span');
+                chevron.className = 'chevron';
+                chevron.textContent = '▼';
+                // Start collapsed
+                chevron.style.transform = 'rotate(-90deg)';
+                
+                // Header gets chevron + label (chevron on left)
+                regionHeader.appendChild(chevron);
+                regionHeader.appendChild(regionLabel);
+                locationCheckboxes.appendChild(regionHeader);
 
-                // State checkboxes
+                // States container (hidden by default)
+                const statesContainer = document.createElement('div');
+                statesContainer.className = 'states-container';
+                statesContainer.style.display = 'none';
+
                 REGIONS[region].forEach(state => {
                     const stateLabel = document.createElement('label');
                     stateLabel.className = 'state-item';
@@ -395,8 +414,18 @@
                     stateCheckbox.dataset.region = region;
                     stateCheckbox.addEventListener('change', (e) => updateRegionCheckbox(e.target));
                     stateLabel.appendChild(stateCheckbox);
-                    stateLabel.appendChild(document.createTextNode(state));
-                    locationCheckboxes.appendChild(stateLabel);
+                    stateLabel.appendChild(document.createTextNode(' ' + state));
+                    statesContainer.appendChild(stateLabel);
+                });
+                
+                locationCheckboxes.appendChild(statesContainer);
+
+                // Toggle click handler
+                chevron.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = statesContainer.style.display === 'none';
+                    statesContainer.style.display = isHidden ? 'block' : 'none';
+                    chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
                 });
             });
         }

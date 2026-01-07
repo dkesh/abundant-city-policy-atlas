@@ -260,12 +260,45 @@ code {
 }
 
 /* Hierarchical checkboxes */
+.region-header {
+    display: flex;
+    align-items: center;
+    /* Removed justify-content: space-between to keep chevron on left next to text */
+    padding: 2px 0;
+}
+
 .checkbox-group .region-group {
     margin-left: 0;
+    flex-grow: 1;
+}
+
+.chevron {
+    cursor: pointer;
+    font-size: 10px;
+    padding: 5px 8px 5px 0; /* Align left, padding-right for spacing */
+    color: #7f8c8d;
+    transition: transform 0.2s ease;
+    user-select: none;
+    width: 20px; /* Fixed width for alignment */
+    text-align: center;
+    flex-shrink: 0;
+    position: relative;
+    top: -2px;
+}
+
+.chevron:hover {
+    color: var(--color-text);
+}
+
+.states-container {
+    padding-left: 10px;
+    border-left: 1px solid #eee;
+    margin-left: 10px; /* Center under the chevron/text gap */
+    margin-bottom: 8px;
 }
 
 .checkbox-group .state-item {
-    margin-left: 20px;
+    margin-left: 10px;
     display: flex;
 }
 
