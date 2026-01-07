@@ -22,9 +22,12 @@ import csv
 import logging
 import argparse
 import traceback
+import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, List, Tuple
+
+import requests
 
 from dotenv import load_dotenv
 from helpers import normalize_place_name
@@ -236,22 +239,63 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
 # FILE HANDLING
 # ============================================================================
 
-def download_zoning_tracker_data(output_file: str = 'zoning-tracker-data.csv') -> str:
+def download_zoning_tracker_data(output_file: str = 'zoning-tracker-spreadsheet.csv') -> str:
     """
-    Download Zoning Reform Tracker data from Berkeley
-    
-    Note: The actual download link may need to be obtained by inspecting
-    the website. This is a placeholder that will need manual configuration.
+    Attempt to automatically download the ZRT CSV.
+    1) Try to fetch the ZRT page and locate a CSV link.
+    2) If not found or request fails, fall back to a known CSV URL.
+
+    Returns the local file path of the downloaded CSV.
     """
-    logger.info(f"Attempting to download Zoning Reform Tracker data...")
-    logger.info(f"Visit: {ZONING_TRACKER_URL}")
-    logger.info(f"Click 'Download Data' and save to a local file")
-    logger.info(f"Then run: python ingest_zoning_tracker.py --file <filename>")
-    
-    raise ValueError(
-        "Automatic download not implemented. "
-        "Please manually download the CSV from the Berkeley website and use --file option."
+    session = requests.Session()
+    headers = {
+        'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
+    }
+
+    fallback_url = (
+        'https://belonging.berkeley.edu/sites/default/files/2025-04/'
+        'zoning%20tracker%20spreadsheet%2002-28-2025.csv'
     )
+
+    csv_url: Optional[str] = None
+
+    try:
+        resp = session.get(ZONING_TRACKER_URL, headers=headers, timeout=20)
+        resp.raise_for_status()
+        html = resp.text
+
+        # Look for a direct CSV link in the page content
+        # Common pattern: /sites/default/files/...csv
+        match = re.search(r"href=[\"']([^\"']*sites/default/files/[^\"']*\.csv)[\"']", html, re.IGNORECASE)
+        if match:
+            csv_url = match.group(1)
+            # Normalize to absolute URL if needed
+            if csv_url.startswith('/'):
+                csv_url = 'https://belonging.berkeley.edu' + csv_url
+            logger.info(f"Found CSV link on page: {csv_url}")
+        else:
+            logger.warning("CSV link not found on page; using fallback URL.")
+    except Exception as e:
+        logger.warning(f"Failed to fetch ZRT page ({e}); using fallback URL.")
+
+    if not csv_url:
+        csv_url = fallback_url
+
+    # Download the CSV
+    try:
+        with session.get(csv_url, headers=headers, timeout=60, stream=True) as r:
+            r.raise_for_status()
+            # Ensure output directory exists
+            Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+            with open(output_file, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        logger.info(f"✓ Downloaded ZRT CSV to {output_file}")
+        return output_file
+    except Exception as e:
+        logger.error(f"✗ Failed to download CSV from {csv_url}: {e}")
+        raise
 
 def read_csv_file(filepath: str) -> List[Dict]:
     """Read and parse CSV file"""
@@ -292,7 +336,7 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
         if not csv_file:
             csv_file = 'zoning-tracker-spreadsheet.csv'
             if not Path(csv_file).exists():
-                download_zoning_tracker_data()
+                csv_file = download_zoning_tracker_data(csv_file)
 
         rows = read_csv_file(csv_file)
 
