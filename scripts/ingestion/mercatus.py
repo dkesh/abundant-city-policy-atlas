@@ -234,21 +234,43 @@ def main():
                     'desc': desc
                 })
 
-        # 2. Upsert Places (States)
+        # 2. Ensure Mercatus source exists
+        logger.info("Ensuring Mercatus source exists...")
+        cursor.execute("""
+            INSERT INTO sources (name, short_name, description, website_url, logo_filename)
+            VALUES (
+                'Mercatus Center',
+                'Mercatus',
+                'Mercatus Center at George Mason University - Housing Policy Tracker',
+                'https://www.mercatus.org/',
+                'mercatus-logo.svg'
+            )
+            ON CONFLICT (short_name) DO UPDATE SET
+                name = EXCLUDED.name,
+                description = EXCLUDED.description,
+                website_url = EXCLUDED.website_url,
+                logo_filename = EXCLUDED.logo_filename
+            RETURNING id
+        """)
+        mercatus_source_id = cursor.fetchone()[0]
+        conn.commit()
+        logger.info(f"Mercatus source ID: {mercatus_source_id}")
+
+        # 3. Upsert Places (States)
         logger.info(f"Upserting {len(raw_places)} places...")
         p_created, p_updated, place_map = db_utils.bulk_upsert_places(conn, cursor, raw_places)
         logger.info(f"Places: {p_created} created, {p_updated} updated.")
         
-        # 3. Upsert Policy Documents
+        # 4. Upsert Policy Documents
         logger.info(f"Upserting {len(policy_docs)} policy documents...")
         d_created, d_updated, doc_map = db_utils.bulk_upsert_policy_documents(conn, cursor, policy_docs)
         logger.info(f"Documents: {d_created} created, {d_updated} updated.")
         
-        # 4. Upsert Reform Types
+        # 5. Upsert Reform Types
         logger.info("Syncing reform types...")
         reform_type_map = ensure_reform_types(conn, cursor, all_issues)
         
-        # 5. Construct Reforms
+        # 6. Construct Reforms
         reforms_to_insert = []
         for bill in bill_data:
             # Reform needs: place_id, reform_type_id, status, etc.
@@ -263,6 +285,13 @@ def main():
                 
             doc_id = doc_map.get((bill['state_code'], bill['ref']))
             
+            # Get source URL from policy doc
+            source_url = None
+            for doc in policy_docs:
+                if doc['reference_number'] == bill['ref'] and doc['state_code'] == bill['state_code']:
+                    source_url = doc.get('document_url')
+                    break
+            
             for issue in bill['issues']:
                 rt_id = reform_type_map.get(issue.lower())
                 if not rt_id:
@@ -273,31 +302,26 @@ def main():
                     'reform_type_id': rt_id,
                     'policy_document_id': doc_id,
                     'status': bill['status'],
-                    'adoption_date': bill['date'], # Use intro date as base date? Or last_action?
-                    # Schema has 'adoption_date'. For Proposed bills, this is ambiguous.
-                    # Maybe null if not adopted? 
-                    # Constraint: UNIQUE(place_id, reform_type_id, adoption_date, status)
-                    # If adoption_date is part of unique key, we need it. 
-                    # If we change status, we might insert a new row? Ideally updates existing.
-                    # Let's use Date Introduced as 'adoption_date' (event date) for now, or NULL?
-                    # If NULL, we can't use it in Unique Key easily if DB doesn't support NULLS NOT DISTINCT (Postgres 15+ does).
-                    # 'adoption_date' implies when the reform was enacted.
-                    # For proposed bills, it's just the date of the record.
+                    'adoption_date': bill['date'],
                     'summary': bill['desc'],
                     'legislative_number': bill['ref'],
-                    'source_url': None, # In policy doc
+                    'source_url': source_url,
                     'source_notes': 'Mercatus 2025 Housing Bills',
                     'citations': []
-                    # TODO: Citations?
                 }
                 reforms_to_insert.append(reform)
         
-        # 6. Upsert Reforms
+        # 8. Upsert Reforms
         logger.info(f"Upserting {len(reforms_to_insert)} reforms...")
-        r_created, r_updated, r_ids, _ = db_utils.bulk_upsert_reforms(conn, cursor, reforms_to_insert)
+        r_created, r_updated, reform_ids, deduped_reforms = db_utils.bulk_upsert_reforms(conn, cursor, reforms_to_insert)
         logger.info(f"Reforms: {r_created} created, {r_updated} updated.")
         
-        # 7. Log Ingestion
+        # 9. Link Reforms to Mercatus Source
+        logger.info(f"Linking {len(reform_ids)} reforms to Mercatus source...")
+        links_created = db_utils.bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'Mercatus')
+        logger.info(f"Source links created: {links_created}")
+        
+        # 10. Log Ingestion
         db_utils.log_ingestion(
             conn, cursor,
             source_name=MERCATUS_SOURCE,
