@@ -189,7 +189,6 @@ ON public.reform_citations (
     ('parking:reduced', 'Parking', 'Parking Minimums Reduced', 'Reduced or eliminated parking minimum requirements', '#2ecc71', 'minus-circle', 11),
     ('parking:maximums', 'Parking', 'Parking Maximums', 'Maximum parking limits introduced', '#e74c3c', 'arrows-alt', 12),
     ('parking:general', 'Parking', 'General Parking Reform', 'Other parking policy changes', '#27ae60', 'car', 13),
-
     -- HOUSING TYPES
     ('housing:adu', 'Housing Types', 'ADU Reform', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
     ('housing:plex', 'Housing Types', 'Middle Housing', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
@@ -202,7 +201,6 @@ ON public.reform_citations (
     ('housing:group_housing', 'Housing Types', 'Group Housing', 'Group housing regulations', '#e67e22', 'users', 28),
     ('housing:courtyard', 'Housing Types', 'Courtyard Apartments', 'Courtyard apartment reforms', '#2980b9', 'building', 29),
     ('housing:sf_detached', 'Housing Types', 'Single-Family Detached', 'Single-family detached housing reforms', '#95a5a6', 'home', 30),
-
     -- PROCESS
     ('process:permitting', 'Process', 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 40),
     ('process:by_right', 'Process', 'By-Right', 'By-right approval processes', '#27ae60', 'check-circle', 41),
@@ -210,7 +208,6 @@ ON public.reform_citations (
     ('process:design_review', 'Process', 'Design Review', 'Design review standards', '#8e44ad', 'pencil-ruler', 43),
     ('process:impact_fees', 'Process', 'Impact Fees', 'Development impact fee reforms', '#f39c12', 'hand-holding-usd', 44),
     ('process:environmental', 'Process', 'Environmental Review', 'Environmental review reforms', '#2ecc71', 'leaf', 45),
-
     -- LAND USE
     ('landuse:tod', 'Land Use', 'TOD Reform', 'Transit-oriented development reforms', '#2980b9', 'subway', 50),
     ('landuse:lot_size', 'Land Use', 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 51),
@@ -219,10 +216,8 @@ ON public.reform_citations (
     ('landuse:height', 'Land Use', 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 54),
     ('landuse:density', 'Land Use', 'Density Limits', 'Dwelling unit density reforms', '#e74c3c', 'th', 55),
     ('landuse:zoning', 'Land Use', 'General Zoning', 'General zoning reforms', '#2c3e50', 'map', 56),
-
     -- BUILDING CODE
     ('building:staircases', 'Building Code', 'Staircases', 'Single-stair reforms and related codes', '#95a5a6', 'stream', 60),
-
     -- Catch-all
     ('other:general', 'Other', 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 99)
   ON CONFLICT (code) DO UPDATE SET
