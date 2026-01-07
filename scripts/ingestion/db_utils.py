@@ -106,6 +106,62 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
     return created, updated, place_id_map
 
 
+def bulk_upsert_policy_documents(conn, cursor, documents: List[Dict]) -> Tuple[int, int, Dict[Tuple[str, str], int]]:
+    """
+    Upsert policy documents and return (created_count, updated_count, doc_id_map).
+    doc_id_map uses (state_code, reference_number) as key -> id.
+    """
+    # Dedupe based on state_code + reference_number
+    deduped = {}
+    for doc in documents:
+        key = (doc.get('state_code'), doc.get('reference_number'))
+        if key[0] and key[1]: # Only include if we have both keys
+            deduped[key] = doc
+    
+    if not deduped:
+        return 0, 0, {}
+
+    rows = [
+        (
+            d.get('reference_number'), d.get('state_code'), d.get('place_id'),
+            d.get('title'), d.get('key_points'), d.get('analysis'),
+            d.get('document_url'), d.get('status'), d.get('last_action_date')
+        )
+        for d in deduped.values()
+    ]
+
+    sql = """
+        INSERT INTO policy_documents (
+            reference_number, state_code, place_id,
+            title, key_points, analysis,
+            document_url, status, last_action_date
+        )
+        VALUES %s
+        ON CONFLICT (state_code, reference_number) DO UPDATE
+        SET title = EXCLUDED.title,
+            key_points = EXCLUDED.key_points,
+            analysis = EXCLUDED.analysis,
+            document_url = EXCLUDED.document_url,
+            status = EXCLUDED.status,
+            last_action_date = EXCLUDED.last_action_date,
+            updated_at = CURRENT_TIMESTAMP
+        RETURNING id, state_code, reference_number, (xmax = 0)::int AS is_insert
+    """
+
+    results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+    conn.commit()
+
+    created = sum(1 for _, _, _, is_insert in results if is_insert)
+    updated = len(results) - created
+    
+    id_map = {}
+    for row in results:
+        doc_id, state, ref, _ = row
+        id_map[(state, ref)] = doc_id
+        
+    return created, updated, id_map
+
+
 def _dedupe_reforms(reforms: List[Dict]) -> List[Dict]:
     deduped: Dict[Tuple, Dict] = {}
     for reform in reforms:
@@ -132,6 +188,7 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
         (
             r['place_id'],
             r['reform_type_id'],
+            r.get('policy_document_id'),
             r.get('status'),
             r.get('scope'),
             r.get('land_use'),
@@ -148,13 +205,14 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
 
     sql = """
         INSERT INTO reforms (
-            place_id, reform_type_id, status, scope, land_use,
+            place_id, reform_type_id, policy_document_id, status, scope, land_use,
             adoption_date, summary, requirements, notes,
             reform_mechanism, reform_phase, legislative_number
         )
         VALUES %s
         ON CONFLICT (place_id, reform_type_id, adoption_date, status)
         DO UPDATE SET
+            policy_document_id = EXCLUDED.policy_document_id,
             scope = EXCLUDED.scope,
             land_use = EXCLUDED.land_use,
             summary = EXCLUDED.summary,

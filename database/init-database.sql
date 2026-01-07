@@ -65,11 +65,31 @@
   CREATE INDEX IF NOT EXISTS places_state_code_idx ON places(state_code);
   CREATE INDEX IF NOT EXISTS places_name_idx ON places(name);
 
+  -- Policy Documents (Bills, Ordinances, etc.)
+  CREATE TABLE IF NOT EXISTS policy_documents (
+    id SERIAL PRIMARY KEY,
+    reference_number VARCHAR(100) NOT NULL,  -- e.g. "AB 1234", "Ord. 55-2024"
+    state_code VARCHAR(2),                   -- For state bills
+    place_id INTEGER REFERENCES places(id) ON DELETE SET NULL, -- For local ordinances
+    title TEXT,
+    key_points TEXT[],                       -- "Why it matters" / "What it does"
+    analysis TEXT,                           -- Detailed analysis
+    document_url TEXT,                       -- Link to bill text
+    status VARCHAR(50),                      -- Current status
+    last_action_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(state_code, reference_number)
+  );
+
+  CREATE INDEX IF NOT EXISTS policy_docs_state_ref_idx ON policy_documents(state_code, reference_number);
+
   -- Normalized reforms table (place-based) - supports both PRN and ZRT data
   CREATE TABLE IF NOT EXISTS reforms (
     id SERIAL NOT NULL,
     place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
     reform_type_id INTEGER NOT NULL REFERENCES reform_types(id) ON DELETE CASCADE,
+    policy_document_id INTEGER REFERENCES policy_documents(id) ON DELETE SET NULL,
     -- status and details
     status VARCHAR(50),
     scope TEXT[],
@@ -93,6 +113,7 @@
   CREATE INDEX IF NOT EXISTS reforms_place_idx ON reforms(place_id);
   CREATE INDEX IF NOT EXISTS reforms_type_idx ON reforms(reform_type_id);
   CREATE INDEX IF NOT EXISTS reforms_adoption_idx ON reforms(adoption_date);
+  CREATE INDEX IF NOT EXISTS reforms_policy_doc_idx ON reforms(policy_document_id);
 
 -- Data sources table - tracks intermediate sources (PRN, ZRT, etc.)
 CREATE TABLE IF NOT EXISTS sources (
