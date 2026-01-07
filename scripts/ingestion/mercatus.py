@@ -16,6 +16,7 @@ from typing import Dict, List, Set, Tuple
 import psycopg2
 from psycopg2.extras import execute_values
 from dotenv import load_dotenv
+import requests
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +30,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 MERCATUS_SOURCE = 'Mercatus (2025 Housing Bills)'
+MERCATUS_CSV_URL = (
+    'https://www.quorum.us/api/sheet/vehiYnJcriswPJrHpUKe/'
+    '?format=csv&exclude=%7B%7D&is_public_sheet_download=true&searchingValue=%7B%7D&sortType=2'
+)
 
 # Mapping from Mercatus Issue tags to Universal Reform Codes
 MERCATUS_TYPE_MAPPING = {
@@ -153,14 +158,35 @@ def ensure_reform_types(conn, cursor, issues: Set[str]) -> Dict[str, int]:
 
 def main():
     parser = argparse.ArgumentParser(description='Ingest Mercatus housing bills CSV.')
-    parser.add_argument('--file', required=True, help='Path to the Mercatus CSV file')
+    parser.add_argument('--file', required=False, help='Path to the Mercatus CSV file')
+    parser.add_argument('--url', required=False, default=MERCATUS_CSV_URL,
+                        help='CSV URL to download if --file is not provided or missing')
+    parser.add_argument('--out', required=False, default='mercatus-2025-housing-bills.csv',
+                        help='Output filename when downloading the CSV')
     args = parser.parse_args()
-    
-    csv_path = args.file
 
-    if not os.path.exists(csv_path):
-        logger.error(f"CSV file not found at {csv_path}")
-        sys.exit(1)
+    def download_csv(url: str, output_file: str) -> str:
+        logger.info(f"Downloading Mercatus CSV from {url} ...")
+        headers = {
+            'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
+        }
+        try:
+            with requests.get(url, headers=headers, timeout=60, stream=True) as r:
+                r.raise_for_status()
+                with open(output_file, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            logger.info(f"✓ Saved CSV to {output_file}")
+            return output_file
+        except Exception as e:
+            logger.error(f"✗ Failed to download CSV: {e}")
+            raise
+
+    csv_path = args.file
+    if not csv_path or not os.path.exists(csv_path):
+        logger.info("No local CSV provided or file not found; fetching from web...")
+        csv_path = download_csv(args.url, args.out)
 
     conn, cursor = db_utils.get_db_connection()
     

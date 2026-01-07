@@ -26,4 +26,4 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       # Mercatus script currently requires a local file
-      run: python scripts/ingestion/mercatus.py --file database/testdata/mercatus-2025-housing-bills.csv
+      run: python scripts/ingestion/mercatus.py
