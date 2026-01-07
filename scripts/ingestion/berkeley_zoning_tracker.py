@@ -150,6 +150,30 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
     # Default to other if no match
     return 'other:general'
 
+def normalize_status(raw_status: Optional[str]) -> str:
+    """
+    Map ZRT status values to standardized reform statuses.
+    
+    ZRT uses: Approved, Denied/Rejected, Early Process, Late Process
+    We map to: Adopted, Failed, Proposed
+    """
+    if not raw_status:
+        return 'Proposed'
+    
+    status_lower = raw_status.lower().strip()
+    
+    # Map to standardized statuses
+    if status_lower in ['approved', 'enacted']:
+        return 'Adopted'
+    elif status_lower in ['denied/rejected', 'denied', 'rejected', 'vetoed']:
+        return 'Failed'
+    elif status_lower in ['early process', 'late process', 'introduced', 'in committee', 'passed chamber']:
+        return 'Proposed'
+    else:
+        # Default to Proposed for unknown statuses
+        logger.warning(f"Unknown status '{raw_status}', defaulting to 'Proposed'")
+        return 'Proposed'
+
 def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optional[Dict]:
     """Parse a single CSV row into a reform payload for upsert."""
     try:
@@ -186,7 +210,7 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
         return {
             'place_id': pid,
             'reform_type_id': reform_type_map[reform_code],
-            'status': reform_phase,
+            'status': normalize_status(reform_phase),
             'scope': scope,
             'land_use': land_use,
             'adoption_date': adoption_date,
