@@ -855,6 +855,14 @@
                     const host = window.location.host;
                     const shortUrl = `${protocol}//${host}/saved/${shortId}`;
                     
+                    // Update page title if a title was provided
+                    if (title && title.trim()) {
+                        document.title = `${title} - The Abundant City Policy Atlas`;
+                    }
+                    
+                    // Update URL to the saved search URL
+                    window.history.pushState({}, '', `/saved/${shortId}`);
+                    
                     // Copy to clipboard - use the most reliable method
                     let copySuccess = false;
                     const textToCopy = shortUrl; // Store in variable to ensure we copy the right thing
