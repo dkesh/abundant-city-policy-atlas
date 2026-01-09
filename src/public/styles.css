@@ -56,6 +56,40 @@ header {
     object-fit: cover;
 }
 
+.header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: 10px;
+}
+
+.about-link {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 header h1 {
     font-size: 2.5rem;
     margin-bottom: 10px;
@@ -203,7 +237,7 @@ code {
 }
 
 .filter-group {
-    margin-bottom: 25px;
+    margin-bottom: 14px;
 }
 
 .filter-group label {
@@ -237,7 +271,11 @@ code {
 .checkbox-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+}
+
+/* Ensure all direct children of checkbox-group use consistent spacing */
+.checkbox-group > * {
+    margin: 0;
 }
 
 .checkbox-group label {
@@ -249,6 +287,11 @@ code {
     margin-bottom: 0;
     cursor: pointer;
     font-size: 13px;
+}
+
+/* Align checkboxes in non-hierarchical groups (like Jurisdiction Type) with hierarchical ones */
+.checkbox-group > label, .date-checkbox-label {
+    padding-left: 20px; /* Match chevron width (20px) */
 }
 
 .checkbox-group input[type="checkbox"] {
@@ -263,7 +306,8 @@ code {
 .region-header, .category-header {
     display: flex;
     align-items: center;
-    padding: 2px 0;
+    padding: 0;
+    margin: 0;
 }
 
 .checkbox-group .region-group, .checkbox-group .category-group {
@@ -294,7 +338,19 @@ code {
     padding-left: 10px;
     border-left: 1px solid #eee;
     margin-left: 10px; /* Center under the chevron/text gap */
-    margin-bottom: 8px;
+    margin-bottom: 0;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Ensure category headers and reform items have consistent spacing */
+.checkbox-group > .category-header,
+.checkbox-group > .region-header,
+.checkbox-group > .reforms-container,
+.checkbox-group > .states-container {
+    margin: 0;
 }
 
 .checkbox-group .state-item {
@@ -302,23 +358,80 @@ code {
     display: flex;
 }
 
-/* Population slider */
-.slider-container {
+/* Population slider - Dual Handle */
+.dual-slider-container {
     margin-top: 10px;
 }
 
-.range-slider {
-    -webkit-appearance: none;
-    appearance: none;
+.dual-slider-track {
+    position: relative;
     width: 100%;
     height: 6px;
-    border-radius: 3px;
     background: var(--color-light);
-    outline: none;
+    border-radius: 3px;
     margin: 8px 0;
+    z-index: 0;
+    isolation: isolate; /* Create new stacking context */
 }
 
-.range-slider::-webkit-slider-thumb {
+.dual-slider-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: var(--color-primary);
+    border-radius: 3px;
+    pointer-events: none;
+    z-index: 0;
+    transition: left 0.1s, width 0.1s;
+}
+
+.dual-slider-handle {
+    -webkit-appearance: none;
+    appearance: none;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 6px;
+    background: transparent;
+    outline: none;
+    margin: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: auto;
+    isolation: isolate; /* Create new stacking context for each handle */
+}
+
+/* Make the input track itself non-blocking and transparent */
+.dual-slider-handle::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 6px;
+    pointer-events: none;
+}
+
+.dual-slider-handle::-moz-range-track {
+    background: transparent;
+    height: 6px;
+    pointer-events: none;
+}
+
+/* Ensure both handles have the same base z-index */
+#minPopulation {
+    z-index: 10;
+}
+
+#maxPopulation {
+    z-index: 10;
+}
+
+/* When dragging, temporarily raise z-index of active handle */
+.dual-slider-handle.active {
+    z-index: 15;
+}
+
+.dual-slider-handle::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 18px;
@@ -327,16 +440,37 @@ code {
     background: var(--color-primary);
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: all;
+    position: relative;
+    z-index: 100; /* Very high z-index to ensure thumbs are always visible */
+    border: 2px solid white;
+    opacity: 1; /* Ensure thumb is fully visible */
 }
 
-.range-slider::-moz-range-thumb {
+.dual-slider-handle::-moz-range-thumb {
     width: 18px;
     height: 18px;
     border-radius: 50%;
     background: var(--color-primary);
     cursor: pointer;
-    border: none;
+    border: 2px solid white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    pointer-events: all;
+    position: relative;
+    z-index: 100; /* Very high z-index to ensure thumbs are always visible */
+    opacity: 1; /* Ensure thumb is fully visible */
+}
+
+.dual-slider-handle:focus {
+    outline: none;
+}
+
+.dual-slider-handle:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
+}
+
+.dual-slider-handle:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.2);
 }
 
 .slider-values {
@@ -345,6 +479,159 @@ code {
     font-size: 12px;
     color: #7f8c8d;
     margin-top: 6px;
+}
+
+.date-checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    font-weight: normal !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    margin-bottom: 0 !important;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.date-checkbox-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.date-checkbox-label span {
+    white-space: nowrap;
+}
+
+.date-range-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.date-range-input {
+    width: 80px;
+}
+
+.reform-item {
+    display: flex;
+    align-items: center;
+}
+
+.reform-item-color-indicator {
+    padding-left: 5px;
+}
+
+.category-group {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+}
+
+.chevron-collapsed {
+    transform: rotate(-90deg);
+}
+
+.chevron-expanded {
+    transform: rotate(0deg);
+}
+
+.container-hidden {
+    display: none !important;
+}
+
+.container-visible {
+    display: block;
+}
+
+.results-info-visible {
+    display: flex !important;
+}
+
+.reforms-container-visible {
+    display: block;
+}
+
+.states-container-visible {
+    display: block;
+}
+
+.reform-footer-text {
+    color: #95a5a6;
+    font-size: 11px;
+}
+
+.map-error-message {
+    padding: 40px;
+    text-align: center;
+    color: #7f8c8d;
+}
+
+.marker-base {
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.marker-cluster {
+    border-radius: 50%;
+    background-color: #3498db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.marker-cluster-small {
+    width: 30px;
+    height: 30px;
+}
+
+.marker-cluster-medium {
+    width: 40px;
+    height: 40px;
+}
+
+.marker-cluster-large {
+    width: 50px;
+    height: 50px;
+}
+
+.marker-place {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #27ae60;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.toast-visible {
+    opacity: 1;
+}
+
+.clipboard-textarea {
+    position: fixed;
+    left: -999999px;
+    top: 0;
 }
 
 .filter-buttons {

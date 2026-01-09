@@ -16,10 +16,26 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Redirect all non-API routes to index.html (SPA routing)
-# But preserve /saved/:id routes for client-side handling
+# Explicit handling for /saved routes (client-side routing)
 [[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
-force = false
+  from = "/saved"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/saved/*"
+  to = "/index.html"
+  status = 200
+
+# General pattern: map bare word paths to .html files (e.g., /about -> /about.html)
+[[redirects]]
+  from = "/:word"
+  to = "/:word.html"
+  status = 200
+
+# Redirect all other non-API routes to index.html (SPA routing)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
