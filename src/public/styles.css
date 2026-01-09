@@ -424,6 +424,7 @@ code {
 }
 
 .results-info {
+    position: relative;
     background: white;
     padding: 15px 20px;
     border-radius: 6px;
@@ -441,6 +442,25 @@ code {
 
 .results-info strong {
     color: var(--color-primary);
+}
+
+.share-banner-btn {
+    background: transparent;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #95a5a6;
+    padding: 4px 8px;
+    margin-left: 10px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.share-banner-btn:hover {
+    opacity: 1;
+    color: var(--color-secondary);
+    background: rgba(52, 152, 219, 0.1);
 }
 
 .loading {

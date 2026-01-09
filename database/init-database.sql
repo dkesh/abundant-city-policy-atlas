@@ -417,6 +417,41 @@ ON public.reform_citations (
   EXECUTE FUNCTION update_timestamp();
 
   -- ============================================================================
+  -- SAVED SEARCHES TABLE
+  -- Allows users to save and share search configurations
+  -- ============================================================================
+
+  CREATE TABLE IF NOT EXISTS saved_searches (
+      id SERIAL PRIMARY KEY,
+      short_id VARCHAR(20) UNIQUE NOT NULL,  -- e.g., '7ef4f'
+      
+      -- Core filter data (versioned, migratable)
+      filter_config JSONB NOT NULL,  -- Store structured filter state
+      
+      -- Metadata
+      title VARCHAR(255),  -- Optional user-provided name
+      description TEXT,    -- Optional description
+      view_count INT DEFAULT 0,
+      
+      -- Versioning for migration support
+      filter_version INT DEFAULT 1,  -- Increment when schema changes
+      
+      -- Timestamps
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      last_accessed_at TIMESTAMP,
+      
+      -- Future: when you add auth
+      -- user_id INTEGER REFERENCES users(id),
+      
+      -- Indexes
+      CONSTRAINT saved_searches_short_id_unique UNIQUE (short_id)
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_saved_searches_short_id ON saved_searches(short_id);
+  CREATE INDEX IF NOT EXISTS idx_saved_searches_created ON saved_searches(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_saved_searches_filter_config ON saved_searches USING GIN(filter_config);
+
+  -- ============================================================================
   -- PERMISSIONS (uncomment and adjust for your setup)
   -- ============================================================================
   -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO read_only_user;

@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/styles.css">
     <style>
         /* Map-specific overrides */
         .container {
@@ -173,6 +173,7 @@
                 <div class="filter-buttons">
                     <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
                     <button class="btn btn-secondary" id="resetFilters">Reset</button>
+                    <button class="btn btn-secondary" id="shareSearch">🔗 Share Search</button>
                 </div>
             </aside>
 
@@ -189,6 +190,7 @@
                 <!-- Results Info -->
                 <div id="resultsInfo" class="results-info" style="display: none;">
                     <p>Found <strong id="resultCount">0</strong> reforms matching your filters</p>
+                    <button class="share-banner-btn" id="shareBannerBtn" title="Share this search">🔗</button>
                 </div>
 
                 <!-- Loading Spinner -->
@@ -276,6 +278,14 @@
         listViewTab.addEventListener('click', () => switchView('list'));
         mapViewTab.addEventListener('click', () => switchView('map'));
         closeOverlayBtn.addEventListener('click', () => mapOverlay.classList.remove('active'));
+        
+        // Share Search button (combined save + share functionality)
+        const shareSearchBtn = document.getElementById('shareSearch');
+        shareSearchBtn.addEventListener('click', shareSearch);
+        
+        // Share button in results banner
+        const shareBannerBtn = document.getElementById('shareBannerBtn');
+        shareBannerBtn.addEventListener('click', shareSearch);
 
         // Population slider synchronization
         minPopulationSlider.addEventListener('input', () => {
@@ -295,6 +305,136 @@
         // ============================================================================
         // FUNCTIONS
         // ============================================================================
+
+        // ============================================================================
+        // URL/FILTER CONVERSION UTILITIES
+        // ============================================================================
+
+        function getFilterConfig() {
+            const reformTypes = getSelectedReformTypes();
+            const placeTypes = getSelectedPlaceTypes();
+            const statuses = getSelectedStatuses();
+            const minPopulation = parseInt(minPopulationSlider.value);
+            const maxPopulation = parseInt(maxPopulationSlider.value);
+            const states = getSelectedLocations();
+            const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
+            const toYearVal = toYear.value ? parseInt(toYear.value) : null;
+            const includeUnknown = includeUnknownDates.checked;
+
+            return {
+                reform_types: reformTypes,
+                place_types: placeTypes,
+                statuses: statuses,
+                min_population: minPopulation > 0 ? minPopulation : null,
+                max_population: maxPopulation < 10000000 ? maxPopulation : null,
+                states: states,
+                from_year: fromYearVal,
+                to_year: toYearVal,
+                include_unknown_dates: includeUnknown
+            };
+        }
+
+        function filterConfigToUrlParams(config) {
+            const params = new URLSearchParams();
+            (config.reform_types || []).forEach(t => params.append('reform_type', t));
+            (config.place_types || []).forEach(t => params.append('place_type', t));
+            (config.statuses || []).forEach(s => params.append('status', s));
+            if (config.min_population) params.append('min_population', config.min_population);
+            if (config.max_population && config.max_population < 10000000) params.append('max_population', config.max_population);
+            (config.states || []).forEach(s => params.append('state', s));
+            if (config.from_year) params.append('from_year', config.from_year);
+            if (config.to_year) params.append('to_year', config.to_year);
+            if (config.include_unknown_dates) params.append('include_unknown_dates', 'true');
+            return params;
+        }
+
+        function urlParamsToFilterConfig(urlSearchParams) {
+            // Handle both URLSearchParams object and plain object
+            const getMultiValue = (key) => {
+                if (urlSearchParams instanceof URLSearchParams) {
+                    return urlSearchParams.getAll(key);
+                } else {
+                    const val = urlSearchParams[key];
+                    if (!val) return [];
+                    if (Array.isArray(val)) return val.filter(Boolean);
+                    return val.split(',').map(v => v.trim()).filter(Boolean);
+                }
+            };
+
+            const getValue = (key) => {
+                if (urlSearchParams instanceof URLSearchParams) {
+                    return urlSearchParams.get(key);
+                } else {
+                    return urlSearchParams[key];
+                }
+            };
+
+            return {
+                reform_types: getMultiValue('reform_type'),
+                place_types: getMultiValue('place_type'),
+                statuses: getMultiValue('status'),
+                min_population: getValue('min_population') ? parseInt(getValue('min_population')) : null,
+                max_population: getValue('max_population') ? parseInt(getValue('max_population')) : null,
+                states: getMultiValue('state'),
+                from_year: getValue('from_year') ? parseInt(getValue('from_year')) : null,
+                to_year: getValue('to_year') ? parseInt(getValue('to_year')) : null,
+                include_unknown_dates: getValue('include_unknown_dates') === 'true'
+            };
+        }
+
+        function applyFilterConfig(config) {
+            // Apply reform types
+            document.querySelectorAll('.reformTypeCheckbox').forEach(cb => {
+                cb.checked = config.reform_types && config.reform_types.includes(cb.value);
+            });
+            // Update category checkboxes based on children
+            document.querySelectorAll('.category-cb').forEach(cb => {
+                const category = cb.dataset.category;
+                const children = document.querySelectorAll(`.reformTypeCheckbox[data-category="${category}"]`);
+                const allChecked = Array.from(children).every(child => child.checked);
+                const someChecked = Array.from(children).some(child => child.checked);
+                cb.checked = allChecked;
+                cb.indeterminate = someChecked && !allChecked;
+            });
+
+            // Apply place types
+            placeTypeCheckboxes.forEach(cb => {
+                cb.checked = config.place_types && config.place_types.includes(cb.value);
+            });
+
+            // Apply statuses
+            statusCheckboxes.forEach(cb => {
+                cb.checked = config.statuses && config.statuses.includes(cb.value);
+            });
+
+            // Apply locations
+            document.querySelectorAll('#locationCheckboxes input[type="checkbox"]').forEach(cb => {
+                if (cb.dataset.state) {
+                    cb.checked = config.states && config.states.includes(cb.dataset.state);
+                }
+            });
+            // Update region checkboxes
+            Object.keys(REGIONS).forEach(region => {
+                const regionCheckbox = document.querySelector(`input[data-region="${region}"]:not([data-state])`);
+                if (regionCheckbox) {
+                    const stateCheckboxes = document.querySelectorAll(`input[data-state][data-region="${region}"]`);
+                    const allChecked = Array.from(stateCheckboxes).every(cb => cb.checked);
+                    const someChecked = Array.from(stateCheckboxes).some(cb => cb.checked);
+                    regionCheckbox.checked = allChecked;
+                    regionCheckbox.indeterminate = someChecked && !allChecked;
+                }
+            });
+
+            // Apply population
+            minPopulationSlider.value = config.min_population || 0;
+            maxPopulationSlider.value = config.max_population || 10000000;
+            updatePopulationLabels();
+
+            // Apply dates
+            fromYear.value = config.from_year || '';
+            toYear.value = config.to_year || '';
+            includeUnknownDates.checked = config.include_unknown_dates !== false;
+        }
 
         function updatePopulationLabels() {
             const min = parseInt(minPopulationSlider.value);
@@ -578,7 +718,7 @@
             });
         }
 
-        async function applyFilters() {
+        async function applyFilters(skipUrlUpdate = false) {
             const reformTypes = getSelectedReformTypes();
             const placeTypes = getSelectedPlaceTypes();
             const statuses = getSelectedStatuses();
@@ -607,6 +747,14 @@
 
                 const query = params.toString();
                 const url = query ? `/.netlify/functions/get-reforms?${query}` : '/.netlify/functions/get-reforms';
+
+                // Update URL without reloading page
+                if (!skipUrlUpdate) {
+                    const newUrl = query 
+                        ? `${window.location.pathname}?${query}` 
+                        : window.location.pathname;
+                    window.history.pushState({}, '', newUrl);
+                }
 
                 // Fetch reforms
                 const response = await fetch(url);
@@ -670,7 +818,128 @@
             toYear.value = '';
             includeUnknownDates.checked = true;
 
-            applyFilters();
+            // Clear URL params
+            window.history.pushState({}, '', window.location.pathname);
+            applyFilters(true);
+        }
+
+        // ============================================================================
+        // SHARE SEARCH FUNCTION (combines save + share)
+        // ============================================================================
+
+        async function shareSearch() {
+            const filterConfig = getFilterConfig();
+            
+            // Prompt for optional title
+            const title = prompt('Enter a name for this search (optional):');
+            if (title === null) return; // User cancelled
+
+            try {
+                const response = await fetch('/.netlify/functions/save-search', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filter_config: filterConfig,
+                        title: title || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Construct the full URL to copy - be very explicit
+                    const shortId = data.saved_search.short_id;
+                    const protocol = window.location.protocol;
+                    const host = window.location.host;
+                    const shortUrl = `${protocol}//${host}/saved/${shortId}`;
+                    
+                    // Copy to clipboard - use the most reliable method
+                    let copySuccess = false;
+                    const textToCopy = shortUrl; // Store in variable to ensure we copy the right thing
+                    
+                    try {
+                        // Try modern clipboard API first
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(textToCopy);
+                            copySuccess = true;
+                        } else {
+                            throw new Error('Clipboard API not available');
+                        }
+                    } catch (err) {
+                        // Fallback: use textarea method
+                        try {
+                            const textArea = document.createElement('textarea');
+                            textArea.value = textToCopy;
+                            textArea.style.position = 'fixed';
+                            textArea.style.left = '-999999px';
+                            textArea.style.top = '0';
+                            textArea.setAttribute('readonly', '');
+                            document.body.appendChild(textArea);
+                            
+                            // Select the text
+                            if (navigator.userAgent.match(/ipad|iphone/i)) {
+                                // iOS specific
+                                const range = document.createRange();
+                                range.selectNodeContents(textArea);
+                                const selection = window.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                                textArea.setSelectionRange(0, 999999);
+                            } else {
+                                textArea.select();
+                            }
+                            
+                            copySuccess = document.execCommand('copy');
+                            document.body.removeChild(textArea);
+                        } catch (e) {
+                            console.error('Copy failed:', e);
+                            copySuccess = false;
+                        }
+                    }
+                    
+                    if (copySuccess) {
+                        showToast(`Link copied to clipboard! /saved/${shortId}`);
+                    } else {
+                        showToast(`Failed to copy. Please copy manually: ${shortUrl}`);
+                    }
+                } else {
+                    showError(data.error || 'Failed to save search');
+                }
+            } catch (error) {
+                console.error('Error saving search:', error);
+                showError('Failed to save search: ' + error.message);
+            }
+        }
+
+        function showToast(message) {
+            // Create or update toast element
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #27ae60;
+                    color: white;
+                    padding: 12px 24px;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 10000;
+                    font-size: 14px;
+                    opacity: 0;
+                    transition: opacity 0.3s;
+                `;
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+            }, 3000);
         }
 
         function renderReforms() {
@@ -1029,11 +1298,80 @@
         // INITIALIZATION
         // ============================================================================
 
+        async function loadFiltersFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.toString()) {
+                const config = urlParamsToFilterConfig(urlParams);
+                applyFilterConfig(config);
+                return true;
+            }
+            return false;
+        }
+
+        async function loadSavedSearch() {
+            const path = window.location.pathname;
+            const savedMatch = path.match(/^\/saved\/([a-zA-Z0-9]+)$/);
+            if (savedMatch) {
+                const shortId = savedMatch[1];
+                try {
+                    const response = await fetch(`/.netlify/functions/get-saved-search?short_id=${shortId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const config = data.saved_search.filter_config;
+                        applyFilterConfig(config);
+                        
+                        // Update page title if saved search has a title
+                        if (data.saved_search.title) {
+                            document.title = `${data.saved_search.title} - The Abundant City Policy Atlas`;
+                        }
+                        
+                        // Show notification
+                        showToast(`Loaded saved search: ${data.saved_search.title || 'Untitled'}`);
+                        return true;
+                    } else {
+                        showError(data.error || 'Saved search not found');
+                        // Redirect to home
+                        window.history.replaceState({}, '', '/');
+                    }
+                } catch (error) {
+                    console.error('Error loading saved search:', error);
+                    showError('Failed to load saved search');
+                    window.history.replaceState({}, '', '/');
+                }
+                return false;
+            }
+            return false;
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             await initializeReformTypeFilter();
             initializeLocationFilter();
             updatePopulationLabels();
-            applyFilters(); // Load initial data
+            
+            // Try to load from saved search first, then URL params, then default
+            const loadedSaved = await loadSavedSearch();
+            if (!loadedSaved) {
+                const loadedFromUrl = await loadFiltersFromUrl();
+                if (!loadedFromUrl) {
+                    // Apply default filters
+                    applyFilters(true);
+                } else {
+                    // Load from URL params
+                    applyFilters(true);
+                }
+            } else {
+                // Loaded from saved search
+                applyFilters(true);
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', async () => {
+            const loadedFromUrl = await loadFiltersFromUrl();
+            if (loadedFromUrl) {
+                applyFilters(true);
+            }
         });
     </script>
 </body>
