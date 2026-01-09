@@ -828,6 +828,9 @@
         // ============================================================================
 
         async function shareSearch() {
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:830',message:'shareSearch called',data:{hasClipboard:!!navigator.clipboard,hasWriteText:!!(navigator.clipboard&&navigator.clipboard.writeText),isSecureContext:window.isSecureContext,hasFocus:document.hasFocus(),userAgent:navigator.userAgent.substring(0,50)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
+            // #endregion
             const filterConfig = getFilterConfig();
             
             // Prompt for optional title
@@ -855,6 +858,10 @@
                     const host = window.location.host;
                     const shortUrl = `${protocol}//${host}/saved/${shortId}`;
                     
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:856',message:'Before clipboard copy',data:{shortUrl:shortUrl,hasFocus:document.hasFocus(),isSecureContext:window.isSecureContext},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,C'})}).catch(()=>{});
+                    // #endregion
+                    
                     // Update page title if a title was provided
                     if (title && title.trim()) {
                         document.title = `${title} - The Abundant City Policy Atlas`;
@@ -870,14 +877,29 @@
                     try {
                         // Try modern clipboard API first
                         if (navigator.clipboard && navigator.clipboard.writeText) {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:872',message:'Attempting clipboard API',data:{hasFocus:document.hasFocus()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+                            // #endregion
                             await navigator.clipboard.writeText(textToCopy);
                             copySuccess = true;
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:874',message:'Clipboard API succeeded',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B'})}).catch(()=>{});
+                            // #endregion
                         } else {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:876',message:'Clipboard API not available',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+                            // #endregion
                             throw new Error('Clipboard API not available');
                         }
                     } catch (err) {
+                        // #region agent log
+                        fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:878',message:'Clipboard API failed',data:{errorName:err.name,errorMessage:err.message,errorStack:err.stack?err.stack.substring(0,200):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,F'})}).catch(()=>{});
+                        // #endregion
                         // Fallback: use textarea method
                         try {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:880',message:'Attempting textarea fallback',data:{hasFocus:document.hasFocus(),activeElement:document.activeElement?document.activeElement.tagName:null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+                            // #endregion
                             const textArea = document.createElement('textarea');
                             textArea.value = textToCopy;
                             textArea.style.position = 'fixed';
@@ -896,16 +918,33 @@
                                 selection.addRange(range);
                                 textArea.setSelectionRange(0, 999999);
                             } else {
+                                textArea.focus();
                                 textArea.select();
                             }
                             
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:902',message:'Before execCommand copy',data:{hasFocus:document.hasFocus(),textAreaFocused:textArea===document.activeElement,selectionLength:window.getSelection().toString().length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+                            // #endregion
+                            
                             copySuccess = document.execCommand('copy');
+                            
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:902',message:'execCommand result',data:{copySuccess:copySuccess},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C,D'})}).catch(()=>{});
+                            // #endregion
+                            
                             document.body.removeChild(textArea);
                         } catch (e) {
+                            // #region agent log
+                            fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:904',message:'Textarea fallback failed',data:{errorName:e.name,errorMessage:e.message,errorStack:e.stack?e.stack.substring(0,200):null},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D,F'})}).catch(()=>{});
+                            // #endregion
                             console.error('Copy failed:', e);
                             copySuccess = false;
                         }
                     }
+                    
+                    // #region agent log
+                    fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:910',message:'Final copy result',data:{copySuccess:copySuccess,textToCopy:textToCopy},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C,D,E,F'})}).catch(()=>{});
+                    // #endregion
                     
                     if (copySuccess) {
                         showToast(`Link copied to clipboard! /saved/${shortId}`);
@@ -916,6 +955,9 @@
                     showError(data.error || 'Failed to save search');
                 }
             } catch (error) {
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/9614b917-70d0-4ce3-b80a-b7bdea1b71fe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'index.html:918',message:'Save search error',data:{errorName:error.name,errorMessage:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+                // #endregion
                 console.error('Error saving search:', error);
                 showError('Failed to save search: ' + error.message);
             }
