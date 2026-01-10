@@ -108,7 +108,7 @@ exports.handler = async (event, context) => {
       const shortId = await generateUniqueShortId(client);
 
       // Current filter version
-      const filterVersion = 1;
+      const filterVersion = 2;
 
       // Insert saved search
       const result = await client.query(

@@ -35,6 +35,7 @@ from db_utils import (
     load_reform_type_map,
     log_ingestion,
     place_key,
+    geocode_missing_places
 )
 
 # Load environment variables from .env file
@@ -65,17 +66,16 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
 # Reform type mapping (codes used in JSON)
+# Note: add_max reforms are discarded and not recorded
 REFORM_TYPE_KEYS = [
     'rm_min',
-    'reduce_min',
-    'add_max'
+    'reduce_min'
 ]
 
 # Map JSON keys to Universal DB Codes
 DB_TYPE_MAPPING = {
     'rm_min': 'parking:eliminated',
-    'reduce_min': 'parking:reduced',
-    'add_max': 'parking:maximums'
+    'reduce_min': 'parking:reduced'
 }
 
 # State name to state code mapping

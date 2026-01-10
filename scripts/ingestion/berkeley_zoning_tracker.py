@@ -42,6 +42,7 @@ from db_utils import (
     load_reform_type_map,
     log_ingestion,
     place_key,
+    geocode_missing_places
 )
 
 # Load environment variables from .env file
@@ -141,7 +142,7 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
     mapping = {
         'ADU Reform': 'housing:adu',
         'Plex Reform': 'housing:plex',
-        'TOD Reform': 'landuse:tod',
+        'TOD Reform': 'zoning:tod',
         'Other Reform': 'other:general',
     }
     

@@ -36,26 +36,31 @@ MERCATUS_CSV_URL = (
 )
 
 # Mapping from Mercatus Issue tags to Universal Reform Codes
+# Note: anti-investor and anti-trust are discarded and not recorded
 MERCATUS_TYPE_MAPPING = {
     'adu': 'housing:adu',
     'adus': 'housing:adu',
-    'building code': 'building:staircases', # Best fit for now
+    'building code': 'building:unspecified',
     'permitting': 'process:permitting',
-    'urbanity': 'landuse:zoning', # Generic zoning reform
-    'parking': 'parking:general',
-    'minimum lot size': 'landuse:lot_size',
-    'tod': 'landuse:tod',
-    'far': 'landuse:far',
-    'floor area ratio': 'landuse:far',
-    'height limit': 'landuse:height',
+    'urbanity': 'other:urbanity',
+    'parking': 'parking:unspecified',
+    'minimum lot size': 'physical:lot_size',
+    'tod': 'zoning:tod',
+    'far': 'physical:far',
+    'floor area ratio': 'physical:far',
+    'height limit': 'physical:height',
     'missing middle': 'housing:plex',
     'shot clock': 'process:permitting',
     'shot clocks': 'process:permitting',
     'vesting': 'process:permitting',
     'townhouses': 'housing:plex',
-    'tiffs': 'process:impact_fees', # Maybe?
-    'tif': 'process:impact_fees',
-    'anti-investor': 'other:general'
+    'ricz': 'zoning:ricz',
+    'yigby': 'zoning:yigby',
+    'courts': 'process:courts_appeals',
+    'appeals': 'process:courts_appeals',
+    'planning': 'process:planning_obligations',
+    'obligations': 'process:planning_obligations',
+    'other': 'other:general'
 }
 
 # Status mapping
@@ -137,13 +142,27 @@ def ensure_reform_types(conn, cursor, issues: Set[str]) -> Dict[str, int]:
         # Try mapped lookup
         universal_code = MERCATUS_TYPE_MAPPING.get(issue_lower)
         
+        # Skip anti-investor and anti-trust (discard)
+        if issue_lower in ['anti-investor', 'anti-trust', 'anti investor', 'anti trust']:
+            continue
+        
         # Heuristics/Fallbacks
         if not universal_code:
             if 'adu' in issue_lower: universal_code = 'housing:adu'
-            elif 'parking' in issue_lower: universal_code = 'parking:general'
-            elif 'permit' in issue_lower: universal_code = 'process:permitting'
-            elif 'zoning' in issue_lower: universal_code = 'landuse:zoning'
-            elif 'stair' in issue_lower: universal_code = 'building:staircases'
+            elif 'parking' in issue_lower: universal_code = 'parking:unspecified'
+            elif 'permit' in issue_lower or 'shot clock' in issue_lower or 'vesting' in issue_lower: universal_code = 'process:permitting'
+            elif 'courts' in issue_lower or 'appeals' in issue_lower: universal_code = 'process:courts_appeals'
+            elif 'planning' in issue_lower or 'obligations' in issue_lower: universal_code = 'process:planning_obligations'
+            elif 'ricz' in issue_lower: universal_code = 'zoning:ricz'
+            elif 'yigby' in issue_lower: universal_code = 'zoning:yigby'
+            elif 'tod' in issue_lower: universal_code = 'zoning:tod'
+            elif 'lot size' in issue_lower: universal_code = 'physical:lot_size'
+            elif 'height' in issue_lower and 'limit' in issue_lower: universal_code = 'physical:height'
+            elif 'far' in issue_lower or 'floor area ratio' in issue_lower: universal_code = 'physical:far'
+            elif 'stair' in issue_lower: universal_code = 'building:stairwells'
+            elif 'elevator' in issue_lower: universal_code = 'building:elevators'
+            elif 'building' in issue_lower: universal_code = 'building:unspecified'
+            elif 'urbanity' in issue_lower: universal_code = 'other:urbanity'
             else: universal_code = 'other:general'
         
         if universal_code in code_to_id:
@@ -319,9 +338,16 @@ def main():
                     break
             
             for issue in bill['issues']:
-                rt_id = reform_type_map.get(issue.lower())
+                issue_lower = issue.lower().strip()
+                # Skip anti-investor and anti-trust (discard)
+                if issue_lower in ['anti-investor', 'anti-trust', 'anti investor', 'anti trust']:
+                    continue
+                
+                rt_id = reform_type_map.get(issue_lower)
                 if not rt_id:
-                    continue # Should not happen
+                    # Issue not mapped - skip it
+                    logger.debug(f"Skipping unmapped issue: {issue}")
+                    continue
                 
                 reform = {
                     'place_id': place_id,

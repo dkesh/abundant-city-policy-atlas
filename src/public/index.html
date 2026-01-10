@@ -104,13 +104,11 @@
             <aside class="filters-panel">
                 <h2>Filters</h2>
 
-                <!-- Reform Type Filter (Multi-select Checkboxes) -->
+                <!-- Policy Domain Filter (Multi-select Checkboxes) -->
                 <div class="filter-group">
-                    <label>Reform Type</label>
+                    <label>Policy Domain</label>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" class="reformTypeCheckbox" value="rm_min" checked> Parking mandates eliminated</label>
-                        <label><input type="checkbox" class="reformTypeCheckbox" value="reduce_min" checked> Parking mandates reduced</label>
-                        <label><input type="checkbox" class="reformTypeCheckbox" value="add_max" checked> Parking maximums</label>
+                        <!-- Populated by JavaScript from database -->
                     </div>
                 </div>
 
@@ -507,7 +505,7 @@
                 });
 
                 // Define order
-                const catOrder = ['Parking', 'Housing Types', 'Process', 'Land Use', 'Building Code', 'Other'];
+                const catOrder = ['Parking', 'Housing Typology', 'Zoning Category', 'Physical Dimension', 'Process', 'Building Code', 'Other'];
 
                 // Render Groups
                 catOrder.forEach(cat => {

@@ -186,40 +186,31 @@ ON public.reform_citations (
   INSERT INTO reform_types (code, category, name, description, color_hex, icon_name, sort_order) VALUES
     -- PARKING
     ('parking:eliminated', 'Parking', 'Parking Minimums Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
-    ('parking:reduced', 'Parking', 'Parking Minimums Reduced', 'Reduced or eliminated parking minimum requirements', '#2ecc71', 'minus-circle', 11),
-    ('parking:maximums', 'Parking', 'Parking Maximums', 'Maximum parking limits introduced', '#e74c3c', 'arrows-alt', 12),
-    ('parking:general', 'Parking', 'General Parking Reform', 'Other parking policy changes', '#27ae60', 'car', 13),
-    -- HOUSING TYPES
-    ('housing:adu', 'Housing Types', 'ADU Reform', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
-    ('housing:plex', 'Housing Types', 'Middle Housing', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
-    ('housing:multifamily', 'Housing Types', 'Multifamily', 'General multifamily housing reforms', '#8e44ad', 'city', 22),
-    ('housing:mixed_use', 'Housing Types', 'Mixed-Use', 'Residential + Commercial combined', '#d35400', 'store', 23),
-    ('housing:sro', 'Housing Types', 'Single Room Occupancy', 'SRO housing reforms', '#c0392b', 'bed', 24),
-    ('housing:manufactured', 'Housing Types', 'Manufactured Housing', 'Manufactured housing reforms', '#16a085', 'home', 25),
-    ('housing:tiny_homes', 'Housing Types', 'Tiny Homes', 'Tiny home regulations', '#27ae60', 'leaf', 26),
-    ('housing:cottage_courts', 'Housing Types', 'Cottage Courts', 'Cottage court developments', '#f1c40f', 'home', 27),
-    ('housing:group_housing', 'Housing Types', 'Group Housing', 'Group housing regulations', '#e67e22', 'users', 28),
-    ('housing:courtyard', 'Housing Types', 'Courtyard Apartments', 'Courtyard apartment reforms', '#2980b9', 'building', 29),
-    ('housing:sf_detached', 'Housing Types', 'Single-Family Detached', 'Single-family detached housing reforms', '#95a5a6', 'home', 30),
+    ('parking:reduced', 'Parking', 'Parking Minimums Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
+    ('parking:unspecified', 'Parking', 'Parking: unspecified', 'Parking policy changes', '#27ae60', 'car', 12),
+    -- HOUSING TYPOLOGY
+    ('housing:adu', 'Housing Typology', 'ADU', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
+    ('housing:plex', 'Housing Typology', 'Plex', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
+    -- ZONING CATEGORY
+    ('zoning:ricz', 'Zoning Category', 'RICZ', 'Reform Income Community Zoning reforms', '#2980b9', 'map', 30),
+    ('zoning:yigby', 'Zoning Category', 'YIGBY', 'Yes In God''s Backyard reforms', '#3498db', 'church', 31),
+    ('zoning:tod', 'Zoning Category', 'TOD Upzones', 'Transit-oriented development reforms', '#2980b9', 'subway', 32),
+    -- PHYSICAL DIMENSION
+    ('physical:lot_size', 'Physical Dimension', 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 40),
+    ('physical:height', 'Physical Dimension', 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 41),
+    ('physical:far', 'Physical Dimension', 'Floor Area Ratio', 'FAR regulations', '#d35400', 'expand', 42),
     -- PROCESS
-    ('process:permitting', 'Process', 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 40),
-    ('process:by_right', 'Process', 'By-Right', 'By-right approval processes', '#27ae60', 'check-circle', 41),
-    ('process:hearings', 'Process', 'Public Hearings', 'Public hearing requirements', '#c0392b', 'bullhorn', 42),
-    ('process:design_review', 'Process', 'Design Review', 'Design review standards', '#8e44ad', 'pencil-ruler', 43),
-    ('process:impact_fees', 'Process', 'Impact Fees', 'Development impact fee reforms', '#f39c12', 'hand-holding-usd', 44),
-    ('process:environmental', 'Process', 'Environmental Review', 'Environmental review reforms', '#2ecc71', 'leaf', 45),
-    -- LAND USE
-    ('landuse:tod', 'Land Use', 'TOD Reform', 'Transit-oriented development reforms', '#2980b9', 'subway', 50),
-    ('landuse:lot_size', 'Land Use', 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 51),
-    ('landuse:setbacks', 'Land Use', 'Setbacks', 'Setback requirement reforms', '#8e44ad', 'compress-arrows-alt', 52),
-    ('landuse:far', 'Land Use', 'Floor Area Ratio', 'FAR regulations', '#d35400', 'expand', 53),
-    ('landuse:height', 'Land Use', 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 54),
-    ('landuse:density', 'Land Use', 'Density Limits', 'Dwelling unit density reforms', '#e74c3c', 'th', 55),
-    ('landuse:zoning', 'Land Use', 'General Zoning', 'General zoning reforms', '#2c3e50', 'map', 56),
+    ('process:permitting', 'Process', 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 50),
+    ('process:courts_appeals', 'Process', 'Courts & Appeals', 'Court and appeals process reforms', '#8e44ad', 'gavel', 51),
+    ('process:planning_obligations', 'Process', 'Planning Obligations', 'Planning obligation reforms', '#f39c12', 'file-contract', 52),
     -- BUILDING CODE
-    ('building:staircases', 'Building Code', 'Staircases', 'Single-stair reforms and related codes', '#95a5a6', 'stream', 60),
-    -- Catch-all
-    ('other:general', 'Other', 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 99)
+    ('building:stairwells', 'Building Code', 'Stairwells', 'Stairwell reforms', '#95a5a6', 'stream', 60),
+    ('building:elevators', 'Building Code', 'Elevators', 'Elevator-related code reforms', '#7f8c8d', 'arrow-up', 61),
+    ('building:unspecified', 'Building Code', 'Building Code: Unspecified', 'Building code reforms', '#95a5a6', 'building', 62),
+    -- OTHER
+    ('other:general', 'Other', 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 90),
+    ('other:land_value_tax', 'Other', 'Land Value Tax', 'Land value tax reforms', '#27ae60', 'dollar-sign', 91),
+    ('other:urbanity', 'Other', 'Urbanity', 'Urbanity-related reforms', '#2c3e50', 'city', 92)
   ON CONFLICT (code) DO UPDATE SET
     category = EXCLUDED.category,
     name = EXCLUDED.name,
