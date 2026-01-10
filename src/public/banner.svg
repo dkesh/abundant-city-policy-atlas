@@ -1,75 +1,47 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240" role="img" aria-labelledby="title desc">
-  <title id="title">Abundant City Policy Atlas Banner</title>
-  <desc id="desc">A banner showing the progression from ordinance to planning to urban development, with the text Abundant City Policy Atlas and Changing Cities By Design</desc>
-  
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 240">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#2c3e50;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#34495e;stop-opacity:1" />
+    <linearGradient id="bg_it1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a252f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
     </linearGradient>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&amp;display=swap');
       .title { font-family: 'Roboto', sans-serif; font-weight: 700; font-size: 56px; fill: white; text-anchor: middle; }
-      .subtitle { font-family: 'Roboto', sans-serif; font-weight: 300; font-size: 28px; fill: #ecf0f1; text-anchor: middle; letter-spacing: 4px; text-transform: uppercase; }
-      .icon-stroke { fill: none; stroke: #3498db; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-      .icon-fill { fill: #2ecc71; opacity: 0.9; }
-      .arrow { stroke: #bdc3c7; stroke-width: 2; stroke-dasharray: 5,5; fill: none; }
-      .label { font-family: 'Roboto', sans-serif; font-size: 14px; fill: #bdc3c7; text-anchor: middle; text-transform: uppercase; letter-spacing: 1px; }
+      .subtitle { font-family: 'Roboto', sans-serif; font-weight: 300; font-size: 24px; fill: #3498db; text-anchor: middle; letter-spacing: 4px; text-transform: uppercase; }
+      .grid-line { stroke: #34495e; stroke-width: 1; }
+      .building-stroke { fill: none; stroke: #3498db; stroke-width: 2; opacity: 0.25; }
+      .detail-stroke { fill: none; stroke: #1abc9c; stroke-width: 1; opacity: 0.2; }
+      .transit-line { fill: none; stroke: #e67e22; stroke-width: 3; opacity: 0.3; }
     </style>
   </defs>
 
-  <!-- Background -->
-  <rect width="100%" height="100%" fill="url(#bgGradient)" rx="8" />
-  
-  <!-- Content Group -->
-  <g transform="translate(0, 20)">
-  
-    <!-- Visualization Layer (Background elements) -->
-    <g opacity="0.3" transform="translate(600, 110) scale(0.8)">
-      <!-- Left: Ordinance -->
-      <g transform="translate(-400, 0)">
-        <rect x="-40" y="-50" width="80" height="100" rx="4" class="icon-stroke" />
-        <line x1="-20" y1="-30" x2="20" y2="-30" class="icon-stroke" />
-        <line x1="-20" y1="-10" x2="20" y2="-10" class="icon-stroke" />
-        <line x1="-20" y1="10" x2="20" y2="10" class="icon-stroke" />
-        <line x1="-20" y1="30" x2="0" y2="30" class="icon-stroke" />
-        <text x="0" y="70" class="label">Ordinance</text>
-      </g>
+  <rect width="100%" height="100%" fill="url(#bg_it1)" rx="8" />
 
-      <!-- Arrow -->
-      <path d="M-280 0 L-120 0" class="arrow" marker-end="url(#arrowhead)" />
-
-      <!-- Center: Planning -->
-      <g transform="translate(-200, 0)">
-        <rect x="-50" y="-50" width="100" height="100" class="icon-stroke" />
-        <line x1="-50" y1="-16" x2="50" y2="-16" class="icon-stroke" />
-        <line x1="-50" y1="16" x2="50" y2="16" class="icon-stroke" />
-        <line x1="-16" y1="-50" x2="-16" y2="50" class="icon-stroke" />
-        <line x1="16" y1="-50" x2="16" y2="50" class="icon-stroke" />
-        <circle cx="0" cy="0" r="10" class="icon-fill" />
-        <text x="0" y="70" class="label">Planning</text>
-      </g>
-
-      <!-- Arrow -->
-      <path d="M-80 0 L80 0" class="arrow" marker-end="url(#arrowhead)" />
-
-      <!-- Right: Development -->
-      <g transform="translate(200, 0)">
-        <rect x="-30" y="-10" width="60" height="60" class="icon-fill" /> <!-- Highlight -->
-        <rect x="-60" y="10" width="40" height="40" class="icon-stroke" />
-        <rect x="20" y="-30" width="30" height="80" class="icon-stroke" />
-        <polygon points="-80,50 80,50 80,55 -80,55" fill="#bdc3c7" />
-        <!-- Crane -->
-        <line x1="40" y1="-30" x2="40" y2="-70" class="icon-stroke" />
-        <line x1="40" y1="-70" x2="80" y2="-50" class="icon-stroke" />
-        <line x1="40" y1="-70" x2="10" y2="-70" class="icon-stroke" />
-        <text x="0" y="70" class="label">Development</text>
-      </g>
-    </g>
-
-    <!-- Text Overlay -->
-    <text x="600" y="90" class="title">The Abundant City Policy Atlas</text>
-    <text x="600" y="140" class="subtitle">Changing Cities By Design</text>
-    
+  <!-- Background Grid -->
+  <g opacity="0.3">
+    <path d="M0 40 H1200 M0 80 H1200 M0 120 H1200 M0 160 H1200 M0 200 H1200" class="grid-line" />
+    <path d="M100 0 V240 M200 0 V240 M300 0 V240 M400 0 V240 M500 0 V240 M600 0 V240 M700 0 V240 M800 0 V240 M900 0 V240 M1000 0 V240 M1100 0 V240" class="grid-line" />
   </g>
+
+  <!-- High-rise Abstract Elements -->
+  <g transform="translate(50, 20)">
+    <!-- Tall building 1 -->
+    <rect x="50" y="20" width="80" height="200" class="building-stroke" />
+    <path d="M60 40 H120 M60 60 H120 M60 80 H120 M60 100 H120 M60 120 H120 M60 140 H120 M60 160 H120 M60 180 H120" class="detail-stroke" />
+    
+    <!-- Tall building 2 -->
+    <rect x="150" y="60" width="60" height="160" class="building-stroke" />
+    <path d="M165 80 V200 M180 80 V200 M195 80 V200" class="detail-stroke" />
+
+    <!-- Distant cluster right -->
+    <rect x="950" y="40" width="70" height="180" class="building-stroke" />
+    <rect x="1030" y="80" width="60" height="140" class="building-stroke" />
+  </g>
+
+  <!-- Transit and Connectivity -->
+  <path d="M0 200 Q 300 180, 600 200 T 1200 200" class="transit-line" />
+  <path d="M0 210 L 1200 210" class="transit-line" stroke-width="1" />
+
+  <!-- Text Overlay -->
+  <text x="600" y="105" class="title">The Abundant City Policy Atlas</text>
+  <text x="600" y="150" class="subtitle">Visualizing Urban Reform</text>
 </svg>
