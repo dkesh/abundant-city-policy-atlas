@@ -19,8 +19,6 @@ import logging
 from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 import tempfile
-import zipfile
-import requests
 
 from dotenv import load_dotenv
 from helpers import normalize_place_name
@@ -31,11 +29,14 @@ from db_utils import (
     bulk_upsert_places,
     bulk_upsert_reforms,
     close_db_connection,
+    download_zip_and_extract,
+    geocode_missing_places,
     get_db_connection,
+    get_state_code,
     load_reform_type_map,
     log_ingestion,
-    place_key,
-    geocode_missing_places
+    parse_flexible_date,
+    place_key
 )
 
 # Load environment variables from .env file
@@ -65,129 +66,18 @@ PRN_DATA_URL = os.getenv(
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
-# Reform type mapping (codes used in JSON)
-# Note: add_max reforms are discarded and not recorded
-REFORM_TYPE_KEYS = [
-    'rm_min',
-    'reduce_min'
-]
-
 # Map JSON keys to Universal DB Codes
+# Note: add_max reforms are discarded and not recorded
 DB_TYPE_MAPPING = {
     'rm_min': 'parking:eliminated',
     'reduce_min': 'parking:reduced'
 }
 
-# State name to state code mapping
-STATE_CODES = {
-    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
-    'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
-    'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
-    'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
-    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
-    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
-    'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
-    'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
-    'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
-    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
-    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
-    'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
-    'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC'
-}
-
 BATCH_SIZE = 500  # Upsert in batches to reduce transaction size
-
-# ============================================================================
-# DATE PARSING - FLEXIBLE FORMAT HANDLING
-# ============================================================================
-
-def parse_flexible_date(date_str: Optional[str]) -> Optional[str]:
-    """
-    Parse dates in flexible formats:
-    - YYYY (year only) -> YYYY-01-01
-    - YYYY-MM (year-month) -> YYYY-MM-01
-    - YYYY-MM-DD (full date) -> YYYY-MM-DD
-    - Other formats -> try parsing, return None if fails
-    
-    Returns: date string in YYYY-MM-DD format, or None if invalid/unparseable
-    """
-    if not date_str:
-        return None
-    
-    date_str = str(date_str).strip()
-    
-    if not date_str:
-        return None
-    
-    # Remove time component if present (T separator)
-    if 'T' in date_str:
-        date_str = date_str.split('T')[0]
-    
-    # Count hyphens to determine format
-    hyphen_count = date_str.count('-')
-    
-    try:
-        if hyphen_count == 0:
-            # Format: YYYY (4 digits)
-            if len(date_str) == 4 and date_str.isdigit():
-                return f"{date_str}-01-01"
-            else:
-                return None
-        
-        elif hyphen_count == 1:
-            # Format: YYYY-MM
-            parts = date_str.split('-')
-            if len(parts) == 2 and len(parts[0]) == 4 and len(parts[1]) == 2:
-                year, month = parts[0], parts[1]
-                if year.isdigit() and month.isdigit():
-                    return f"{year}-{month}-01"
-            return None
-        
-        elif hyphen_count == 2:
-            # Format: YYYY-MM-DD
-            parts = date_str.split('-')
-            if len(parts) == 3 and len(parts[0]) == 4 and len(parts[1]) == 2 and len(parts[2]) == 2:
-                # Validate numeric parts
-                if all(p.isdigit() for p in parts):
-                    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
-                    # Basic validation
-                    if 1 <= month <= 12 and 1 <= day <= 31:
-                        return date_str
-            return None
-        
-        else:
-            return None
-    
-    except Exception as e:
-        logger.debug(f"Failed to parse date '{date_str}': {e}")
-        return None
 
 # ============================================================================
 # DOWNLOAD & EXTRACT
 # ============================================================================
-
-def download_prn_data(url: str, extract_to: str) -> str:
-    """Download PRN data zip and extract to directory."""
-    logger.info(f"Downloading PRN data from {url}")
-    try:
-        response = requests.get(url, timeout=60)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        logger.error(f"Failed to download: {e}")
-        raise
-
-    zip_path = os.path.join(extract_to, 'prn_data.zip')
-    with open(zip_path, 'wb') as f:
-        f.write(response.content)
-
-    logger.info(f"Downloaded {len(response.content) / 1024 / 1024:.2f} MB")
-
-    # Extract
-    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(extract_to)
-
-    logger.info(f"Extracted to {extract_to}")
-    return extract_to
 
 
 def find_json_file(directory: str) -> str:
@@ -243,7 +133,7 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
             raw_state = place_name
         
         # Map full state name to state code (e.g. 'Washington' -> 'WA')
-        state_code = STATE_CODES.get(raw_state)
+        state_code = get_state_code(raw_state)
 
         # Skip if missing required fields or unknown state
         if not place_name or not raw_state or not state_code:
@@ -273,7 +163,7 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
                 pass
 
         # Extract reforms by type
-        for reform_type in REFORM_TYPE_KEYS:
+        for reform_type in DB_TYPE_MAPPING.keys():
             if reform_type in place_data and place_data[reform_type]:
                 for reform in place_data[reform_type]:
                     if not isinstance(reform, dict):
@@ -429,7 +319,7 @@ def main():
             logger.info(f"Using local file: {json_file}")
         else:
             temp_dir = tempfile.mkdtemp()
-            download_prn_data(PRN_DATA_URL, temp_dir)
+            download_zip_and_extract(PRN_DATA_URL, temp_dir)
             json_file = find_json_file(temp_dir)
 
         # Parse & normalize

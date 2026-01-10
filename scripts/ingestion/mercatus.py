@@ -4,26 +4,36 @@ Ingestion script for Mercatus Center 2025 Housing Bills.
 Source: CSV File (database/testdata/mercatus-2025-housing-bills.csv)
 """
 
-import csv
 import logging
 import os
-import re
 import sys
 import argparse
 from datetime import datetime
 from typing import Dict, List, Set, Tuple
 
-import psycopg2
-from psycopg2.extras import execute_values
 from dotenv import load_dotenv
-import requests
 
 # Load environment variables
 load_dotenv()
 
 # Ensure we can import from local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-import db_utils
+from db_utils import (
+    bulk_link_reform_sources,
+    bulk_upsert_places,
+    bulk_upsert_policy_documents,
+    bulk_upsert_reforms,
+    close_db_connection,
+    download_file,
+    geocode_missing_places,
+    get_db_connection,
+    get_state_name,
+    log_ingestion,
+    normalize_reform_status,
+    parse_flexible_date,
+    place_key,
+    read_csv_file
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -78,29 +88,6 @@ STATUS_MAP = {
     'Died': 'Failed',
 }
 
-STATE_CODE_TO_NAME = {
-    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
-    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
-    'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
-    'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
-    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
-    'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
-    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
-    'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
-    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
-    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
-    'DC': 'District of Columbia'
-}
-
-def parse_date(date_str: str) -> str:
-    """Parses M/D/YYYY to YYYY-MM-DD."""
-    if not date_str:
-        return None
-    try:
-        dt = datetime.strptime(date_str.strip(), '%m/%d/%Y')
-        return dt.strftime('%Y-%m-%d')
-    except ValueError:
-        return None
 
 def parse_bill_field(text: str) -> Tuple[str, str]:
     """Splits 'Ref: Title' into (Ref, Title)."""
@@ -109,21 +96,6 @@ def parse_bill_field(text: str) -> Tuple[str, str]:
         return parts[0].strip(), parts[1].strip()
     return text.strip(), ""
 
-def get_normalized_status(mercatus_status: str) -> str:
-    if not mercatus_status:
-        return 'Proposed' # Default
-        
-    status = STATUS_MAP.get(mercatus_status)
-    if status:
-        return status
-    
-    status_lower = mercatus_status.lower()
-    if 'effective' in status_lower or 'signed' in status_lower or 'enacted' in status_lower:
-        return 'Adopted'
-    if 'fail' in status_lower or 'veto' in status_lower or 'died' in status_lower or 'defeat' in status_lower:
-        return 'Failed'
-    
-    return 'Proposed'
 
 def ensure_reform_types(conn, cursor, issues: Set[str]) -> Dict[str, int]:
     """
@@ -184,30 +156,12 @@ def main():
                         help='Output filename when downloading the CSV')
     args = parser.parse_args()
 
-    def download_csv(url: str, output_file: str) -> str:
-        logger.info(f"Downloading Mercatus CSV from {url} ...")
-        headers = {
-            'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
-        }
-        try:
-            with requests.get(url, headers=headers, timeout=60, stream=True) as r:
-                r.raise_for_status()
-                with open(output_file, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-            logger.info(f"✓ Saved CSV to {output_file}")
-            return output_file
-        except Exception as e:
-            logger.error(f"✗ Failed to download CSV: {e}")
-            raise
-
     csv_path = args.file
     if not csv_path or not os.path.exists(csv_path):
         logger.info("No local CSV provided or file not found; fetching from web...")
-        csv_path = download_csv(args.url, args.out)
+        csv_path = download_file(args.url, args.out)
 
-    conn, cursor = db_utils.get_db_connection()
+    conn, cursor = get_db_connection()
     
     try:
         # 1. Read CSV and Collect Data
@@ -216,9 +170,8 @@ def main():
         bill_data = [] # Temporary storage
         all_issues = set()
         
-        with open(csv_path, 'r', encoding='utf-8-sig') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
+        rows = read_csv_file(csv_path)
+        for row in rows:
                 # Headers: '2025 Housing Bills', 'Region Abbreviation ', 'Issues', 'Custom Description', 
                 # 'Status Text', 'Sponsors List', 'Date Introduced', 'Last Timeline Action Date', 
                 # 'Future Hearing Dates', 'Source Link'
@@ -237,10 +190,10 @@ def main():
                     continue
                     
                 ref, title = parse_bill_field(ref_title)
-                status = get_normalized_status(status_text)
+                status = normalize_reform_status(status_text)
                 
                 # Collect Place (State)
-                state_name = STATE_CODE_TO_NAME.get(state_code, state_code)
+                state_name = get_state_name(state_code) or state_code
                 raw_places.append({
                     'name': state_name,
                     'place_type': 'state',
@@ -261,7 +214,7 @@ def main():
                     'analysis': None,
                     'document_url': source_link,
                     'status': status,
-                    'last_action_date': parse_date(last_action)
+                    'last_action_date': parse_flexible_date(last_action)
                 }
                 policy_docs.append(doc)
                 
@@ -274,55 +227,33 @@ def main():
                     'ref': ref,
                     'state_code': state_code,
                     'issues': issues_list,
-                    'date': parse_date(date_intro),
+                    'date': parse_flexible_date(date_intro),
                     'status': status,
                     'desc': desc
                 })
 
-        # 2. Ensure Mercatus source exists
-        logger.info("Ensuring Mercatus source exists...")
-        cursor.execute("""
-            INSERT INTO sources (name, short_name, description, website_url, logo_filename)
-            VALUES (
-                'Mercatus Center',
-                'Mercatus',
-                'Mercatus Center at George Mason University - Housing Policy Tracker',
-                'https://www.mercatus.org/',
-                'mercatus-logo.svg'
-            )
-            ON CONFLICT (short_name) DO UPDATE SET
-                name = EXCLUDED.name,
-                description = EXCLUDED.description,
-                website_url = EXCLUDED.website_url,
-                logo_filename = EXCLUDED.logo_filename
-            RETURNING id
-        """)
-        mercatus_source_id = cursor.fetchone()[0]
-        conn.commit()
-        logger.info(f"Mercatus source ID: {mercatus_source_id}")
-
-        # 3. Upsert Places (States)
+        # 2. Upsert Places (States)
         logger.info(f"Upserting {len(raw_places)} places...")
-        p_created, p_updated, place_map = db_utils.bulk_upsert_places(conn, cursor, raw_places)
+        p_created, p_updated, place_map = bulk_upsert_places(conn, cursor, raw_places)
         logger.info(f"Places: {p_created} created, {p_updated} updated.")
         
-        # 4. Upsert Policy Documents
+        # 3. Upsert Policy Documents
         logger.info(f"Upserting {len(policy_docs)} policy documents...")
-        d_created, d_updated, doc_map = db_utils.bulk_upsert_policy_documents(conn, cursor, policy_docs)
+        d_created, d_updated, doc_map = bulk_upsert_policy_documents(conn, cursor, policy_docs)
         logger.info(f"Documents: {d_created} created, {d_updated} updated.")
         
-        # 5. Upsert Reform Types
+        # 4. Upsert Reform Types
         logger.info("Syncing reform types...")
         reform_type_map = ensure_reform_types(conn, cursor, all_issues)
         
-        # 6. Construct Reforms
+        # 5. Construct Reforms
         reforms_to_insert = []
         for bill in bill_data:
             # Reform needs: place_id, reform_type_id, status, etc.
             # place_id: from place_map using state
-            state_name = STATE_CODE_TO_NAME.get(bill['state_code'], bill['state_code'])
-            place_key = db_utils.place_key(state_name, bill['state_code'], 'state')
-            place_id = place_map.get(place_key)
+            state_name = get_state_name(bill['state_code']) or bill['state_code']
+            place_key_val = place_key(state_name, bill['state_code'], 'state')
+            place_id = place_map.get(place_key_val)
             
             if not place_id:
                 logger.warning(f"Place ID not found for {place_key}")
@@ -363,21 +294,21 @@ def main():
                 }
                 reforms_to_insert.append(reform)
         
-        # 8. Upsert Reforms
+        # 6. Upsert Reforms
         logger.info(f"Upserting {len(reforms_to_insert)} reforms...")
-        r_created, r_updated, reform_ids, deduped_reforms = db_utils.bulk_upsert_reforms(conn, cursor, reforms_to_insert)
+        r_created, r_updated, reform_ids, deduped_reforms = bulk_upsert_reforms(conn, cursor, reforms_to_insert)
         logger.info(f"Reforms: {r_created} created, {r_updated} updated.")
         
-        # 9. Link Reforms to Mercatus Source
+        # 7. Link Reforms to Mercatus Source
         logger.info(f"Linking {len(reform_ids)} reforms to Mercatus source...")
-        links_created = db_utils.bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'Mercatus')
+        links_created = bulk_link_reform_sources(conn, cursor, reform_ids, deduped_reforms, 'Mercatus')
         logger.info(f"Source links created: {links_created}")
         
-        # 10. Geocode places without coordinates
-        db_utils.geocode_missing_places(conn, cursor)
+        # 8. Geocode places without coordinates
+        geocode_missing_places(conn, cursor)
         
-        # 11. Log Ingestion
-        db_utils.log_ingestion(
+        # 9. Log Ingestion
+        log_ingestion(
             conn, cursor,
             source_name=MERCATUS_SOURCE,
             records_processed=len(bill_data),
@@ -385,7 +316,7 @@ def main():
             places_updated=p_updated,
             reforms_created=r_created,
             reforms_updated=r_updated,
-            status='Success',
+            status='success',
             start_time=datetime.now()
         )
         
@@ -396,7 +327,7 @@ def main():
         logger.exception("Ingestion failed")
         sys.exit(1)
     finally:
-        db_utils.close_db_connection(conn, cursor)
+        close_db_connection(conn, cursor)
 
 if __name__ == '__main__':
     main()

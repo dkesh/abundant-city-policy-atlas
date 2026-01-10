@@ -5,9 +5,12 @@ Provides connection helpers, bulk upserts for places and reforms,
 citation insertion, and ingestion logging aligned with the schema.
 """
 
+import csv
+import logging
 import os
-import re
+import zipfile
 from datetime import datetime
+from pathlib import Path
 from time import sleep
 from typing import Dict, List, Optional, Tuple
 
@@ -16,6 +19,9 @@ import requests
 from psycopg2.extras import execute_values
 
 PlaceKey = Tuple[str, str, str]  # (state_code, name_lower, place_type)
+
+# User-Agent string for HTTP requests
+USER_AGENT = 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
 
 
 def place_key(name: str, state_code: str, place_type: str) -> PlaceKey:
@@ -53,7 +59,7 @@ def geocode_place(place_name: str, state_code: Optional[str] = None, place_type:
             'limit': 1
         }
         headers = {
-            'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
+            'User-Agent': USER_AGENT
         }
         
         response = requests.get(url, params=params, headers=headers, timeout=10)
@@ -68,7 +74,6 @@ def geocode_place(place_name: str, state_code: Optional[str] = None, place_type:
         return (None, None)
     
     except Exception as e:
-        import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"Geocoding failed for '{place_name}' ({state_code}): {e}")
         return (None, None)
@@ -132,7 +137,6 @@ def geocode_missing_places(conn, cursor, limit: int = 500) -> int:
     Returns:
         Number of places successfully geocoded
     """
-    import logging
     logger = logging.getLogger(__name__)
     
     logger.info("Geocoding places without coordinates...")
@@ -158,10 +162,282 @@ def geocode_missing_places(conn, cursor, limit: int = 500) -> int:
     return geocoded
 
 
-def place_key(name: str, state_code: str, place_type: str) -> PlaceKey:
-    """Normalized key for place lookups and maps."""
-    return (state_code or '', (name or '').strip().lower(), place_type)
+# ============================================================================
+# STATE CODE UTILITIES
+# ============================================================================
 
+STATE_CODE_TO_NAME: Dict[str, str] = {
+    'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+    'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+    'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+    'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+    'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+    'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+    'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+    'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+    'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+    'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
+    'DC': 'District of Columbia'
+}
+
+STATE_NAME_TO_CODE: Dict[str, str] = {name: code for code, name in STATE_CODE_TO_NAME.items()}
+
+
+def get_state_name(state_code: str) -> Optional[str]:
+    """Get full state name from state code."""
+    return STATE_CODE_TO_NAME.get(state_code.upper())
+
+
+def get_state_code(state_name: str) -> Optional[str]:
+    """Get state code from full state name."""
+    return STATE_NAME_TO_CODE.get(state_name)
+
+
+# ============================================================================
+# DATE PARSING UTILITIES
+# ============================================================================
+
+def parse_flexible_date(date_str: Optional[str]) -> Optional[str]:
+    """
+    Parse dates in flexible formats and return YYYY-MM-DD format.
+    
+    Supported formats:
+    - YYYY (year only) -> YYYY-01-01
+    - YYYY-MM (year-month) -> YYYY-MM-01
+    - YYYY-MM-DD (full date) -> YYYY-MM-DD
+    - M/D/YYYY (US format) -> YYYY-MM-DD
+    
+    Returns:
+        Date string in YYYY-MM-DD format, or None if invalid/unparseable
+    """
+    logger = logging.getLogger(__name__)
+    
+    if not date_str:
+        return None
+    
+    date_str = str(date_str).strip()
+    
+    if not date_str:
+        return None
+    
+    # Remove time component if present (T separator)
+    if 'T' in date_str:
+        date_str = date_str.split('T')[0]
+    
+    # Try M/D/YYYY format first (for Mercatus data)
+    if '/' in date_str and not date_str.startswith('/'):
+        try:
+            dt = datetime.strptime(date_str, '%m/%d/%Y')
+            return dt.strftime('%Y-%m-%d')
+        except ValueError:
+            pass  # Fall through to other formats
+    
+    # Count hyphens to determine format
+    hyphen_count = date_str.count('-')
+    
+    try:
+        if hyphen_count == 0:
+            # Format: YYYY (4 digits)
+            if len(date_str) == 4 and date_str.isdigit():
+                return f"{date_str}-01-01"
+            else:
+                return None
+        
+        elif hyphen_count == 1:
+            # Format: YYYY-MM
+            parts = date_str.split('-')
+            if len(parts) == 2 and len(parts[0]) == 4 and len(parts[1]) == 2:
+                year, month = parts[0], parts[1]
+                if year.isdigit() and month.isdigit():
+                    return f"{year}-{month}-01"
+            return None
+        
+        elif hyphen_count == 2:
+            # Format: YYYY-MM-DD
+            parts = date_str.split('-')
+            if len(parts) == 3 and len(parts[0]) == 4 and len(parts[1]) == 2 and len(parts[2]) == 2:
+                # Validate numeric parts
+                if all(p.isdigit() for p in parts):
+                    year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+                    # Basic validation
+                    if 1 <= month <= 12 and 1 <= day <= 31:
+                        # Validate actual date
+                        datetime.strptime(date_str, '%Y-%m-%d')
+                        return date_str
+            return None
+        
+        else:
+            return None
+    
+    except (ValueError, IndexError) as e:
+        logger.debug(f"Failed to parse date '{date_str}': {e}")
+        return None
+
+
+# ============================================================================
+# STATUS NORMALIZATION UTILITIES
+# ============================================================================
+
+def normalize_reform_status(raw_status: Optional[str]) -> str:
+    """
+    Normalize reform status to standardized values: 'Adopted', 'Failed', 'Proposed'.
+    
+    Maps various status formats to standardized values with case-insensitive matching.
+    Defaults to 'Proposed' for unknown statuses.
+    
+    Args:
+        raw_status: Raw status string from source data
+    
+    Returns:
+        Normalized status string: 'Adopted', 'Failed', or 'Proposed'
+    """
+    logger = logging.getLogger(__name__)
+    
+    if not raw_status:
+        return 'Proposed'
+    
+    status_lower = str(raw_status).lower().strip()
+    
+    # Adopted statuses
+    if status_lower in ['approved', 'enacted', 'effective', 'signed', 'signed by governor']:
+        return 'Adopted'
+    
+    # Failed statuses
+    if status_lower in ['denied/rejected', 'denied', 'rejected', 'vetoed', 'failed', 'died', 'defeat']:
+        return 'Failed'
+    
+    # Proposed/in-process statuses
+    if status_lower in ['early process', 'late process', 'introduced', 'in committee', 'passed chamber',
+                        'introduced or prefiled', 'passed original chamber', 'passed second chamber',
+                        'out of committee']:
+        return 'Proposed'
+    
+    # Heuristic matching for partial matches
+    if 'effective' in status_lower or 'signed' in status_lower or 'enacted' in status_lower:
+        return 'Adopted'
+    if 'fail' in status_lower or 'veto' in status_lower or 'died' in status_lower or 'defeat' in status_lower:
+        return 'Failed'
+    
+    # Default to Proposed for unknown statuses
+    logger.warning(f"Unknown status '{raw_status}', defaulting to 'Proposed'")
+    return 'Proposed'
+
+
+# ============================================================================
+# FILE DOWNLOAD UTILITIES
+# ============================================================================
+
+def download_file(url: str, output_path: str, headers: Optional[Dict] = None, timeout: int = 60) -> str:
+    """
+    Download a file from URL to local path with streaming support.
+    
+    Args:
+        url: URL to download from
+        output_path: Local path to save file
+        headers: Optional custom headers (User-Agent will be added if not present)
+        timeout: Request timeout in seconds
+    
+    Returns:
+        Path to downloaded file
+    """
+    logger = logging.getLogger(__name__)
+    
+    if headers is None:
+        headers = {}
+    
+    if 'User-Agent' not in headers:
+        headers['User-Agent'] = USER_AGENT
+    
+    # Ensure output directory exists
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        with requests.get(url, headers=headers, timeout=timeout, stream=True) as r:
+            r.raise_for_status()
+            with open(output_path, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+        logger.info(f"✓ Downloaded file to {output_path}")
+        return output_path
+    except Exception as e:
+        logger.error(f"✗ Failed to download file from {url}: {e}")
+        raise
+
+
+def download_zip_and_extract(url: str, extract_to: str) -> str:
+    """
+    Download a zip file and extract it to a directory.
+    
+    Args:
+        url: URL to download zip file from
+        extract_to: Directory to extract zip contents to
+    
+    Returns:
+        Path to extraction directory
+    """
+    logger = logging.getLogger(__name__)
+    
+    logger.info(f"Downloading zip from {url}")
+    
+    # Download to temporary zip file
+    zip_path = os.path.join(extract_to, 'temp_download.zip')
+    download_file(url, zip_path)
+    
+    # Extract
+    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_to)
+    
+    # Remove temporary zip file
+    try:
+        os.remove(zip_path)
+    except Exception:
+        pass
+    
+    logger.info(f"Extracted to {extract_to}")
+    return extract_to
+
+
+# ============================================================================
+# CSV READING UTILITIES
+# ============================================================================
+
+def read_csv_file(filepath: str, encoding: str = 'utf-8-sig') -> List[Dict]:
+    """
+    Read and parse a CSV file into a list of dictionaries.
+    
+    Args:
+        filepath: Path to CSV file
+        encoding: File encoding (default: 'utf-8-sig' to handle BOM)
+    
+    Returns:
+        List of dictionaries, one per row
+    
+    Raises:
+        FileNotFoundError: If file doesn't exist
+        Exception: For other read errors
+    """
+    logger = logging.getLogger(__name__)
+    
+    rows = []
+    try:
+        with open(filepath, 'r', encoding=encoding) as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                rows.append(row)
+        logger.info(f"✓ Read {len(rows)} rows from {filepath}")
+        return rows
+    except FileNotFoundError:
+        logger.error(f"✗ File not found: {filepath}")
+        raise
+    except Exception as e:
+        logger.error(f"✗ Error reading CSV: {e}")
+        raise
+
+
+# ============================================================================
+# DATABASE CONNECTION UTILITIES
+# ============================================================================
 
 def get_db_connection(database_url: Optional[str] = None) -> Tuple[psycopg2.extensions.connection, psycopg2.extensions.cursor]:
     """Create a database connection and cursor using DATABASE_URL if not provided."""

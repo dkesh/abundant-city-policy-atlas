@@ -17,14 +17,13 @@ Usage:
     python ingest_zoning_tracker.py --file data.csv --database postgresql://user:pass@localhost/db
 """
 
+import os
 import sys
-import csv
 import logging
 import argparse
 import traceback
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Optional, Dict, List, Tuple
 
 import requests
@@ -38,11 +37,16 @@ from db_utils import (
     bulk_upsert_places,
     bulk_upsert_reforms,
     close_db_connection,
+    download_file,
+    geocode_missing_places,
     get_db_connection,
     load_reform_type_map,
     log_ingestion,
+    normalize_reform_status,
+    parse_flexible_date,
     place_key,
-    geocode_missing_places
+    read_csv_file,
+    USER_AGENT
 )
 
 # Load environment variables from .env file
@@ -93,39 +97,6 @@ def collect_place_records(rows: List[Dict]) -> List[Dict]:
 # DATA PARSING & NORMALIZATION
 # ============================================================================
 
-def parse_flexible_date(date_str: Optional[str]) -> Optional[str]:
-    """
-    Parse flexible date formats:
-    - Year only: 2025 → 2025-01-01
-    - Year-month: 2025-10 → 2025-10-01
-    - Full date: 2025-10-15 → 2025-10-15
-    """
-    if not date_str or not str(date_str).strip():
-        return None
-    
-    date_str = str(date_str).strip()
-    hyphen_count = date_str.count('-')
-    
-    try:
-        if hyphen_count == 0:
-            # Format: YYYY
-            if len(date_str) == 4 and date_str.isdigit():
-                return f"{date_str}-01-01"
-        elif hyphen_count == 1:
-            # Format: YYYY-MM
-            parts = date_str.split('-')
-            if len(parts[0]) == 4 and len(parts[1]) == 2:
-                return f"{parts[0]}-{parts[1]}-01"
-        elif hyphen_count == 2:
-            # Format: YYYY-MM-DD (validate by parsing)
-            datetime.strptime(date_str, '%Y-%m-%d')
-            return date_str
-    except (ValueError, IndexError):
-        pass
-    
-    logger.warning(f"  ⚠ Could not parse date: {date_str}")
-    return None
-
 def normalize_reform_type(zrt_type: str) -> Optional[str]:
     """
     Map Zoning Reform Tracker reform type strings to our codes
@@ -154,29 +125,6 @@ def normalize_reform_type(zrt_type: str) -> Optional[str]:
     # Default to other if no match
     return 'other:general'
 
-def normalize_status(raw_status: Optional[str]) -> str:
-    """
-    Map ZRT status values to standardized reform statuses.
-    
-    ZRT uses: Approved, Denied/Rejected, Early Process, Late Process
-    We map to: Adopted, Failed, Proposed
-    """
-    if not raw_status:
-        return 'Proposed'
-    
-    status_lower = raw_status.lower().strip()
-    
-    # Map to standardized statuses
-    if status_lower in ['approved', 'enacted']:
-        return 'Adopted'
-    elif status_lower in ['denied/rejected', 'denied', 'rejected', 'vetoed']:
-        return 'Failed'
-    elif status_lower in ['early process', 'late process', 'introduced', 'in committee', 'passed chamber']:
-        return 'Proposed'
-    else:
-        # Default to Proposed for unknown statuses
-        logger.warning(f"Unknown status '{raw_status}', defaulting to 'Proposed'")
-        return 'Proposed'
 
 def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optional[Dict]:
     """Parse a single CSV row into a reform payload for upsert."""
@@ -214,7 +162,7 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
         return {
             'place_id': pid,
             'reform_type_id': reform_type_map[reform_code],
-            'status': normalize_status(reform_phase),
+            'status': normalize_reform_status(reform_phase),
             'scope': scope,
             'land_use': land_use,
             'adoption_date': adoption_date,
@@ -248,11 +196,7 @@ def download_zoning_tracker_data(output_file: str = 'zoning-tracker-spreadsheet.
 
     Returns the local file path of the downloaded CSV.
     """
-    session = requests.Session()
-    headers = {
-        'User-Agent': 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
-    }
-
+    headers = {'User-Agent': USER_AGENT}
     fallback_url = (
         'https://belonging.berkeley.edu/sites/default/files/2025-04/'
         'zoning%20tracker%20spreadsheet%2002-28-2025.csv'
@@ -261,7 +205,7 @@ def download_zoning_tracker_data(output_file: str = 'zoning-tracker-spreadsheet.
     csv_url: Optional[str] = None
 
     try:
-        resp = session.get(ZONING_TRACKER_URL, headers=headers, timeout=20)
+        resp = requests.get(ZONING_TRACKER_URL, headers=headers, timeout=20)
         resp.raise_for_status()
         html = resp.text
 
@@ -282,38 +226,8 @@ def download_zoning_tracker_data(output_file: str = 'zoning-tracker-spreadsheet.
     if not csv_url:
         csv_url = fallback_url
 
-    # Download the CSV
-    try:
-        with session.get(csv_url, headers=headers, timeout=60, stream=True) as r:
-            r.raise_for_status()
-            # Ensure output directory exists
-            Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-            with open(output_file, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-        logger.info(f"✓ Downloaded ZRT CSV to {output_file}")
-        return output_file
-    except Exception as e:
-        logger.error(f"✗ Failed to download CSV from {csv_url}: {e}")
-        raise
-
-def read_csv_file(filepath: str) -> List[Dict]:
-    """Read and parse CSV file"""
-    rows = []
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                rows.append(row)
-        logger.info(f"✓ Read {len(rows)} rows from {filepath}")
-        return rows
-    except FileNotFoundError:
-        logger.error(f"✗ File not found: {filepath}")
-        raise
-    except Exception as e:
-        logger.error(f"✗ Error reading CSV: {e}")
-        raise
+    # Download the CSV using generic utility
+    return download_file(csv_url, output_file, headers=headers)
 
 # ============================================================================
 # MAIN INGESTION
@@ -336,7 +250,7 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
 
         if not csv_file:
             csv_file = 'zoning-tracker-spreadsheet.csv'
-            if not Path(csv_file).exists():
+            if not os.path.exists(csv_file):
                 csv_file = download_zoning_tracker_data(csv_file)
 
         rows = read_csv_file(csv_file)
