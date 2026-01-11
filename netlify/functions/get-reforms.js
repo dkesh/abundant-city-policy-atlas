@@ -175,7 +175,7 @@ exports.handler = async (event, context) => {
         p.latitude,
         p.longitude,
         p.encoded_name,
-        p.source_url as place_url,
+        r.link_url,
         s.state_code,
         s.state_name,
         s.region,
@@ -217,7 +217,7 @@ exports.handler = async (event, context) => {
       LEFT JOIN reform_sources rs ON r.id = rs.reform_id
       LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
-      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, p.source_url,
+      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
                s.state_code, s.state_name, s.region,
                rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
@@ -244,7 +244,6 @@ exports.handler = async (event, context) => {
         latitude: row.latitude,
         longitude: row.longitude,
         encoded_name: row.encoded_name,
-        url: row.place_url,
         region: row.region
       },
       reform: {
@@ -258,6 +257,7 @@ exports.handler = async (event, context) => {
         summary: row.summary || '',
         requirements: row.requirements || [],
         notes: row.notes || '',
+        link_url: row.link_url,
         sources: row.sources || [],
         policy_document: row.policy_document_id ? {
           id: row.policy_document_id,

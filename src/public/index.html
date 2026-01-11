@@ -1063,9 +1063,12 @@
             ).join('');
 
             // Sources with logos only
+            // Use reform.link_url if available, otherwise fall back to source website_url
+            const reformLinkUrl = reform.reform.link_url || '';
             const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
                 reform.reform.sources.map(source => {
-                    const sourceUrl = source.source_url || source.website_url || '';
+                    // Use the reform's link_url (tracker URL) if available, otherwise use source website
+                    const sourceUrl = reformLinkUrl || source.website_url || '';
                     const logoUrl = source.logo ? `${source.logo}` : '';
                     
                     if (!logoUrl) return '';

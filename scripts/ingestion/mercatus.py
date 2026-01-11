@@ -40,8 +40,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 MERCATUS_SOURCE = 'Mercatus (2025 Housing Bills)'
+MERCATUS_REFORM_TRACKER_URL = 'https://www.quorum.us/spreadsheet/external/vehiYnJcriswPJrHpUKe/'
 MERCATUS_CSV_URL = (
-    'https://www.quorum.us/api/sheet/vehiYnJcriswPJrHpUKe/'
+    MERCATUS_REFORM_TRACKER_URL,
     '?format=csv&exclude=%7B%7D&is_public_sheet_download=true&searchingValue=%7B%7D&sortType=2'
 )
 
@@ -288,6 +289,7 @@ def main():
                     'adoption_date': bill['date'],
                     'summary': bill['desc'],
                     'legislative_number': bill['ref'],
+                    'link_url': MERCATUS_REFORM_TRACKER_URL,
                     'source_url': source_url,
                     'source_notes': 'Mercatus 2025 Housing Bills',
                     'citations': []

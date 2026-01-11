@@ -137,7 +137,6 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
             'latitude': None,
             'longitude': None,
             'encoded_name': None,
-            'source_url': None,
         }
         
         # Create policy document record
@@ -204,6 +203,7 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
             'reform_mechanism': 'Legislation',
             'reform_phase': session if session else None,
             'legislative_number': bill_ref,
+            'link_url': 'https://parkingreform.org/resources/state-legislation-map/',
             'citations': citations,
             # Source-specific fields (for reform_sources table)
             'reporter': None,

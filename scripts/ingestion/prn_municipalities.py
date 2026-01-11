@@ -149,8 +149,8 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
             'latitude': None,
             'longitude': None,
             'encoded_name': place_info.get('encoded'),
-            'source_url': place_info.get('url'),
-            'reforms': []
+            'reforms': [],
+            'place_source_url': place_info.get('url')  # Store for use in reform link_url
         }
 
         # Parse coordinates
@@ -213,7 +213,8 @@ def normalize_place_data(raw_data: Dict) -> List[Dict]:
                         'requirements': requirements,
                         'notes': reform.get('notes', ''),
                         'source_url': reform.get('source_url', ''),
-                        'citations': citations
+                        'citations': citations,
+                        'link_url': place_info.get('url')  # Use place's source_url as link_url
                     }
 
                     place_record['reforms'].append(reform_record)
@@ -264,6 +265,7 @@ def _build_reform_records(
                 'reform_mechanism': None,
                 'reform_phase': None,
                 'legislative_number': None,
+                'link_url': reform.get('link_url'),  # Set from place's source_url
                 # Source-specific fields (for reform_sources table)
                 'reporter': reform['reporter'],
                 'source_url': reform['source_url'],

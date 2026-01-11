@@ -56,7 +56,7 @@ load_dotenv()
 # CONFIGURATION
 # ============================================================================
 
-# Download URL for Zoning Reform Tracker data
+# URL for Zoning Reform Tracker (used for both data download and reform links)
 ZONING_TRACKER_URL = "https://belonging.berkeley.edu/zoning-reform-tracker"
 
 # Logging configuration
@@ -89,7 +89,6 @@ def collect_place_records(rows: List[Dict]) -> List[Dict]:
                 'latitude': None,
                 'longitude': None,
                 'encoded_name': None,
-                'source_url': None,
             })
     return records
 
@@ -172,6 +171,7 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
             'reform_mechanism': row.get('reform_mechanism'),
             'reform_phase': reform_phase,
             'legislative_number': row.get('legislative_number_policy_name'),
+            'link_url': ZONING_TRACKER_URL,
             'citations': [],
             # Source-specific fields (for reform_sources table)
             'reporter': reporter,

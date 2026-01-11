@@ -491,7 +491,7 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
         (
             p['name'], p['place_type'], p['state_code'],
             p.get('population'), p.get('latitude'), p.get('longitude'),
-            p.get('encoded_name'), p.get('source_url')
+            p.get('encoded_name')
         )
         for p in deduped
     ]
@@ -499,7 +499,7 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
     sql = """
         INSERT INTO places (
             name, place_type, state_code,
-            population, latitude, longitude, encoded_name, source_url
+            population, latitude, longitude, encoded_name
         )
         VALUES %s
         ON CONFLICT (name, state_code, place_type) DO UPDATE
@@ -507,7 +507,6 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
             latitude = EXCLUDED.latitude,
             longitude = EXCLUDED.longitude,
             encoded_name = EXCLUDED.encoded_name,
-            source_url = EXCLUDED.source_url,
             updated_at = CURRENT_TIMESTAMP
         RETURNING id, name, state_code, place_type, (xmax = 0)::int AS is_insert
     """
@@ -617,7 +616,8 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             r.get('notes'),
             r.get('reform_mechanism'),
             r.get('reform_phase'),
-            r.get('legislative_number')
+            r.get('legislative_number'),
+            r.get('link_url')
         )
         for r in deduped
     ]
@@ -626,7 +626,7 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
         INSERT INTO reforms (
             place_id, reform_type_id, policy_document_id, status, scope, land_use,
             adoption_date, summary, requirements, notes,
-            reform_mechanism, reform_phase, legislative_number
+            reform_mechanism, reform_phase, legislative_number, link_url
         )
         VALUES %s
         ON CONFLICT (place_id, reform_type_id, adoption_date, status)
@@ -640,6 +640,7 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             reform_mechanism = EXCLUDED.reform_mechanism,
             reform_phase = EXCLUDED.reform_phase,
             legislative_number = EXCLUDED.legislative_number,
+            link_url = EXCLUDED.link_url,
             updated_at = CURRENT_TIMESTAMP
         RETURNING id, (xmax = 0)::int AS is_insert
     """

@@ -56,7 +56,6 @@
     latitude DECIMAL(10,8),
     longitude DECIMAL(11,8),
     encoded_name VARCHAR(255),
-    source_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (name, state_code, place_type)
@@ -103,6 +102,7 @@
     legislative_number VARCHAR(255),
     -- metadata
     notes TEXT,
+    link_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY(id),
