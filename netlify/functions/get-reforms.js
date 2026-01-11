@@ -164,7 +164,7 @@ exports.handler = async (event, context) => {
     console.log('Query params:', JSON.stringify(queryParams));
     console.log('============================');
 
-    // Query reforms with all related data including sources
+    // Query reforms with all related data including sources and policy documents
     const query = `
       SELECT
         r.id,
@@ -190,6 +190,9 @@ exports.handler = async (event, context) => {
         r.requirements,
         r.notes,
         r.created_at,
+        pd.id as policy_document_id,
+        pd.title as policy_document_title,
+        pd.reference_number as policy_document_reference,
         COALESCE(
           json_agg(
             json_build_object(
@@ -210,13 +213,15 @@ exports.handler = async (event, context) => {
       JOIN places p ON r.place_id = p.id
       JOIN states s ON p.state_code = s.state_code
       JOIN reform_types rt ON r.reform_type_id = rt.id
+      LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
       LEFT JOIN reform_sources rs ON r.id = rs.reform_id
       LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
       GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, p.source_url,
                s.state_code, s.state_name, s.region,
                rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
-               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at
+               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
+               pd.id, pd.title, pd.reference_number
       ORDER BY s.state_name, p.name, rt.sort_order, r.adoption_date DESC
       LIMIT $${paramCount}
     `;
@@ -253,7 +258,12 @@ exports.handler = async (event, context) => {
         summary: row.summary || '',
         requirements: row.requirements || [],
         notes: row.notes || '',
-        sources: row.sources || []
+        sources: row.sources || [],
+        policy_document: row.policy_document_id ? {
+          id: row.policy_document_id,
+          title: row.policy_document_title,
+          reference_number: row.policy_document_reference
+        } : null
       }
     }));
 

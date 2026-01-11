@@ -1103,6 +1103,11 @@
                     <div class="meta-item">
                         <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
                     </div>
+                    ${reform.reform.policy_document && reform.reform.policy_document.title ? `
+                    <div class="meta-item">
+                        <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
+                    </div>
+                    ` : ''}
                     ${reform.place.population ? `
                     <div class="meta-item">
                         <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
