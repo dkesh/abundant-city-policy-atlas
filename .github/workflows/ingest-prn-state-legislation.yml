@@ -1,0 +1,29 @@
+name: Ingest PRN State Legislation Data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ingest-prn-state-legislation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run Ingestion
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # Runs without --file to trigger fresh download from Google Sheets
+      run: python scripts/ingestion/prn_state_legislation.py

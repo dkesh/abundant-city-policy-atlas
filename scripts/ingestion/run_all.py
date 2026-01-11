@@ -51,6 +51,10 @@ def main():
         (
             "mercatus.py",
             ["--file", "database/testdata/mercatus-2025-housing-bills.csv"]
+        ),
+        (
+            "prn_state_legislation.py",
+            []  # Downloads from Google Sheets automatically
         )
     ]
 

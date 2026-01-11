@@ -39,3 +39,8 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: python scripts/ingestion/mercatus.py
+      
+    - name: Run PRN State Legislation Ingestion
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: python scripts/ingestion/prn_state_legislation.py
