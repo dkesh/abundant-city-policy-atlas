@@ -92,7 +92,7 @@ exports.handler = async (event, context) => {
       }
 
       const { filter_config, filter_version, title, description, view_count } = result.rows[0];
-      const currentVersion = 1; // Current filter schema version
+      const currentVersion = 2; // Current filter schema version
 
       // Migrate if needed
       let migratedConfig = filter_config;

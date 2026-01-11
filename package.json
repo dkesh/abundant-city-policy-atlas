@@ -2,11 +2,21 @@
   "name": "urbanist-reform-map",
   "version": "1.0.0",
   "scripts": {
+    "predev": "node scripts/migrations/_helpers/run-migrations.js",
     "dev": "netlify dev",
-    "build": "echo \"No build step yet\""
+    "build": "node scripts/migrations/_helpers/run-migrations.js && echo \"Build complete\"",
+    "migrate:create": "node-pg-migrate create -m scripts/migrations",
+    "migrate:up": "node-pg-migrate up -m scripts/migrations",
+    "migrate:down": "node-pg-migrate down -m scripts/migrations",
+    "migrate:status": "node scripts/migrations/_helpers/status.js",
+    "migrate:help": "node-pg-migrate --help",
+    "migrate:verify": "node scripts/migrations/_helpers/verify-setup.js"
   },
   "devDependencies": {
-    "netlify-cli": "^17.38.1"
+    "@neondatabase/api-client": "^2.6.0",
+    "dotenv": "^17.2.3",
+    "netlify-cli": "^17.38.1",
+    "node-pg-migrate": "^8.0.4"
   },
   "dependencies": {
     "pg": "^8.16.3"
