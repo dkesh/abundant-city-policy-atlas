@@ -1062,28 +1062,23 @@
                 `<div class="tag">${escapeHtml(r)}</div>`
             ).join('');
 
-            // Sources with logos and reporters
+            // Sources with logos only
             const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
                 reform.reform.sources.map(source => {
-                    const reporterInfo = source.reporter ? `<span class="source-reporter">${escapeHtml(source.reporter)}</span>` : '';
                     const sourceUrl = source.source_url || source.website_url || '';
                     const logoUrl = source.logo ? `${source.logo}` : '';
                     
+                    if (!logoUrl) return '';
+                    
                     if (sourceUrl) {
                         return `
-                            <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="source-badge">
-                                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />` : ''}
-                                <span class="source-name">${escapeHtml(source.short_name)}</span>
-                                ${reporterInfo}
+                            <a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="source-logo-link">
+                                <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />
                             </a>
                         `;
                     } else {
                         return `
-                            <div class="source-badge">
-                                ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />` : ''}
-                                <span class="source-name">${escapeHtml(source.short_name)}</span>
-                                ${reporterInfo}
-                            </div>
+                            <img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name)}" class="source-logo" />
                         `;
                     }
                 }).join('')
@@ -1144,19 +1139,15 @@
                     ` : ''}
                 </div>
 
-                ${sourcesHtml ? `
-                <div class="sources-section">
-                    <strong>Data Sources</strong>
-                    <div class="sources-list">
-                        ${sourcesHtml}
-                    </div>
-                </div>
-                ` : ''}
-
                 <div class="reform-footer">
                     <span class="reform-footer-text">
                         ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
                     </span>
+                    ${sourcesHtml ? `
+                    <div class="sources-logos">
+                        ${sourcesHtml}
+                    </div>
+                    ` : ''}
                 </div>
             `;
 

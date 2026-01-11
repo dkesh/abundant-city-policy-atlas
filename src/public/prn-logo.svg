@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60" width="200" height="60">
-  <rect fill="#27ae60" width="200" height="60" rx="4"/>
-  <text x="100" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">PRN</text>
+  <rect fill="#ffffff" width="200" height="60"/>
+  <g fill="#4a4a4a" stroke="#4a4a4a">
+    <path d="M 20 10 L 20 50 M 20 10 L 60 10 L 60 50" stroke-width="2" fill="none"/>
+    <path d="M 60 10 L 60 50 M 60 10 L 100 10 L 100 50" stroke-width="2" fill="none"/>
+    <path d="M 100 10 L 100 50 M 100 10 L 140 10 L 140 50" stroke-width="2" fill="none"/>
+    <path d="M 140 10 L 140 50 M 140 10 L 180 10 L 180 50" stroke-width="2" fill="none"/>
+    <text x="40" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#4a4a4a" text-anchor="middle">P</text>
+    <text x="80" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#4a4a4a" text-anchor="middle">R</text>
+    <text x="120" y="38" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#4a4a4a" text-anchor="middle">N</text>
+  </g>
 </svg>

@@ -370,8 +370,6 @@ code {
     background: var(--color-light);
     border-radius: 3px;
     margin: 8px 0;
-    z-index: 0;
-    isolation: isolate; /* Create new stacking context */
 }
 
 .dual-slider-fill {
@@ -382,7 +380,7 @@ code {
     background: var(--color-primary);
     border-radius: 3px;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
     transition: left 0.1s, width 0.1s;
 }
 
@@ -394,41 +392,12 @@ code {
     left: 0;
     transform: translateY(-50%);
     width: 100%;
-    height: 6px;
+    height: 0;
     background: transparent;
     outline: none;
     margin: 0;
     padding: 0;
-    z-index: 10;
-    pointer-events: auto;
-    isolation: isolate; /* Create new stacking context for each handle */
-}
-
-/* Make the input track itself non-blocking and transparent */
-.dual-slider-handle::-webkit-slider-runnable-track {
-    background: transparent;
-    height: 6px;
     pointer-events: none;
-}
-
-.dual-slider-handle::-moz-range-track {
-    background: transparent;
-    height: 6px;
-    pointer-events: none;
-}
-
-/* Ensure both handles have the same base z-index */
-#minPopulation {
-    z-index: 10;
-}
-
-#maxPopulation {
-    z-index: 10;
-}
-
-/* When dragging, temporarily raise z-index of active handle */
-.dual-slider-handle.active {
-    z-index: 15;
 }
 
 .dual-slider-handle::-webkit-slider-thumb {
@@ -442,9 +411,7 @@ code {
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     pointer-events: all;
     position: relative;
-    z-index: 100; /* Very high z-index to ensure thumbs are always visible */
-    border: 2px solid white;
-    opacity: 1; /* Ensure thumb is fully visible */
+    z-index: 10;
 }
 
 .dual-slider-handle::-moz-range-thumb {
@@ -453,12 +420,11 @@ code {
     border-radius: 50%;
     background: var(--color-primary);
     cursor: pointer;
-    border: 2px solid white;
+    border: none;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     pointer-events: all;
     position: relative;
-    z-index: 100; /* Very high z-index to ensure thumbs are always visible */
-    opacity: 1; /* Ensure thumb is fully visible */
+    z-index: 10;
 }
 
 .dual-slider-handle:focus {
@@ -952,6 +918,23 @@ code {
     padding-top: 12px;
     border-top: 1px solid var(--color-light);
     font-size: 12px;
+}
+
+.sources-logos {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sources-logos .source-logo {
+    width: 100px;
+    height: 50px;
+    object-fit: contain;
+}
+
+.sources-logos .source-logo-link {
+    display: inline-block;
+    line-height: 0;
 }
 
 .reform-link {
