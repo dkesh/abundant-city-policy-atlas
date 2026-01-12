@@ -297,8 +297,29 @@
 
             <!-- MAIN CONTENT -->
             <div class="content-area">
-                <div id="errorMessage" class="mdc-banner container-hidden" role="banner">
-                    <div class="mdc-banner__content" role="status" aria-live="assertive"></div>
+                <!-- Error Banner -->
+                <div id="errorMessage" class="mdc-banner mdc-banner--error container-hidden" role="banner">
+                    <div class="mdc-banner__content" role="status" aria-live="assertive">
+                        <div class="mdc-banner__text"></div>
+                        <div class="mdc-banner__actions">
+                            <button class="mdc-button mdc-banner__action" type="button" id="dismissError">
+                                <span class="mdc-button__ripple"></span>
+                                <span class="mdc-button__label">Dismiss</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Snackbar for toast notifications -->
+                <div id="snackbar" class="mdc-snackbar" aria-live="assertive" aria-atomic="true" aria-hidden="true">
+                    <div class="mdc-snackbar__surface">
+                        <div class="mdc-snackbar__label" role="status" aria-atomic="true"></div>
+                        <div class="mdc-snackbar__actions">
+                            <button class="mdc-icon-button mdc-snackbar__action" type="button" aria-label="Close">
+                                <i class="material-icons mdc-icon-button__icon">close</i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- View Tabs -->
@@ -331,12 +352,18 @@
                     </div>
                 </div>
 
-                <!-- Results Info -->
-                <div id="resultsInfo" class="results-info container-hidden">
-                    <p class="mdc-typography--body1">Found <strong id="resultCount">0</strong> reforms matching your filters</p>
-                    <button class="mdc-icon-button" id="shareBannerBtn" title="Share this search">
-                        <i class="material-icons mdc-icon-button__icon">link</i>
-                    </button>
+                <!-- Results Info Banner -->
+                <div id="resultsInfo" class="mdc-banner container-hidden" role="banner">
+                    <div class="mdc-banner__content" role="status" aria-live="polite">
+                        <div class="mdc-banner__text">
+                            Found <strong id="resultCount">0</strong> reforms matching your filters
+                        </div>
+                        <div class="mdc-banner__actions">
+                            <button class="mdc-icon-button mdc-banner__action" id="shareBannerBtn" title="Share this search">
+                                <i class="material-icons mdc-icon-button__icon">link</i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Loading Spinner -->
@@ -431,6 +458,7 @@
         const resultCount = document.getElementById('resultCount');
         const noResultsList = document.getElementById('noResultsList');
         const errorMessage = document.getElementById('errorMessage');
+        const dismissErrorBtn = document.getElementById('dismissError');
         const listViewTab = document.getElementById('listViewTab');
         const mapViewTab = document.getElementById('mapViewTab');
         const listView = document.getElementById('listView');
@@ -454,7 +482,14 @@
         
         // Share button in results banner
         const shareBannerBtn = document.getElementById('shareBannerBtn');
-        shareBannerBtn.addEventListener('click', shareSearch);
+        if (shareBannerBtn) {
+            shareBannerBtn.addEventListener('click', shareSearch);
+        }
+        
+        // Dismiss error button
+        if (dismissErrorBtn) {
+            dismissErrorBtn.addEventListener('click', hideError);
+        }
 
         // ============================================================================
         // FUNCTIONS
@@ -1119,13 +1154,19 @@
                 showLoading(false);
 
                 if (filteredReforms.length > 0) {
-                    resultsInfo.classList.remove('container-hidden');
-                    resultsInfo.classList.add('results-info-visible');
                     resultCount.textContent = filteredReforms.length;
+                    resultsInfo.classList.remove('container-hidden');
+                    const resultsBanner = window.mdcComponents?.resultsBanner;
+                    if (resultsBanner) {
+                        resultsBanner.open();
+                    }
                     noResultsList.classList.add('container-hidden');
                 } else {
+                    const resultsBanner = window.mdcComponents?.resultsBanner;
+                    if (resultsBanner) {
+                        resultsBanner.close();
+                    }
                     resultsInfo.classList.add('container-hidden');
-                    resultsInfo.classList.remove('results-info-visible');
                     noResultsList.classList.remove('container-hidden');
                 }
 
@@ -1133,6 +1174,10 @@
                 console.error('Error:', error);
                 showError(error.message);
                 showLoading(false);
+                const resultsBanner = window.mdcComponents?.resultsBanner;
+                if (resultsBanner) {
+                    resultsBanner.close();
+                }
                 resultsInfo.classList.add('container-hidden');
                 noResultsList.classList.remove('container-hidden');
             }
@@ -1306,19 +1351,15 @@
         }
 
         function showToast(message) {
-            // Create or update toast element
-            let toast = document.getElementById('toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'toast';
-                toast.className = 'toast';
-                document.body.appendChild(toast);
+            const snackbar = window.mdcComponents?.snackbar;
+            if (snackbar) {
+                snackbar.labelText = message;
+                snackbar.timeoutMs = 4000;
+                snackbar.open();
+            } else {
+                // Fallback if snackbar not initialized
+                console.log('Toast:', message);
             }
-            toast.textContent = message;
-            toast.classList.add('toast-visible');
-            setTimeout(() => {
-                toast.classList.remove('toast-visible');
-            }, 3000);
         }
 
         function renderReforms() {
@@ -1481,12 +1522,28 @@
         }
 
         function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('container-hidden');
+            const banner = window.mdcComponents?.errorBanner;
+            if (banner && errorMessage) {
+                const textEl = errorMessage.querySelector('.mdc-banner__text');
+                if (textEl) {
+                    textEl.textContent = message;
+                }
+                banner.open();
+            } else if (errorMessage) {
+                // Fallback if banner not initialized
+                errorMessage.textContent = message;
+                errorMessage.classList.remove('container-hidden');
+            }
         }
 
         function hideError() {
-            errorMessage.classList.add('container-hidden');
+            const banner = window.mdcComponents?.errorBanner;
+            if (banner) {
+                banner.close();
+            } else if (errorMessage) {
+                // Fallback if banner not initialized
+                errorMessage.classList.add('container-hidden');
+            }
         }
 
         function switchView(view) {
@@ -1733,7 +1790,10 @@
                 slider: null,
                 tabBar: null,
                 iconButtons: [],
-                circularProgress: null
+                circularProgress: null,
+                snackbar: null,
+                errorBanner: null,
+                resultsBanner: null
             };
 
             // Initialize all buttons
@@ -1788,6 +1848,27 @@
             const progressEl = document.querySelector('.mdc-circular-progress');
             if (progressEl) {
                 mdcComponents.circularProgress = new mdc.circularProgress.MDCCircularProgress(progressEl);
+            }
+
+            // Initialize snackbar
+            const snackbarEl = document.getElementById('snackbar');
+            if (snackbarEl) {
+                mdcComponents.snackbar = new mdc.snackbar.MDCSnackbar(snackbarEl);
+            }
+
+            // Initialize error banner
+            if (errorMessage) {
+                mdcComponents.errorBanner = new mdc.banner.MDCBanner(errorMessage);
+                // Initialize dismiss button ripple if it exists
+                if (dismissErrorBtn) {
+                    mdcComponents.buttons.push(new mdc.ripple.MDCRipple(dismissErrorBtn));
+                }
+            }
+
+            // Initialize results banner
+            const resultsBannerEl = document.getElementById('resultsInfo');
+            if (resultsBannerEl) {
+                mdcComponents.resultsBanner = new mdc.banner.MDCBanner(resultsBannerEl);
             }
 
             // Store MDC components globally for later access

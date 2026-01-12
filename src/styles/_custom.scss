@@ -243,18 +243,19 @@ header {
 }
 
 /* Results info */
-.results-info {
-    background: white;
-    padding: 16px 20px;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+/* Results banner styling - MDC banner handles most styling */
+#resultsInfo .mdc-banner__text strong {
+    color: var(--mdc-theme-primary);
 }
 
-.results-info strong {
-    color: var(--mdc-theme-primary);
+/* Position share button at the right edge of the banner */
+#resultsInfo .mdc-banner__content {
+    justify-content: space-between;
+}
+
+#resultsInfo .mdc-banner__actions {
+    margin-left: auto;
+    padding-left: 16px;
 }
 
 /* Loading spinner */
@@ -514,22 +515,20 @@ header {
 }
 
 /* Toast notifications */
-.toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #27ae60;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.3s;
+/* Toast notifications now use MDC snackbar - no custom CSS needed */
+
+/* Error banner styling */
+.mdc-banner--error {
+    background-color: var(--mdc-theme-error, #e74c3c);
 }
 
-.toast-visible {
-    opacity: 1;
+.mdc-banner--error .mdc-banner__text {
+    color: white;
+}
+
+/* Ensure banners work with container-hidden class */
+.mdc-banner.container-hidden {
+    display: none;
 }
 
 .clipboard-textarea {

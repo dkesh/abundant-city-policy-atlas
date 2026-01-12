@@ -2,7 +2,7 @@
    URBANIST REFORM MAP - MATERIAL DESIGN WITH SASS
    ============================================================================ */
 
-/* Import Material Design Components - includes base styles for checkmark SVG sizing, form-field alignment, tabs, buttons, and icon-buttons */
+/* Import Material Design Components - includes base styles for checkmark SVG sizing, form-field alignment, tabs, buttons, icon-buttons, cards, chips, snackbar, banner, circular-progress, and dialog */
 @use '@material/checkbox/mdc-checkbox';
 @use '@material/checkbox' as checkbox;
 @use '@material/form-field/mdc-form-field';
@@ -12,6 +12,12 @@
 @use '@material/tab-bar/mdc-tab-bar';
 @use '@material/button/mdc-button';
 @use '@material/icon-button/mdc-icon-button';
+@use '@material/card/mdc-card';
+@use '@material/chips/deprecated/chip/mdc-chip';
+@use '@material/snackbar/mdc-snackbar';
+@use '@material/banner/styles';
+@use '@material/circular-progress/mdc-circular-progress';
+@use '@material/dialog/mdc-dialog';
 
 /* Import custom styles (must be at the top with other @use statements) */
 @use 'custom' as *;
