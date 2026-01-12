@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="2400" height="3700" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #1a1a1a; }
+      .section-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }
+      .table-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #34495e; }
+      .field-name { font-family: 'Courier New', monospace; font-size: 11px; fill: #2980b9; }
+      .field-type { font-family: Arial, sans-serif; font-size: 10px; fill: #7f8c8d; font-style: italic; }
+      .field-desc { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .source-name { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #27ae60; }
+      .mapping-line { stroke: #3498db; stroke-width: 2; fill: none; opacity: 0.6; }
+      .table-box { fill: #ecf0f1; stroke: #34495e; stroke-width: 2; }
+      .field-box { fill: white; stroke: #bdc3c7; stroke-width: 1; }
+      .source-box { fill: #e8f5e9; stroke: #27ae60; stroke-width: 2; }
+      .interface-box { fill: #fff3e0; stroke: #f39c12; stroke-width: 2; }
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="2400" height="3700" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="1200" y="40" text-anchor="middle" class="title">ACPA Field Mapping Documentation</text>
+  <text x="1200" y="65" text-anchor="middle" font-family="Arial" font-size="12" fill="#7f8c8d">
+    Urbanist Reform Map - Complete Field Reference
+  </text>
+  
+  <!-- SECTION 1: ACPA Database Schema -->
+  <rect x="50" y="100" width="1100" height="1400" class="table-box" rx="5"/>
+  <text x="600" y="130" text-anchor="middle" class="section-title">1. ACPA Database Schema</text>
+  
+  <!-- States Table -->
+  <rect x="80" y="160" width="500" height="180" class="field-box" rx="3"/>
+  <text x="330" y="180" text-anchor="middle" class="table-title">states</text>
+  <text x="90" y="200" class="field-name">id</text><text x="200" y="200" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="90" y="215" class="field-desc">Unique identifier</text>
+  <text x="90" y="235" class="field-name">state_code</text><text x="200" y="235" class="field-type">VARCHAR(2) UNIQUE</text>
+  <text x="90" y="250" class="field-desc">US state abbreviation (e.g., 'CA')</text>
+  <text x="90" y="270" class="field-name">state_name</text><text x="200" y="270" class="field-type">VARCHAR(100)</text>
+  <text x="90" y="285" class="field-desc">Full state name</text>
+  <text x="90" y="305" class="field-name">region</text><text x="200" y="305" class="field-type">VARCHAR(50)</text>
+  <text x="90" y="320" class="field-desc">Census region (Northeast, Midwest, South, West)</text>
+  
+  <!-- Reform Types Table -->
+  <rect x="620" y="160" width="500" height="200" class="field-box" rx="3"/>
+  <text x="870" y="180" text-anchor="middle" class="table-title">reform_types</text>
+  <text x="630" y="200" class="field-name">id</text><text x="740" y="200" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="630" y="215" class="field-desc">Unique identifier</text>
+  <text x="630" y="235" class="field-name">code</text><text x="740" y="235" class="field-type">VARCHAR(50) UNIQUE</text>
+  <text x="630" y="250" class="field-desc">Universal code (e.g., 'parking:eliminated')</text>
+  <text x="630" y="270" class="field-name">category</text><text x="740" y="270" class="field-type">VARCHAR(50)</text>
+  <text x="630" y="285" class="field-desc">Category (Parking, Housing Typology, etc.)</text>
+  <text x="630" y="305" class="field-name">name</text><text x="740" y="305" class="field-type">VARCHAR(100)</text>
+  <text x="630" y="320" class="field-desc">Display name</text>
+  <text x="630" y="340" class="field-name">color_hex</text><text x="740" y="340" class="field-type">VARCHAR(7)</text>
+  <text x="630" y="355" class="field-desc">UI color code</text>
+  
+  <!-- Places Table -->
+  <rect x="80" y="380" width="500" height="220" class="field-box" rx="3"/>
+  <text x="330" y="400" text-anchor="middle" class="table-title">places</text>
+  <text x="90" y="420" class="field-name">id</text><text x="200" y="420" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="90" y="435" class="field-desc">Unique identifier</text>
+  <text x="90" y="455" class="field-name">name</text><text x="200" y="455" class="field-type">VARCHAR(255)</text>
+  <text x="90" y="470" class="field-desc">Place name (city, county, or state)</text>
+  <text x="90" y="490" class="field-name">place_type</text><text x="200" y="490" class="field-type">ENUM</text>
+  <text x="90" y="505" class="field-desc">'city', 'county', or 'state'</text>
+  <text x="90" y="525" class="field-name">state_code</text><text x="200" y="525" class="field-type">VARCHAR(2)</text>
+  <text x="90" y="540" class="field-desc">US state code</text>
+  <text x="90" y="560" class="field-name">population</text><text x="200" y="560" class="field-type">INT</text>
+  <text x="90" y="575" class="field-desc">Population count</text>
+  <text x="90" y="595" class="field-name">latitude, longitude</text><text x="200" y="595" class="field-type">DECIMAL</text>
+  <text x="90" y="610" class="field-desc">Geographic coordinates</text>
+  
+  <!-- Reforms Table -->
+  <rect x="620" y="380" width="500" height="320" class="field-box" rx="3"/>
+  <text x="870" y="400" text-anchor="middle" class="table-title">reforms</text>
+  <text x="630" y="420" class="field-name">id</text><text x="740" y="420" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="630" y="435" class="field-desc">Unique identifier</text>
+  <text x="630" y="455" class="field-name">place_id</text><text x="740" y="455" class="field-type">INTEGER FK</text>
+  <text x="630" y="470" class="field-desc">References places(id)</text>
+  <text x="630" y="490" class="field-name">reform_type_id</text><text x="740" y="490" class="field-type">INTEGER FK</text>
+  <text x="630" y="505" class="field-desc">References reform_types(id)</text>
+  <text x="630" y="525" class="field-name">policy_document_id</text><text x="740" y="525" class="field-type">INTEGER FK</text>
+  <text x="630" y="540" class="field-desc">References policy_documents(id)</text>
+  <text x="630" y="560" class="field-name">status</text><text x="740" y="560" class="field-type">VARCHAR(50)</text>
+  <text x="630" y="575" class="field-desc">Adopted, Proposed, Failed</text>
+  <text x="630" y="595" class="field-name">scope</text><text x="740" y="595" class="field-type">TEXT[]</text>
+  <text x="630" y="610" class="field-desc">Array of scope values</text>
+  <text x="630" y="630" class="field-name">land_use</text><text x="740" y="630" class="field-type">TEXT[]</text>
+  <text x="630" y="645" class="field-desc">Array of land use types</text>
+  <text x="630" y="665" class="field-name">adoption_date</text><text x="740" y="665" class="field-type">DATE</text>
+  <text x="630" y="680" class="field-desc">Date reform was adopted</text>
+  <text x="630" y="700" class="field-name">summary</text><text x="740" y="700" class="field-type">TEXT</text>
+  <text x="630" y="715" class="field-desc">Summary description</text>
+  
+  <!-- Policy Documents Table -->
+  <rect x="80" y="640" width="500" height="200" class="field-box" rx="3"/>
+  <text x="330" y="660" text-anchor="middle" class="table-title">policy_documents</text>
+  <text x="90" y="680" class="field-name">id</text><text x="200" y="680" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="90" y="695" class="field-name">reference_number</text><text x="200" y="695" class="field-type">VARCHAR(100)</text>
+  <text x="90" y="710" class="field-desc">Bill/ordinance number (e.g., 'AB 1234')</text>
+  <text x="90" y="730" class="field-name">state_code</text><text x="200" y="730" class="field-type">VARCHAR(2)</text>
+  <text x="90" y="745" class="field-desc">For state bills</text>
+  <text x="90" y="765" class="field-name">title</text><text x="200" y="765" class="field-type">TEXT</text>
+  <text x="90" y="780" class="field-desc">Bill/ordinance title</text>
+  <text x="90" y="800" class="field-name">key_points</text><text x="200" y="800" class="field-type">TEXT[]</text>
+  <text x="90" y="815" class="field-desc">Key points array</text>
+  <text x="90" y="835" class="field-name">document_url</text><text x="200" y="835" class="field-type">TEXT</text>
+  
+  <!-- Sources Table -->
+  <rect x="620" y="740" width="500" height="180" class="field-box" rx="3"/>
+  <text x="870" y="760" text-anchor="middle" class="table-title">sources</text>
+  <text x="630" y="780" class="field-name">id</text><text x="740" y="780" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="630" y="795" class="field-name">name</text><text x="740" y="795" class="field-type">VARCHAR(255)</text>
+  <text x="630" y="810" class="field-desc">Full source name</text>
+  <text x="630" y="830" class="field-name">short_name</text><text x="740" y="830" class="field-type">VARCHAR(50) UNIQUE</text>
+  <text x="630" y="845" class="field-desc">Short identifier (PRN, ZRT, Mercatus, CBNA)</text>
+  <text x="630" y="865" class="field-name">website_url</text><text x="740" y="865" class="field-type">TEXT</text>
+  <text x="630" y="880" class="field-desc">Source website URL</text>
+  <text x="630" y="900" class="field-name">logo_filename</text><text x="740" y="900" class="field-type">VARCHAR(255)</text>
+  
+  <!-- Reform Sources Junction Table -->
+  <rect x="80" y="880" width="500" height="200" class="field-box" rx="3"/>
+  <text x="330" y="900" text-anchor="middle" class="table-title">reform_sources</text>
+  <text x="90" y="920" class="field-name">reform_id</text><text x="200" y="920" class="field-type">INTEGER FK</text>
+  <text x="90" y="935" class="field-name">source_id</text><text x="200" y="935" class="field-type">INTEGER FK</text>
+  <text x="90" y="955" class="field-name">reporter</text><text x="200" y="955" class="field-type">VARCHAR(255)</text>
+  <text x="90" y="970" class="field-desc">Person who reported to source</text>
+  <text x="90" y="990" class="field-name">source_url</text><text x="200" y="990" class="field-type">TEXT</text>
+  <text x="90" y="1005" class="field-desc">Source-specific URL</text>
+  <text x="90" y="1025" class="field-name">notes</text><text x="200" y="1025" class="field-type">TEXT</text>
+  <text x="90" y="1040" class="field-desc">Source-specific notes</text>
+  <text x="90" y="1060" class="field-name">is_primary</text><text x="200" y="1060" class="field-type">BOOLEAN</text>
+  
+  <!-- Reform Citations Table -->
+  <rect x="620" y="960" width="500" height="180" class="field-box" rx="3"/>
+  <text x="870" y="980" text-anchor="middle" class="table-title">reform_citations</text>
+  <text x="630" y="1000" class="field-name">id</text><text x="740" y="1000" class="field-type">SERIAL PRIMARY KEY</text>
+  <text x="630" y="1015" class="field-name">reform_id</text><text x="740" y="1015" class="field-type">INTEGER FK</text>
+  <text x="630" y="1030" class="field-name">citation_description</text><text x="740" y="1030" class="field-type">TEXT</text>
+  <text x="630" y="1045" class="field-desc">Description of citation</text>
+  <text x="630" y="1065" class="field-name">citation_url</text><text x="740" y="1065" class="field-type">TEXT</text>
+  <text x="630" y="1080" class="field-desc">URL to citation</text>
+  <text x="630" y="1100" class="field-name">citation_notes</text><text x="740" y="1100" class="field-type">TEXT</text>
+  
+  <!-- Additional Reform Fields -->
+  <rect x="80" y="1120" width="1040" height="200" class="field-box" rx="3"/>
+  <text x="600" y="1140" text-anchor="middle" class="table-title">Additional reforms Table Fields</text>
+  <text x="90" y="1160" class="field-name">requirements</text><text x="250" y="1160" class="field-type">TEXT[]</text>
+  <text x="90" y="1175" class="field-desc">Array of requirements</text>
+  <text x="90" y="1195" class="field-name">reform_mechanism</text><text x="250" y="1195" class="field-type">VARCHAR(100)</text>
+  <text x="90" y="1210" class="field-desc">How reform was implemented</text>
+  <text x="90" y="1230" class="field-name">reform_phase</text><text x="250" y="1230" class="field-type">VARCHAR(50)</text>
+  <text x="90" y="1245" class="field-desc">Phase of reform process</text>
+  <text x="90" y="1265" class="field-name">legislative_number</text><text x="250" y="1265" class="field-type">VARCHAR(255)</text>
+  <text x="90" y="1280" class="field-desc">Legislative bill/ordinance number</text>
+  <text x="90" y="1300" class="field-name">notes</text><text x="250" y="1300" class="field-type">TEXT</text>
+  <text x="90" y="1315" class="field-desc">Additional notes</text>
+  <text x="90" y="1335" class="field-name">link_url</text><text x="250" y="1335" class="field-type">TEXT</text>
+  <text x="90" y="1350" class="field-desc">Link to reform information</text>
+  
+  <text x="400" y="1160" class="field-name">created_at</text><text x="550" y="1160" class="field-type">TIMESTAMP</text>
+  <text x="400" y="1175" class="field-desc">Record creation timestamp</text>
+  <text x="400" y="1195" class="field-name">updated_at</text><text x="550" y="1195" class="field-type">TIMESTAMP</text>
+  <text x="400" y="1210" class="field-desc">Last update timestamp</text>
+  
+  <!-- SECTION 2: Data Source Field Mappings -->
+  <rect x="1200" y="100" width="1150" height="1400" class="source-box" rx="5"/>
+  <text x="1775" y="130" text-anchor="middle" class="section-title">2. Data Source Field Mappings</text>
+  
+  <!-- PRN Municipalities -->
+  <rect x="1230" y="160" width="1090" height="280" class="field-box" rx="3"/>
+  <text x="1775" y="180" text-anchor="middle" class="source-name">PRN (Parking Reform Network) - Municipalities</text>
+  <text x="1240" y="205" class="field-name">Source Fields:</text>
+  <text x="1240" y="225" class="field-desc">place.name → places.name</text>
+  <text x="1240" y="240" class="field-desc">place.state → places.state_code (via get_state_code)</text>
+  <text x="1240" y="255" class="field-desc">place.type → places.place_type</text>
+  <text x="1240" y="270" class="field-desc">place.pop → places.population</text>
+  <text x="1240" y="285" class="field-desc">place.coord → places.latitude, places.longitude</text>
+  <text x="1240" y="300" class="field-desc">rm_min/reduce_min → reform_types.code (via DB_TYPE_MAPPING)</text>
+  <text x="1240" y="315" class="field-desc">reform.date → reforms.adoption_date</text>
+  <text x="1240" y="330" class="field-desc">reform.status → reforms.status</text>
+  <text x="1240" y="345" class="field-desc">reform.scope → reforms.scope</text>
+  <text x="1240" y="360" class="field-desc">reform.land → reforms.land_use</text>
+  <text x="1240" y="375" class="field-desc">reform.summary → reforms.summary</text>
+  <text x="1240" y="390" class="field-desc">reform.reporter → reform_sources.reporter</text>
+  <text x="1240" y="405" class="field-desc">reform.source_url → reform_sources.source_url</text>
+  <text x="1240" y="420" class="field-desc">reform.citations → reform_citations</text>
+  
+  <!-- ZRT (Berkeley Zoning Tracker) -->
+  <rect x="1230" y="470" width="1090" height="240" class="field-box" rx="3"/>
+  <text x="1775" y="490" text-anchor="middle" class="source-name">ZRT (Berkeley Zoning Reform Tracker)</text>
+  <text x="1240" y="515" class="field-name">Source Fields:</text>
+  <text x="1240" y="535" class="field-desc">municipality_name → places.name</text>
+  <text x="1240" y="550" class="field-desc">state_short → places.state_code</text>
+  <text x="1240" y="565" class="field-desc">reform_type → reform_types.code (via normalize_reform_type)</text>
+  <text x="1240" y="580" class="field-desc">reform_phase → reforms.reform_phase, reforms.status</text>
+  <text x="1240" y="595" class="field-desc">time_R → reforms.adoption_date</text>
+  <text x="1240" y="610" class="field-desc">scope → reforms.scope</text>
+  <text x="1240" y="625" class="field-desc">reform_name → reforms.summary</text>
+  <text x="1240" y="640" class="field-desc">reform_mechanism → reforms.reform_mechanism</text>
+  <text x="1240" y="655" class="field-desc">legislative_number_policy_name → reforms.legislative_number</text>
+  <text x="1240" y="670" class="field-desc">primary_source → reform_sources.source_url</text>
+  <text x="1240" y="685" class="field-desc">reporter → reform_sources.reporter</text>
+  
+  <!-- Mercatus -->
+  <rect x="1230" y="740" width="1090" height="280" class="field-box" rx="3"/>
+  <text x="1775" y="760" text-anchor="middle" class="source-name">Mercatus (2025 Housing Bills)</text>
+  <text x="1240" y="785" class="field-name">Source Fields:</text>
+  <text x="1240" y="805" class="field-desc">Region Abbreviation → places.state_code</text>
+  <text x="1240" y="820" class="field-desc">2025 Housing Bills → policy_documents.reference_number, title</text>
+  <text x="1240" y="835" class="field-desc">Issues → reform_types.code (via MERCATUS_TYPE_MAPPING)</text>
+  <text x="1240" y="850" class="field-desc">Custom Description → policy_documents.key_points, reforms.summary</text>
+  <text x="1240" y="865" class="field-desc">Status Text → reforms.status (via STATUS_MAP)</text>
+  <text x="1240" y="880" class="field-desc">Date Introduced → reforms.adoption_date</text>
+  <text x="1240" y="895" class="field-desc">Last Timeline Action Date → policy_documents.last_action_date</text>
+  <text x="1240" y="910" class="field-desc">Source Link → policy_documents.document_url</text>
+  <text x="1240" y="925" class="field-desc">Creates policy_documents record, then reforms linked to it</text>
+  <text x="1240" y="940" class="field-desc">Multiple reform_types per bill (one reform per issue tag)</text>
+  <text x="1240" y="955" class="field-desc">reforms.legislative_number = bill reference</text>
+  <text x="1240" y="970" class="field-desc">reforms.policy_document_id = policy_documents.id</text>
+  
+  <!-- CBNA (Center for Building) -->
+  <rect x="1230" y="1050" width="1090" height="240" class="field-box" rx="3"/>
+  <text x="1775" y="1070" text-anchor="middle" class="source-name">CBNA (Center for Building Trackers)</text>
+  <text x="1240" y="1095" class="field-name">Source Fields (from Nuxt.js payload ACF):</text>
+  <text x="1240" y="1115" class="field-desc">acf.place → places.name (or state if place is state name)</text>
+  <text x="1240" y="1130" class="field-desc">acf.parent_state → places.state_code</text>
+  <text x="1240" y="1145" class="field-desc">acf.description → reforms.summary</text>
+  <text x="1240" y="1160" class="field-desc">acf.category → reform_types.code (via normalize_reform_type)</text>
+  <text x="1240" y="1175" class="field-desc">link → reforms.link_url</text>
+  <text x="1240" y="1190" class="field-desc">title → used for identification</text>
+  <text x="1240" y="1205" class="field-desc">status → reforms.status</text>
+  <text x="1240" y="1220" class="field-desc">adoption_date → reforms.adoption_date</text>
+  <text x="1240" y="1235" class="field-desc">Complex Nuxt.js reference resolution required</text>
+  
+  <!-- PRN State Legislation -->
+  <rect x="1230" y="1320" width="1090" height="240" class="field-box" rx="3"/>
+  <text x="1775" y="1340" text-anchor="middle" class="source-name">PRN State Legislation</text>
+  <text x="1240" y="1365" class="field-name">Source Fields (from Google Sheets CSV):</text>
+  <text x="1240" y="1385" class="field-desc">State → places.name, places.state_code</text>
+  <text x="1240" y="1400" class="field-desc">Bill Supported → policy_documents.reference_number</text>
+  <text x="1240" y="1415" class="field-desc">Legislative Session → policy_documents.reference_number (appended)</text>
+  <text x="1240" y="1430" class="field-desc">Bill Title → policy_documents.title</text>
+  <text x="1240" y="1445" class="field-desc">Bill Summary → policy_documents.key_points, reforms.summary</text>
+  <text x="1240" y="1460" class="field-desc">Bill Status → reforms.status, policy_documents.status</text>
+  <text x="1240" y="1475" class="field-desc">Link to Most Recent Update → policy_documents.document_url</text>
+  <text x="1240" y="1490" class="field-desc">Reform type inferred from summary/title → reform_types.code</text>
+  <text x="1240" y="1505" class="field-desc">Links to media coverage → reform_citations</text>
+  <text x="1240" y="1520" class="field-desc">Links to submitted testimony → reform_citations</text>
+  
+  <!-- SECTION 3: Interface Usage -->
+  <rect x="50" y="1550" width="2300" height="1600" class="interface-box" rx="5"/>
+  <text x="1200" y="1580" text-anchor="middle" class="section-title">3. Interface Field Usage</text>
+  
+  <!-- API Response Structure -->
+  <rect x="80" y="1610" width="1100" height="400" class="field-box" rx="3"/>
+  <text x="630" y="1630" text-anchor="middle" class="table-title">API Response Structure (get-reforms.js)</text>
+  <text x="90" y="1655" class="field-name">Response Object:</text>
+  <text x="90" y="1675" class="field-desc">{</text>
+  <text x="110" y="1695" class="field-desc">  id: reforms.id</text>
+  <text x="110" y="1715" class="field-desc">  place: {</text>
+  <text x="130" y="1735" class="field-desc">    id: places.id</text>
+  <text x="130" y="1755" class="field-desc">    name: places.name</text>
+  <text x="130" y="1775" class="field-desc">    type: places.place_type</text>
+  <text x="130" y="1795" class="field-desc">    state: states.state_name</text>
+  <text x="130" y="1815" class="field-desc">    state_code: states.state_code</text>
+  <text x="130" y="1835" class="field-desc">    population: places.population</text>
+  <text x="130" y="1855" class="field-desc">    latitude: places.latitude</text>
+  <text x="130" y="1875" class="field-desc">    longitude: places.longitude</text>
+  <text x="130" y="1895" class="field-desc">    region: states.region</text>
+  <text x="110" y="1915" class="field-desc">  },</text>
+  <text x="110" y="1935" class="field-desc">  reform: {</text>
+  <text x="130" y="1955" class="field-desc">    type: reform_types.code</text>
+  <text x="130" y="1975" class="field-desc">    type_name: reform_types.name</text>
+  <text x="130" y="1995" class="field-desc">    color: reform_types.color_hex</text>
+  <text x="130" y="2015" class="field-desc">    status: reforms.status</text>
+  <text x="110" y="2035" class="field-desc">    ... (see below)</text>
+  
+  <!-- Frontend Display -->
+  <rect x="1230" y="1610" width="1100" height="400" class="field-box" rx="3"/>
+  <text x="1780" y="1630" text-anchor="middle" class="table-title">Frontend Display (index.html)</text>
+  <text x="1240" y="1655" class="field-name">Reform Card Displays:</text>
+  <text x="1240" y="1675" class="field-desc">• Header: place.name + place.state (or just state if place_type='state')</text>
+  <text x="1240" y="1695" class="field-desc">• Badges: reform.type_name, place.type, place.region</text>
+  <text x="1240" y="1715" class="field-desc">• Meta Section:</text>
+  <text x="1260" y="1735" class="field-desc">  - "Adopted: " + reform.adoption_date</text>
+  <text x="1260" y="1755" class="field-desc">  - "Status: " + reform.status</text>
+  <text x="1260" y="1775" class="field-desc">  - "Bill Title: " + reform.policy_document.title (if exists)</text>
+  <text x="1260" y="1795" class="field-desc">  - "Population: " + place.population (formatted with commas)</text>
+  <text x="1240" y="1815" class="field-desc">• Summary: reform.summary</text>
+  <text x="1240" y="1835" class="field-desc">• Details Section:</text>
+  <text x="1260" y="1855" class="field-desc">  - Scope: reform.scope (as tags)</text>
+  <text x="1260" y="1875" class="field-desc">  - Land Use: reform.land_use (as tags)</text>
+  <text x="1260" y="1895" class="field-desc">  - Requirements: reform.requirements (as tags)</text>
+  <text x="1240" y="1915" class="field-desc">• Footer: place.type + " ID: " + reform.id</text>
+  <text x="1240" y="1935" class="field-desc">• Sources: reform.sources (logos/links)</text>
+  
+  <!-- Filter Interface -->
+  <rect x="80" y="2050" width="1100" height="300" class="field-box" rx="3"/>
+  <text x="630" y="2070" text-anchor="middle" class="table-title">Filter Interface</text>
+  <text x="90" y="2095" class="field-name">Filterable Fields:</text>
+  <text x="90" y="2115" class="field-desc">• Reform Types: reform_types.code (multi-select checkboxes)</text>
+  <text x="90" y="2135" class="field-desc">• Place Types: places.place_type (multi-select: city, county, state)</text>
+  <text x="90" y="2155" class="field-desc">• States: states.state_code (multi-select by region)</text>
+  <text x="90" y="2175" class="field-desc">• Regions: states.region (Northeast, Midwest, South, West)</text>
+  <text x="90" y="2195" class="field-desc">• Population: places.population (slider: min_population, max_population)</text>
+  <text x="90" y="2215" class="field-desc">• Status: reforms.status (multi-select)</text>
+  <text x="90" y="2235" class="field-desc">• Date Range: reforms.adoption_date (from_year, to_year)</text>
+  <text x="90" y="2255" class="field-desc">• Include Unknown Dates: checkbox for null adoption_date</text>
+  
+  <!-- Map Display -->
+  <rect x="1230" y="2050" width="1100" height="300" class="field-box" rx="3"/>
+  <text x="1780" y="2070" text-anchor="middle" class="table-title">Map Display</text>
+  <text x="1240" y="2095" class="field-name">Map Markers Use:</text>
+  <text x="1240" y="2115" class="field-desc">• Position: places.latitude, places.longitude</text>
+  <text x="1240" y="2135" class="field-desc">• Color: reform_types.color_hex</text>
+  <text x="1240" y="2155" class="field-desc">• Popup shows: place.name, reform.type_name, reform.status</text>
+  <text x="1240" y="2175" class="field-desc">• Clustering by: place location</text>
+  <text x="1240" y="2195" class="field-desc">• Filtered by: all active filter criteria</text>
+  
+  <!-- Reform Type Categories -->
+  <rect x="80" y="2390" width="1100" height="400" class="field-box" rx="3"/>
+  <text x="630" y="2410" text-anchor="middle" class="table-title">Reform Type Categories &amp; Codes</text>
+  <text x="90" y="2435" class="field-name">Parking:</text>
+  <text x="110" y="2455" class="field-desc">parking:eliminated, parking:reduced, parking:unspecified</text>
+  <text x="90" y="2475" class="field-name">Housing Typology:</text>
+  <text x="110" y="2495" class="field-desc">housing:adu, housing:plex</text>
+  <text x="90" y="2515" class="field-name">Zoning Category:</text>
+  <text x="110" y="2535" class="field-desc">zoning:ricz, zoning:yigby, zoning:tod</text>
+  <text x="90" y="2555" class="field-name">Physical Dimension:</text>
+  <text x="110" y="2575" class="field-desc">physical:lot_size, physical:height, physical:far</text>
+  <text x="90" y="2595" class="field-name">Process:</text>
+  <text x="110" y="2615" class="field-desc">process:permitting, process:courts_appeals, process:planning_obligations</text>
+  <text x="90" y="2635" class="field-name">Building Code:</text>
+  <text x="110" y="2655" class="field-desc">building:stairwells, building:elevators, building:unspecified</text>
+  <text x="90" y="2675" class="field-name">Other:</text>
+  <text x="110" y="2695" class="field-desc">other:general, other:land_value_tax, other:urbanity</text>
+  <text x="90" y="2715" class="field-desc">Each has: code, category, name, description, color_hex, icon_name, sort_order</text>
+  
+  <!-- Data Flow -->
+  <rect x="1230" y="2390" width="1100" height="400" class="field-box" rx="3"/>
+  <text x="1780" y="2410" text-anchor="middle" class="table-title">Data Flow &amp; Relationships</text>
+  <text x="1240" y="2435" class="field-name">Ingestion Flow:</text>
+  <text x="1240" y="2455" class="field-desc">1. Source data → normalize_cbna_record() / normalize_place_data() / parse_csv_row()</text>
+  <text x="1240" y="2475" class="field-desc">2. Map source fields → ACPA fields (using mapping dictionaries)</text>
+  <text x="1240" y="2495" class="field-desc">3. Upsert places → bulk_upsert_places() → places table</text>
+  <text x="1240" y="2515" class="field-desc">4. Upsert policy_documents (if applicable) → policy_documents table</text>
+  <text x="1240" y="2535" class="field-desc">5. Upsert reforms → bulk_upsert_reforms() → reforms table</text>
+  <text x="1240" y="2555" class="field-desc">6. Link sources → bulk_link_reform_sources() → reform_sources table</text>
+  <text x="1240" y="2575" class="field-desc">7. Insert citations → bulk_insert_citations() → reform_citations table</text>
+  <text x="1240" y="2595" class="field-desc">8. Geocode missing places → geocode_missing_places()</text>
+  <text x="1240" y="2615" class="field-desc">9. Log ingestion → data_ingestion table</text>
+  <text x="1240" y="2635" class="field-name">API Flow:</text>
+  <text x="1240" y="2655" class="field-desc">1. Frontend sends filter params → get-reforms.js</text>
+  <text x="1240" y="2675" class="field-desc">2. Build SQL query with WHERE clauses</text>
+  <text x="1240" y="2695" class="field-desc">3. JOIN: reforms → places → states → reform_types → reform_sources → sources</text>
+  <text x="1240" y="2715" class="field-desc">4. Aggregate sources as JSON array</text>
+  <text x="1240" y="2735" class="field-desc">5. Return JSON response → Frontend renders cards/map</text>
+  
+  <!-- Key Mappings Summary -->
+  <rect x="80" y="2830" width="2250" height="300" class="field-box" rx="3"/>
+  <text x="1205" y="2850" text-anchor="middle" class="table-title">Key Field Mapping Patterns</text>
+  <text x="90" y="2875" class="field-name">Location Fields:</text>
+  <text x="90" y="2895" class="field-desc">All sources: state/state_code/state_short → places.state_code (via get_state_code normalization)</text>
+  <text x="90" y="2915" class="field-desc">All sources: city/municipality/place → places.name (via normalize_place_name)</text>
+  <text x="90" y="2935" class="field-desc">PRN: place.coord → places.latitude, places.longitude</text>
+  <text x="90" y="2955" class="field-desc">Others: Geocoded via geocode_missing_places() if missing</text>
+  <text x="650" y="2875" class="field-name">Reform Type Fields:</text>
+  <text x="650" y="2895" class="field-desc">PRN: rm_min/reduce_min → DB_TYPE_MAPPING → reform_types.code</text>
+  <text x="650" y="2915" class="field-desc">ZRT: reform_type → normalize_reform_type() → reform_types.code</text>
+  <text x="650" y="2935" class="field-desc">Mercatus: Issues → MERCATUS_TYPE_MAPPING → reform_types.code</text>
+  <text x="650" y="2955" class="field-desc">CBNA: category → normalize_reform_type() → reform_types.code</text>
+  <text x="650" y="2975" class="field-desc">PRN State: Inferred from summary/title → reform_types.code</text>
+  <text x="1200" y="2875" class="field-name">Status Fields:</text>
+  <text x="1200" y="2895" class="field-desc">All sources: status/phase/bill_status → normalize_reform_status() → reforms.status</text>
+  <text x="1200" y="2915" class="field-desc">Normalized values: 'Adopted', 'Proposed', 'Failed'</text>
+  <text x="1200" y="2935" class="field-desc">Mercatus: STATUS_MAP provides additional normalization</text>
+  <text x="1200" y="2955" class="field-desc">ZRT: reform_phase → both reforms.reform_phase and reforms.status</text>
+  
+  <!-- SECTION 4: Ignored/Unmapped Fields -->
+  <rect x="50" y="3170" width="2300" height="500" class="field-box" rx="5"/>
+  <text x="1200" y="3200" text-anchor="middle" class="section-title">4. Ignored/Unmapped Source Fields</text>
+  
+  <!-- PRN Municipalities Ignored -->
+  <rect x="80" y="3230" width="550" height="180" class="field-box" rx="3"/>
+  <text x="355" y="3250" text-anchor="middle" class="source-name">PRN Municipalities - Ignored Fields</text>
+  <text x="90" y="3275" class="field-name">Reform Types:</text>
+  <text x="90" y="3295" class="field-desc">• add_max - explicitly discarded (not recorded)</text>
+  <text x="90" y="3315" class="field-name">Place Fields:</text>
+  <text x="90" y="3335" class="field-desc">• place.encoded - stored but not used in interface</text>
+  <text x="90" y="3355" class="field-desc">• Other JSON structure fields not mapped</text>
+  <text x="90" y="3375" class="field-desc">• date.raw, date.parsed - parsed but raw format lost</text>
+  
+  <!-- ZRT Ignored -->
+  <rect x="660" y="3230" width="550" height="180" class="field-box" rx="3"/>
+  <text x="935" y="3250" text-anchor="middle" class="source-name">ZRT (Berkeley) - Ignored Fields</text>
+  <text x="670" y="3275" class="field-name">Partially Used:</text>
+  <text x="670" y="3295" class="field-desc">• secondary_source - only in source_notes</text>
+  <text x="670" y="3315" class="field-desc">• time_status - only in reform.notes</text>
+  <text x="670" y="3335" class="field-desc">• category - fallback for scope only</text>
+  <text x="670" y="3355" class="field-name">Ignored:</text>
+  <text x="670" y="3375" class="field-desc">• Other CSV columns not referenced in parser</text>
+  
+  <!-- Mercatus Ignored -->
+  <rect x="1240" y="3230" width="550" height="180" class="field-box" rx="3"/>
+  <text x="1515" y="3250" text-anchor="middle" class="source-name">Mercatus - Ignored Fields</text>
+  <text x="1250" y="3275" class="field-name">Explicitly Ignored:</text>
+  <text x="1250" y="3295" class="field-desc">• Sponsors List - not mapped</text>
+  <text x="1250" y="3315" class="field-desc">• Future Hearing Dates - not mapped</text>
+  <text x="1250" y="3335" class="field-desc">• Issue tag "anti-investor" - discarded</text>
+  <text x="1250" y="3355" class="field-desc">• Issue tag "anti-trust" - discarded</text>
+  <text x="1250" y="3375" class="field-desc">(These issue types do not map to reform_types)</text>
+  
+  <!-- CBNA Ignored -->
+  <rect x="1820" y="3230" width="550" height="180" class="field-box" rx="3"/>
+  <text x="2095" y="3250" text-anchor="middle" class="source-name">CBNA - Ignored Fields</text>
+  <text x="1830" y="3275" class="field-name">ACF Fields Not Mapped:</text>
+  <text x="1830" y="3295" class="field-desc">• Many ACF fields from Nuxt.js payload</text>
+  <text x="1830" y="3315" class="field-desc">• Full raw_data stored but not structured</text>
+  <text x="1830" y="3335" class="field-desc">• description_2 - used if description missing</text>
+  <text x="1830" y="3355" class="field-desc">• state_country_belong - used as fallback only</text>
+  <text x="1830" y="3375" class="field-desc">• Various other ACF fields in payload structure</text>
+  
+  <!-- PRN State Legislation Ignored -->
+  <rect x="80" y="3450" width="550" height="180" class="field-box" rx="3"/>
+  <text x="355" y="3470" text-anchor="middle" class="source-name">PRN State Legislation - Ignored</text>
+  <text x="90" y="3495" class="field-name">Potential Fields:</text>
+  <text x="90" y="3515" class="field-desc">• Additional columns in Google Sheets CSV</text>
+  <text x="90" y="3535" class="field-desc">• Not all fields from sheet headers used</text>
+  <text x="90" y="3555" class="field-desc">• Date parsing from status notes - not implemented</text>
+  <text x="90" y="3575" class="field-desc">• Multiple session years - only one stored</text>
+  
+  <!-- General Notes -->
+  <rect x="660" y="3450" width="1710" height="180" class="field-box" rx="3"/>
+  <text x="1515" y="3470" text-anchor="middle" class="table-title">General Notes on Unmapped Fields</text>
+  <text x="670" y="3495" class="field-name">Why Fields Are Ignored:</text>
+  <text x="670" y="3515" class="field-desc">• Not applicable to ACPA schema (e.g., sponsors, hearings)</text>
+  <text x="670" y="3535" class="field-desc">• Policy decision to exclude (e.g., anti-investor, add_max reforms)</text>
+  <text x="670" y="3555" class="field-desc">• Data quality issues (invalid formats, missing data)</text>
+  <text x="670" y="3575" class="field-desc">• Future enhancements - fields saved but not yet used (e.g., encoded_name)</text>
+  <text x="1200" y="3495" class="field-name">Storage Strategy:</text>
+  <text x="1200" y="3515" class="field-desc">• Some ignored data stored in notes fields</text>
+  <text x="1200" y="3535" class="field-desc">• Raw data sometimes preserved for future use (e.g., CBNA raw_data)</text>
+  <text x="1200" y="3555" class="field-desc">• Source-specific fields stored in reform_sources table</text>
+  <text x="1200" y="3575" class="field-desc">• Citations stored separately in reform_citations table</text>
+  
+  <!-- Footer -->
+  <text x="1200" y="3680" text-anchor="middle" font-family="Arial" font-size="10" fill="#7f8c8d">
+    Generated: 2025 | Urbanist Reform Map Documentation
+  </text>
+</svg>
