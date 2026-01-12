@@ -206,7 +206,71 @@ header {
     margin-top: 8px;
 }
 
-/* Population slider */
+/* Population slider - noUiSlider with Material Design styling */
+.population-slider {
+    margin: 20px 0;
+}
+
+/* noUiSlider Material Design Theme */
+.noUi-target {
+    background: #e0e0e0;
+    border: none;
+    border-radius: 2px;
+    box-shadow: none;
+    height: 4px;
+}
+
+.noUi-connect {
+    background: var(--mdc-theme-primary, #2ecc71);
+}
+
+.noUi-handle {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--mdc-theme-primary, #2ecc71);
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    cursor: grab;
+    top: -8px;
+}
+
+.noUi-handle:before,
+.noUi-handle:after {
+    display: none;
+}
+
+.noUi-handle:active {
+    cursor: grabbing;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.noUi-handle:focus {
+    outline: none;
+    box-shadow: 0 0 0 8px rgba(46, 204, 113, 0.2);
+}
+
+.noUi-touch-area {
+    width: 48px;
+    height: 48px;
+    top: -14px;
+    left: -14px;
+}
+
+.noUi-tooltip {
+    background: rgba(0, 0, 0, 0.87);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: Roboto, sans-serif;
+}
+
+.noUi-tooltip:after {
+    border-top-color: rgba(0, 0, 0, 0.87);
+}
+
 .slider-values {
     display: flex;
     justify-content: space-between;
