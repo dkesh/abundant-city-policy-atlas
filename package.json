@@ -3,20 +3,30 @@
   "version": "1.0.0",
   "scripts": {
     "predev": "node scripts/migrations/_helpers/run-migrations.js",
-    "dev": "netlify dev",
-    "build": "node scripts/migrations/_helpers/run-migrations.js && echo \"Build complete\"",
+    "dev": "npm run build:css && netlify dev",
+    "build": "node scripts/migrations/_helpers/run-migrations.js && npm run build:css && echo \"Build complete\"",
+    "build:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --no-source-map --quiet-deps",
+    "watch:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --watch --no-source-map --quiet-deps",
     "migrate:create": "node-pg-migrate create -m scripts/migrations",
     "migrate:up": "node-pg-migrate up -m scripts/migrations",
     "migrate:down": "node-pg-migrate down -m scripts/migrations",
     "migrate:status": "node scripts/migrations/_helpers/status.js",
     "migrate:help": "node-pg-migrate --help",
-    "migrate:verify": "node scripts/migrations/_helpers/verify-setup.js"
+    "migrate:verify": "node scripts/migrations/_helpers/verify-setup.js",
+    "lin": "lin",
+    "linear:create-issues": "node scripts/create-linear-issues.js"
   },
   "devDependencies": {
+    "@linear/cli": "^0.0.5",
+    "@material/checkbox": "^14.0.0",
+    "@material/form-field": "^14.0.0",
+    "@material/ripple": "^14.0.0",
     "@neondatabase/api-client": "^2.6.0",
     "dotenv": "^17.2.3",
+    "material-components-web": "^14.0.0",
     "netlify-cli": "^17.38.1",
-    "node-pg-migrate": "^8.0.4"
+    "node-pg-migrate": "^8.0.4",
+    "sass": "^1.97.2"
   },
   "dependencies": {
     "pg": "^8.16.3"

@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Abundant City Policy Atlas</title>
+    <!-- Material Design Icons and Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <!-- Mapbox -->
     <script src="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.min.js"></script>
+    <!-- Custom styles (includes compiled Material Design with density) -->
     <link rel="stylesheet" href="/styles.css">
     <style>
         /* Map-specific overrides */
@@ -102,29 +107,65 @@
         <div class="main-content">
             <!-- SIDEBAR FILTERS -->
             <aside class="filters-panel">
-                <h2>Filters</h2>
+                <h2 class="mdc-typography--headline6">Filters</h2>
 
                 <!-- Policy Domain Filter (Multi-select Checkboxes) -->
                 <div class="filter-group">
-                    <label>Policy Domain</label>
-                    <div class="checkbox-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Policy Domain</div>
+                    <div class="checkbox-group" id="reformTypeCheckboxes">
                         <!-- Populated by JavaScript from database -->
                     </div>
                 </div>
 
                 <!-- Jurisdiction Type Filter -->
                 <div class="filter-group">
-                    <label>Jurisdiction Type</label>
+                    <div class="mdc-typography--subtitle2 filter-label">Jurisdiction Type</div>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" class="placeTypeCheckbox" value="state"> States</label>
-                        <label><input type="checkbox" class="placeTypeCheckbox" value="county"> Counties</label>
-                        <label><input type="checkbox" class="placeTypeCheckbox" value="city" checked> Cities</label>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-state" value="state">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-state">States</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-county" value="county">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-county">Counties</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-city" value="city" checked>
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-city">Cities</label>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Region/State Filter (Hierarchical) -->
                 <div class="filter-group">
-                    <label>Location</label>
+                    <div class="mdc-typography--subtitle2 filter-label">Location</div>
                     <div class="checkbox-group" id="locationCheckboxes">
                         <!-- Populated by JavaScript -->
                     </div>
@@ -132,89 +173,221 @@
 
                 <!-- Date Range Filter -->
                 <div class="filter-group">
-                    <label>Adoption Date Range</label>
+                    <div class="mdc-typography--subtitle2 filter-label">Adoption Date Range</div>
                     <div class="date-range-inputs">
-                        <input type="number" id="fromYear" placeholder="From" min="1900" max="2100" class="date-range-input">
-                        <span>to</span>
-                        <input type="number" id="toYear" placeholder="To" min="1900" max="2100" class="date-range-input">
+                        <label class="mdc-text-field mdc-text-field--outlined mdc-text-field--no-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                            <input type="number" class="mdc-text-field__input" id="fromYear" placeholder="From" min="1900" max="2100">
+                        </label>
+                        <span class="date-range-separator">to</span>
+                        <label class="mdc-text-field mdc-text-field--outlined mdc-text-field--no-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                            <input type="number" class="mdc-text-field__input" id="toYear" placeholder="To" min="1900" max="2100">
+                        </label>
                     </div>
-                    <label class="date-checkbox-label">
-                        <input type="checkbox" id="includeUnknownDates" checked>
-                        <span>Include unknown dates</span>
-                    </label>
+                    <div class="mdc-form-field date-checkbox-wrapper">
+                        <div class="mdc-checkbox">
+                            <input type="checkbox" class="mdc-checkbox__native-control" id="includeUnknownDates" checked>
+                            <div class="mdc-checkbox__background">
+                                <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                </svg>
+                                <div class="mdc-checkbox__mixedmark"></div>
+                            </div>
+                            <div class="mdc-checkbox__ripple"></div>
+                        </div>
+                        <label for="includeUnknownDates">Include unknown dates</label>
+                    </div>
                 </div>
 
                 <!-- Status Filter -->
                 <div class="filter-group">
-                    <label>Reform Status</label>
+                    <div class="mdc-typography--subtitle2 filter-label">Reform Status</div>
                     <div class="checkbox-group">
-                        <label><input type="checkbox" class="statusCheckbox" value="adopted" checked> Adopted</label>
-                        <label><input type="checkbox" class="statusCheckbox" value="proposed"> Proposed</label>
-                        <label><input type="checkbox" class="statusCheckbox" value="failed"> Failed</label>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-adopted" value="adopted" checked>
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-adopted">Adopted</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-proposed" value="proposed">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-proposed">Proposed</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-failed" value="failed">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-failed">Failed</label>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Population Filter (Range Slider) -->
                 <div class="filter-group">
-                    <label>Population Range</label>
-                    <div class="dual-slider-container">
-                        <div class="dual-slider-track">
-                            <div class="dual-slider-fill" id="sliderFill"></div>
-                            <input type="range" id="minPopulation" class="dual-slider-handle" min="0" max="10000000" value="0" step="10000">
-                            <input type="range" id="maxPopulation" class="dual-slider-handle" min="0" max="10000000" value="10000000" step="10000">
+                    <div class="mdc-typography--subtitle2 filter-label">Population Range</div>
+                    <div id="populationSlider" class="mdc-slider mdc-slider--range" data-min="0" data-max="10000000">
+                        <input class="mdc-slider__input" type="range" min="0" max="10000000" value="0" step="10000" name="populationMin" aria-label="Minimum population">
+                        <input class="mdc-slider__input" type="range" min="0" max="10000000" value="10000000" step="10000" name="populationMax" aria-label="Maximum population">
+                        <div class="mdc-slider__track">
+                            <div class="mdc-slider__track--inactive"></div>
+                            <div class="mdc-slider__track--active">
+                                <div class="mdc-slider__track--active_fill"></div>
+                            </div>
                         </div>
-                        <div class="slider-values">
-                            <span id="minPopulationLabel">0</span>
-                            <span id="maxPopulationLabel">10,000,000</span>
+                        <div class="mdc-slider__thumb">
+                            <div class="mdc-slider__thumb-knob"></div>
                         </div>
+                        <div class="mdc-slider__thumb">
+                            <div class="mdc-slider__thumb-knob"></div>
+                        </div>
+                    </div>
+                    <div class="slider-values">
+                        <span id="minPopulationLabel" class="mdc-typography--caption">0</span>
+                        <span id="maxPopulationLabel" class="mdc-typography--caption">10,000,000</span>
                     </div>
                 </div>
 
                 <!-- Action Buttons -->
                 <div class="filter-buttons">
-                    <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
-                    <button class="btn btn-secondary" id="resetFilters">Reset</button>
-                    <button class="btn btn-secondary" id="shareSearch">🔗 Share Search</button>
+                    <button class="mdc-button mdc-button--raised" id="applyFilters">
+                        <span class="mdc-button__ripple"></span>
+                        <span class="mdc-button__label">Apply Filters</span>
+                    </button>
+                    <button class="mdc-button mdc-button--outlined" id="resetFilters">
+                        <span class="mdc-button__ripple"></span>
+                        <span class="mdc-button__label">Reset</span>
+                    </button>
+                    <button class="mdc-button mdc-button--outlined" id="shareSearch">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">link</i>
+                        <span class="mdc-button__label">Share</span>
+                    </button>
                 </div>
             </aside>
 
             <!-- MAIN CONTENT -->
             <div class="content-area">
-                <div id="errorMessage" class="error-message container-hidden"></div>
+                <div id="errorMessage" class="mdc-banner container-hidden" role="banner">
+                    <div class="mdc-banner__content" role="status" aria-live="assertive"></div>
+                </div>
 
                 <!-- View Tabs -->
-                <div class="view-tabs">
-                    <button class="view-tab active" id="listViewTab">📋 List View</button>
-                    <button class="view-tab" id="mapViewTab">🗺️ Map View</button>
+                <div class="mdc-tab-bar" role="tablist">
+                    <div class="mdc-tab-scroller">
+                        <div class="mdc-tab-scroller__scroll-area">
+                            <div class="mdc-tab-scroller__scroll-content">
+                                <button class="mdc-tab mdc-tab--active" role="tab" aria-selected="true" tabindex="0" id="listViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">list</span>
+                                        <span class="mdc-tab__text-label">List View</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator mdc-tab-indicator--active">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="mapViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">map</span>
+                                        <span class="mdc-tab__text-label">Map View</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Results Info -->
                 <div id="resultsInfo" class="results-info container-hidden">
-                    <p>Found <strong id="resultCount">0</strong> reforms matching your filters</p>
-                    <button class="share-banner-btn" id="shareBannerBtn" title="Share this search">🔗</button>
+                    <p class="mdc-typography--body1">Found <strong id="resultCount">0</strong> reforms matching your filters</p>
+                    <button class="mdc-icon-button" id="shareBannerBtn" title="Share this search">
+                        <i class="material-icons mdc-icon-button__icon">link</i>
+                    </button>
                 </div>
 
                 <!-- Loading Spinner -->
                 <div id="loadingSpinner" class="loading container-hidden">
-                    <div class="loading-spinner"></div>
-                    <p>Loading reforms...</p>
+                    <div class="mdc-circular-progress" style="width:48px;height:48px;" role="progressbar" aria-label="Loading reforms" aria-valuemin="0" aria-valuemax="1">
+                        <div class="mdc-circular-progress__determinate-container">
+                            <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                                <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                            </svg>
+                        </div>
+                        <div class="mdc-circular-progress__indeterminate-container">
+                            <div class="mdc-circular-progress__spinner-layer">
+                                <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__gap-patch">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mdc-typography--body1">Loading reforms...</p>
                 </div>
 
                 <!-- LIST VIEW -->
                 <div id="listView" class="view-container active">
                     <div id="reformsList" class="reforms-list"></div>
                     <div id="noResultsList" class="no-results container-hidden">
-                        <h3>No Reforms Found</h3>
-                        <p>Try adjusting your filters to see more results.</p>
+                        <h3 class="mdc-typography--headline6">No Reforms Found</h3>
+                        <p class="mdc-typography--body1">Try adjusting your filters to see more results.</p>
                     </div>
                 </div>
 
                 <!-- MAP VIEW -->
                 <div id="mapView" class="view-container">
                     <div id="map"></div>
-                    <div id="mapOverlay" class="map-overlay">
-                        <button class="map-overlay-close" id="closeOverlay">✕</button>
-                        <div class="map-overlay-header" id="overlayHeader"></div>
+                    <div id="mapOverlay" class="map-overlay mdc-card">
+                        <button class="mdc-icon-button map-overlay-close" id="closeOverlay">
+                            <i class="material-icons mdc-icon-button__icon">close</i>
+                        </button>
+                        <div class="map-overlay-header mdc-typography--headline6" id="overlayHeader"></div>
                         <div id="overlayCards" class="reforms-list"></div>
                     </div>
                 </div>
@@ -244,13 +417,8 @@
         // UI ELEMENTS
         // ============================================================================
 
-        const reformTypeCheckboxes = document.querySelectorAll('.reformTypeCheckbox');
         const placeTypeCheckboxes = document.querySelectorAll('.placeTypeCheckbox');
         const statusCheckboxes = document.querySelectorAll('.statusCheckbox');
-        const minPopulationSlider = document.getElementById('minPopulation');
-        const maxPopulationSlider = document.getElementById('maxPopulation');
-        const minPopulationLabel = document.getElementById('minPopulationLabel');
-        const maxPopulationLabel = document.getElementById('maxPopulationLabel');
         const locationCheckboxes = document.getElementById('locationCheckboxes');
         const fromYear = document.getElementById('fromYear');
         const toYear = document.getElementById('toYear');
@@ -269,6 +437,8 @@
         const mapView = document.getElementById('mapView');
         const mapOverlay = document.getElementById('mapOverlay');
         const closeOverlayBtn = document.getElementById('closeOverlay');
+        const minPopulationLabel = document.getElementById('minPopulationLabel');
+        const maxPopulationLabel = document.getElementById('maxPopulationLabel');
 
         // ============================================================================
         // EVENT LISTENERS
@@ -276,8 +446,6 @@
 
         applyFiltersBtn.addEventListener('click', applyFilters);
         resetFiltersBtn.addEventListener('click', resetFilters);
-        listViewTab.addEventListener('click', () => switchView('list'));
-        mapViewTab.addEventListener('click', () => switchView('map'));
         closeOverlayBtn.addEventListener('click', () => mapOverlay.classList.remove('active'));
         
         // Share Search button (combined save + share functionality)
@@ -288,59 +456,29 @@
         const shareBannerBtn = document.getElementById('shareBannerBtn');
         shareBannerBtn.addEventListener('click', shareSearch);
 
-        // Population slider synchronization and fill update
-        function updateSliderFill() {
-            const min = parseInt(minPopulationSlider.value);
-            const max = parseInt(maxPopulationSlider.value);
-            const minPercent = (min / 10000000) * 100;
-            const maxPercent = (max / 10000000) * 100;
-            const fill = document.getElementById('sliderFill');
-            if (fill) {
-                fill.style.left = minPercent + '%';
-                fill.style.width = (maxPercent - minPercent) + '%';
-            }
-        }
-
-        // Add active class on mousedown to raise z-index
-        minPopulationSlider.addEventListener('mousedown', () => {
-            minPopulationSlider.classList.add('active');
-            maxPopulationSlider.classList.remove('active');
-        });
-
-        maxPopulationSlider.addEventListener('mousedown', () => {
-            maxPopulationSlider.classList.add('active');
-            minPopulationSlider.classList.remove('active');
-        });
-
-        // Remove active class on mouseup
-        document.addEventListener('mouseup', () => {
-            minPopulationSlider.classList.remove('active');
-            maxPopulationSlider.classList.remove('active');
-        });
-
-        minPopulationSlider.addEventListener('input', () => {
-            const minVal = parseInt(minPopulationSlider.value);
-            const maxVal = parseInt(maxPopulationSlider.value);
-            if (minVal > maxVal) {
-                maxPopulationSlider.value = minVal;
-            }
-            updatePopulationLabels();
-            updateSliderFill();
-        });
-
-        maxPopulationSlider.addEventListener('input', () => {
-            const minVal = parseInt(minPopulationSlider.value);
-            const maxVal = parseInt(maxPopulationSlider.value);
-            if (maxVal < minVal) {
-                minPopulationSlider.value = maxVal;
-            }
-            updatePopulationLabels();
-            updateSliderFill();
-        });
-
         // ============================================================================
         // FUNCTIONS
         // ============================================================================
+
+        // Helper functions for MDC slider
+        function getSliderValues() {
+            const slider = window.mdcComponents?.slider;
+            if (slider) {
+                return {
+                    min: slider.getValueStart(),
+                    max: slider.getValue()
+                };
+            }
+            return { min: 0, max: 10000000 };
+        }
+
+        function setSliderValues(min, max) {
+            const slider = window.mdcComponents?.slider;
+            if (slider) {
+                slider.setValueStart(min);
+                slider.setValue(max);
+            }
+        }
 
         // ============================================================================
         // URL/FILTER CONVERSION UTILITIES
@@ -350,8 +488,9 @@
             const reformTypes = getSelectedReformTypes();
             const placeTypes = getSelectedPlaceTypes();
             const statuses = getSelectedStatuses();
-            const minPopulation = parseInt(minPopulationSlider.value);
-            const maxPopulation = parseInt(maxPopulationSlider.value);
+            const sliderValues = getSliderValues();
+            const minPopulation = sliderValues.min;
+            const maxPopulation = sliderValues.max;
             const states = getSelectedLocations();
             const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
             const toYearVal = toYear.value ? parseInt(toYear.value) : null;
@@ -431,6 +570,12 @@
                 const someChecked = Array.from(children).some(child => child.checked);
                 cb.checked = allChecked;
                 cb.indeterminate = someChecked && !allChecked;
+                // Sync MDC checkbox state
+                const categoryMdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(cb.closest('.mdc-checkbox'));
+                if (categoryMdcCheckbox) {
+                    categoryMdcCheckbox.checked = allChecked;
+                    categoryMdcCheckbox.indeterminate = someChecked && !allChecked;
+                }
             });
 
             // Apply place types
@@ -447,6 +592,11 @@
             document.querySelectorAll('#locationCheckboxes input[type="checkbox"]').forEach(cb => {
                 if (cb.dataset.state) {
                     cb.checked = config.states && config.states.includes(cb.dataset.state);
+                    // Sync MDC checkbox state
+                    const mdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(cb.closest('.mdc-checkbox'));
+                    if (mdcCheckbox) {
+                        mdcCheckbox.checked = cb.checked;
+                    }
                 }
             });
             // Update region checkboxes
@@ -458,14 +608,18 @@
                     const someChecked = Array.from(stateCheckboxes).some(cb => cb.checked);
                     regionCheckbox.checked = allChecked;
                     regionCheckbox.indeterminate = someChecked && !allChecked;
+                    // Sync MDC checkbox state
+                    const regionMdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(regionCheckbox.closest('.mdc-checkbox'));
+                    if (regionMdcCheckbox) {
+                        regionMdcCheckbox.checked = allChecked;
+                        regionMdcCheckbox.indeterminate = someChecked && !allChecked;
+                    }
                 }
             });
 
             // Apply population
-            minPopulationSlider.value = config.min_population || 0;
-            maxPopulationSlider.value = config.max_population || 10000000;
+            setSliderValues(config.min_population || 0, config.max_population || 10000000);
             updatePopulationLabels();
-            updateSliderFill();
 
             // Apply dates
             fromYear.value = config.from_year || '';
@@ -474,11 +628,9 @@
         }
 
         function updatePopulationLabels() {
-            const min = parseInt(minPopulationSlider.value);
-            const max = parseInt(maxPopulationSlider.value);
-            minPopulationLabel.textContent = min.toLocaleString();
-            maxPopulationLabel.textContent = max.toLocaleString();
-            updateSliderFill();
+            const sliderValues = getSliderValues();
+            minPopulationLabel.textContent = sliderValues.min.toLocaleString();
+            maxPopulationLabel.textContent = sliderValues.max.toLocaleString();
         }
 
         async function initializeReformTypeFilter() {
@@ -493,7 +645,7 @@
                     throw new Error(data.error || 'Failed to fetch reform types');
                 }
 
-                const container = document.querySelector('.filter-group .checkbox-group');
+                const container = document.getElementById('reformTypeCheckboxes');
                 container.innerHTML = '';
 
                 // Group Types by Category
@@ -511,33 +663,63 @@
                 catOrder.forEach(cat => {
                     if (!byCategory[cat]) return;
 
-                    // 1. Create Header (Chevron + Checkbox + Label)
+                    // 1. Create Header (Chevron + MDC Checkbox + Label)
                     const catHeader = document.createElement('div');
                     catHeader.className = 'category-header'; // Reuses region-header style via CSS
 
                     // Chevron
-                    const chevron = document.createElement('span');
-                    chevron.className = 'chevron chevron-collapsed';
-                    chevron.textContent = '▼';
+                    const chevron = document.createElement('i');
+                    chevron.className = 'material-icons chevron chevron-collapsed';
+                    chevron.textContent = 'expand_more';
                     
-                    // Label wrapper
-                    const labelGroup = document.createElement('label');
-                    labelGroup.className = 'category-group';
+                    // MDC form field wrapper
+                    const categoryFormField = document.createElement('div');
+                    categoryFormField.className = 'mdc-form-field category-group';
+                    
+                    // MDC Checkbox wrapper
+                    const categoryCheckboxWrapper = document.createElement('div');
+                    categoryCheckboxWrapper.className = 'mdc-checkbox';
                     
                     // Parent Checkbox
                     const parentCb = document.createElement('input');
                     parentCb.type = 'checkbox';
-                    parentCb.className = 'category-cb';
+                    parentCb.className = 'mdc-checkbox__native-control category-cb';
                     parentCb.checked = true;
+                    parentCb.id = `category-${cat}`;
                     parentCb.dataset.category = cat;
                     parentCb.addEventListener('change', (e) => updateReformHierarchy(e.target));
-
-                    labelGroup.appendChild(parentCb);
-                    labelGroup.appendChild(document.createTextNode(' ' + cat));
+                    
+                    const categoryBackground = document.createElement('div');
+                    categoryBackground.className = 'mdc-checkbox__background';
+                    categoryBackground.innerHTML = `
+                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                        </svg>
+                        <div class="mdc-checkbox__mixedmark"></div>
+                    `;
+                    
+                    const categoryRipple = document.createElement('div');
+                    categoryRipple.className = 'mdc-checkbox__ripple';
+                    
+                    categoryCheckboxWrapper.appendChild(parentCb);
+                    categoryCheckboxWrapper.appendChild(categoryBackground);
+                    categoryCheckboxWrapper.appendChild(categoryRipple);
+                    
+                    const categoryLabel = document.createElement('label');
+                    categoryLabel.htmlFor = `category-${cat}`;
+                    categoryLabel.textContent = cat;
+                    
+                    categoryFormField.appendChild(categoryCheckboxWrapper);
+                    categoryFormField.appendChild(categoryLabel);
 
                     catHeader.appendChild(chevron);
-                    catHeader.appendChild(labelGroup);
+                    catHeader.appendChild(categoryFormField);
                     container.appendChild(catHeader);
+                    
+                    // Initialize category MDC checkbox
+                    const categoryMdcCheckbox = new mdc.checkbox.MDCCheckbox(categoryCheckboxWrapper);
+                    const categoryMdcFormField = new mdc.formField.MDCFormField(categoryFormField);
+                    categoryMdcFormField.input = categoryMdcCheckbox;
 
                     // 2. Create Reform Items Container (Hidden by default)
                     const reformsContainer = document.createElement('div');
@@ -545,27 +727,57 @@
 
                     // Items
                     byCategory[cat].forEach(rt => {
-                        const label = document.createElement('label');
-                        label.className = 'reform-item';
+                        const formField = document.createElement('div');
+                        formField.className = 'mdc-form-field reform-item';
+                        
+                        // MDC Checkbox wrapper
+                        const checkboxWrapper = document.createElement('div');
+                        checkboxWrapper.className = 'mdc-checkbox';
                         
                         const checkbox = document.createElement('input');
                         checkbox.type = 'checkbox';
-                        checkbox.className = 'reformTypeCheckbox';
+                        checkbox.className = 'mdc-checkbox__native-control reformTypeCheckbox';
                         checkbox.value = rt.code;
                         checkbox.checked = true;
+                        checkbox.id = `reform-${rt.code}`;
                         checkbox.dataset.category = cat;
                         checkbox.dataset.color = rt.color_hex;
                         checkbox.addEventListener('change', (e) => updateCategoryCheckbox(e.target));
                         
+                        const background = document.createElement('div');
+                        background.className = 'mdc-checkbox__background';
+                        background.innerHTML = `
+                            <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                            </svg>
+                            <div class="mdc-checkbox__mixedmark"></div>
+                        `;
+                        
+                        const ripple = document.createElement('div');
+                        ripple.className = 'mdc-checkbox__ripple';
+                        
+                        checkboxWrapper.appendChild(checkbox);
+                        checkboxWrapper.appendChild(background);
+                        checkboxWrapper.appendChild(ripple);
+                        
+                        const label = document.createElement('label');
+                        label.htmlFor = `reform-${rt.code}`;
+                        label.textContent = rt.name;
+                        
                         // Color indicator
                         if (rt.color_hex) {
-                           label.style.borderLeft = `3px solid ${rt.color_hex}`;
-                           label.classList.add('reform-item-color-indicator');
+                           formField.style.borderLeft = `3px solid ${rt.color_hex}`;
+                           formField.style.paddingLeft = '8px';
                         }
 
-                        label.appendChild(checkbox);
-                        label.appendChild(document.createTextNode(' ' + rt.name));
-                        reformsContainer.appendChild(label);
+                        formField.appendChild(checkboxWrapper);
+                        formField.appendChild(label);
+                        reformsContainer.appendChild(formField);
+                        
+                        // Initialize MDC checkbox
+                        const mdcCheckbox = new mdc.checkbox.MDCCheckbox(checkboxWrapper);
+                        const mdcFormField = new mdc.formField.MDCFormField(formField);
+                        mdcFormField.input = mdcCheckbox;
                     });
                     
                     container.appendChild(reformsContainer);
@@ -644,6 +856,9 @@
 
             stateCheckboxes.forEach(cb => {
                 cb.checked = regionCheckbox.checked;
+                // Sync MDC checkbox state
+                const mdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(cb.closest('.mdc-checkbox'));
+                mdcCheckbox.checked = regionCheckbox.checked;
             });
         }
 
@@ -663,6 +878,11 @@
 
             regionCheckbox.checked = allChecked;
             regionCheckbox.indeterminate = someChecked && !allChecked;
+            
+            // Sync MDC checkbox state
+            const regionMdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(regionCheckbox.closest('.mdc-checkbox'));
+            regionMdcCheckbox.checked = allChecked;
+            regionMdcCheckbox.indeterminate = someChecked && !allChecked;
         }
 
         // --- Reform Type Hierarchy Helpers ---
@@ -675,6 +895,11 @@
 
             reformCheckboxes.forEach(cb => {
                 cb.checked = categoryCheckbox.checked;
+                // Sync MDC checkbox state
+                const mdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(cb.closest('.mdc-checkbox'));
+                if (mdcCheckbox) {
+                    mdcCheckbox.checked = categoryCheckbox.checked;
+                }
             });
         }
 
@@ -696,6 +921,13 @@
 
             categoryCheckbox.checked = allChecked;
             categoryCheckbox.indeterminate = someChecked && !allChecked;
+            
+            // Sync MDC checkbox state
+            const categoryMdcCheckbox = mdc.checkbox.MDCCheckbox.attachTo(categoryCheckbox.closest('.mdc-checkbox'));
+            if (categoryMdcCheckbox) {
+                categoryMdcCheckbox.checked = allChecked;
+                categoryMdcCheckbox.indeterminate = someChecked && !allChecked;
+            }
         }
 
         function initializeLocationFilter() {
@@ -706,24 +938,51 @@
                 const regionHeader = document.createElement('div');
                 regionHeader.className = 'region-header';
                 
-                // Region checkbox label
-                const regionLabel = document.createElement('label');
-                regionLabel.className = 'region-group';
+                // Chevron toggle
+                const chevron = document.createElement('i');
+                chevron.className = 'material-icons chevron chevron-collapsed';
+                chevron.textContent = 'expand_more';
+                
+                // Region MDC checkbox
+                const regionFormField = document.createElement('div');
+                regionFormField.className = 'mdc-form-field region-group';
+                
+                const regionCheckboxWrapper = document.createElement('div');
+                regionCheckboxWrapper.className = 'mdc-checkbox';
+                
                 const regionCheckbox = document.createElement('input');
                 regionCheckbox.type = 'checkbox';
+                regionCheckbox.className = 'mdc-checkbox__native-control';
+                regionCheckbox.id = `region-${region}`;
                 regionCheckbox.dataset.region = region;
                 regionCheckbox.addEventListener('change', (e) => updateLocationHierarchy(e.target));
-                regionLabel.appendChild(regionCheckbox);
-                regionLabel.appendChild(document.createTextNode(' ' + region));
                 
-                // Chevron toggle
-                const chevron = document.createElement('span');
-                chevron.className = 'chevron chevron-collapsed';
-                chevron.textContent = '▼';
+                const regionBackground = document.createElement('div');
+                regionBackground.className = 'mdc-checkbox__background';
+                regionBackground.innerHTML = `
+                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                    </svg>
+                    <div class="mdc-checkbox__mixedmark"></div>
+                `;
                 
-                // Header gets chevron + label (chevron on left)
+                const regionRipple = document.createElement('div');
+                regionRipple.className = 'mdc-checkbox__ripple';
+                
+                regionCheckboxWrapper.appendChild(regionCheckbox);
+                regionCheckboxWrapper.appendChild(regionBackground);
+                regionCheckboxWrapper.appendChild(regionRipple);
+                
+                const regionLabel = document.createElement('label');
+                regionLabel.htmlFor = `region-${region}`;
+                regionLabel.textContent = region;
+                
+                regionFormField.appendChild(regionCheckboxWrapper);
+                regionFormField.appendChild(regionLabel);
+                
+                // Header gets chevron + form field (chevron on left)
                 regionHeader.appendChild(chevron);
-                regionHeader.appendChild(regionLabel);
+                regionHeader.appendChild(regionFormField);
                 locationCheckboxes.appendChild(regionHeader);
 
                 // States container (hidden by default)
@@ -731,19 +990,56 @@
                 statesContainer.className = 'states-container container-hidden';
 
                 REGIONS[region].forEach(state => {
-                    const stateLabel = document.createElement('label');
-                    stateLabel.className = 'state-item';
+                    const stateFormField = document.createElement('div');
+                    stateFormField.className = 'mdc-form-field state-item';
+                    
+                    const stateCheckboxWrapper = document.createElement('div');
+                    stateCheckboxWrapper.className = 'mdc-checkbox';
+                    
                     const stateCheckbox = document.createElement('input');
                     stateCheckbox.type = 'checkbox';
+                    stateCheckbox.className = 'mdc-checkbox__native-control';
+                    stateCheckbox.id = `state-${state}`;
                     stateCheckbox.dataset.state = state;
                     stateCheckbox.dataset.region = region;
                     stateCheckbox.addEventListener('change', (e) => updateRegionCheckbox(e.target));
-                    stateLabel.appendChild(stateCheckbox);
-                    stateLabel.appendChild(document.createTextNode(' ' + state));
-                    statesContainer.appendChild(stateLabel);
+                    
+                    const stateBackground = document.createElement('div');
+                    stateBackground.className = 'mdc-checkbox__background';
+                    stateBackground.innerHTML = `
+                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                        </svg>
+                        <div class="mdc-checkbox__mixedmark"></div>
+                    `;
+                    
+                    const stateRipple = document.createElement('div');
+                    stateRipple.className = 'mdc-checkbox__ripple';
+                    
+                    stateCheckboxWrapper.appendChild(stateCheckbox);
+                    stateCheckboxWrapper.appendChild(stateBackground);
+                    stateCheckboxWrapper.appendChild(stateRipple);
+                    
+                    const stateLabel = document.createElement('label');
+                    stateLabel.htmlFor = `state-${state}`;
+                    stateLabel.textContent = state;
+                    
+                    stateFormField.appendChild(stateCheckboxWrapper);
+                    stateFormField.appendChild(stateLabel);
+                    statesContainer.appendChild(stateFormField);
+                    
+                    // Initialize MDC checkbox
+                    const mdcCheckbox = new mdc.checkbox.MDCCheckbox(stateCheckboxWrapper);
+                    const mdcFormField = new mdc.formField.MDCFormField(stateFormField);
+                    mdcFormField.input = mdcCheckbox;
                 });
                 
                 locationCheckboxes.appendChild(statesContainer);
+                
+                // Initialize region checkbox
+                const regionMdcCheckbox = new mdc.checkbox.MDCCheckbox(regionCheckboxWrapper);
+                const regionMdcFormField = new mdc.formField.MDCFormField(regionFormField);
+                regionMdcFormField.input = regionMdcCheckbox;
 
                 // Toggle click handler
                 chevron.addEventListener('click', (e) => {
@@ -768,8 +1064,9 @@
             const reformTypes = getSelectedReformTypes();
             const placeTypes = getSelectedPlaceTypes();
             const statuses = getSelectedStatuses();
-            const minPopulation = parseInt(minPopulationSlider.value);
-            const maxPopulation = parseInt(maxPopulationSlider.value);
+            const sliderValues = getSliderValues();
+            const minPopulation = sliderValues.min;
+            const maxPopulation = sliderValues.max;
             const states = getSelectedLocations();
             const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
             const toYearVal = toYear.value ? parseInt(toYear.value) : null;
@@ -857,8 +1154,7 @@
             document.querySelectorAll('#locationCheckboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
 
             // Reset sliders
-            minPopulationSlider.value = 0;
-            maxPopulationSlider.value = 10000000;
+            setSliderValues(0, 10000000);
             updatePopulationLabels();
 
             // Reset date range
@@ -1045,29 +1341,27 @@
 
         function createReformCard(reform, showDistance = false) {
             const card = document.createElement('div');
-            card.className = `reform-card ${reform.reform.type}`;
+            card.className = `mdc-card reform-card ${reform.reform.type}`;
 
             const adoptionDate = reform.reform.adoption_date || 'Date unknown';
             const placeType = reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1);
 
             const scopeTags = (reform.reform.scope || []).map(s =>
-                `<div class="tag">${escapeHtml(s)}</div>`
+                `<span class="mdc-chip__text">${escapeHtml(s)}</span>`
             ).join('');
 
             const landUseTags = (reform.reform.land_use || []).map(l =>
-                `<div class="tag">${escapeHtml(l)}</div>`
+                `<span class="mdc-chip__text">${escapeHtml(l)}</span>`
             ).join('');
 
             const requirementsTags = (reform.reform.requirements || []).map(r =>
-                `<div class="tag">${escapeHtml(r)}</div>`
+                `<span class="mdc-chip__text">${escapeHtml(r)}</span>`
             ).join('');
 
             // Sources with logos only
-            // Use reform.link_url if available, otherwise fall back to source website_url
             const reformLinkUrl = reform.reform.link_url || '';
             const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
                 reform.reform.sources.map(source => {
-                    // Use the reform's link_url (tracker URL) if available, otherwise use source website
                     const sourceUrl = reformLinkUrl || source.website_url || '';
                     const logoUrl = source.logo ? `${source.logo}` : '';
                     
@@ -1088,74 +1382,76 @@
             : '';
 
             card.innerHTML = `
-                <div class="reform-header">
-                    <h3 class="reform-title">${reform.place.type === 'state' 
-                        ? escapeHtml(reform.place.state) 
-                        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}`}</h3>
-                    <div class="reform-badges">
-                        <span class="badge badge-type">${escapeHtml(reform.reform.type_name)}</span>
-                        <span class="badge badge-type">${placeType}</span>
-                        ${reform.place.region ? `<span class="badge badge-region">${escapeHtml(reform.place.region)}</span>` : ''}
+                <div class="mdc-card__primary-action">
+                    <div class="reform-header">
+                        <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
+                            ? escapeHtml(reform.place.state) 
+                            : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}`}</h3>
+                        <div class="reform-badges">
+                            <span class="mdc-chip"><span class="mdc-chip__text">${escapeHtml(reform.reform.type_name)}</span></span>
+                            <span class="mdc-chip"><span class="mdc-chip__text">${placeType}</span></span>
+                            ${reform.place.region ? `<span class="mdc-chip"><span class="mdc-chip__text">${escapeHtml(reform.place.region)}</span></span>` : ''}
+                        </div>
                     </div>
-                </div>
 
-                <div class="reform-meta">
-                    <div class="meta-item">
-                        <strong>Adopted:</strong> ${adoptionDate}
+                    <div class="mdc-card__media-content reform-meta mdc-typography--body2">
+                        <div class="meta-item">
+                            <strong>Adopted:</strong> ${adoptionDate}
+                        </div>
+                        <div class="meta-item">
+                            <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
+                        </div>
+                        ${reform.reform.policy_document && reform.reform.policy_document.title ? `
+                        <div class="meta-item">
+                            <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
+                        </div>
+                        ` : ''}
+                        ${reform.place.population ? `
+                        <div class="meta-item">
+                            <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
+                        </div>
+                        ` : ''}
                     </div>
-                    <div class="meta-item">
-                        <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
-                    </div>
-                    ${reform.reform.policy_document && reform.reform.policy_document.title ? `
-                    <div class="meta-item">
-                        <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
-                    </div>
-                    ` : ''}
-                    ${reform.place.population ? `
-                    <div class="meta-item">
-                        <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
-                    </div>
-                    ` : ''}
-                </div>
 
-                ${reform.reform.summary ? `
-                <div class="reform-summary">
-                    ${escapeHtml(reform.reform.summary)}
-                </div>
-                ` : ''}
-
-                <div class="reform-details">
-                    ${reform.reform.scope.length > 0 ? `
-                    <div class="detail-item">
-                        <strong>Scope</strong>
-                        <div class="tag-list">${scopeTags}</div>
-                    </div>
-                    ` : ''}
-                    
-                    ${reform.reform.land_use.length > 0 ? `
-                    <div class="detail-item">
-                        <strong>Land Use</strong>
-                        <div class="tag-list">${landUseTags}</div>
+                    ${reform.reform.summary ? `
+                    <div class="reform-summary mdc-typography--body2">
+                        ${escapeHtml(reform.reform.summary)}
                     </div>
                     ` : ''}
 
-                    ${reform.reform.requirements.length > 0 ? `
-                    <div class="detail-item">
-                        <strong>Requirements</strong>
-                        <div class="tag-list">${requirementsTags}</div>
-                    </div>
-                    ` : ''}
-                </div>
+                    <div class="reform-details">
+                        ${reform.reform.scope.length > 0 ? `
+                        <div class="detail-item">
+                            <strong class="mdc-typography--subtitle2">Scope</strong>
+                            <div class="tag-list">${scopeTags}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${reform.reform.land_use.length > 0 ? `
+                        <div class="detail-item">
+                            <strong class="mdc-typography--subtitle2">Land Use</strong>
+                            <div class="tag-list">${landUseTags}</div>
+                        </div>
+                        ` : ''}
 
-                <div class="reform-footer">
-                    <span class="reform-footer-text">
-                        ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
-                    </span>
-                    ${sourcesHtml ? `
-                    <div class="sources-logos">
-                        ${sourcesHtml}
+                        ${reform.reform.requirements.length > 0 ? `
+                        <div class="detail-item">
+                            <strong class="mdc-typography--subtitle2">Requirements</strong>
+                            <div class="tag-list">${requirementsTags}</div>
+                        </div>
+                        ` : ''}
                     </div>
-                    ` : ''}
+
+                    <div class="reform-footer">
+                        <span class="mdc-typography--caption reform-footer-text">
+                            ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
+                        </span>
+                        ${sourcesHtml ? `
+                        <div class="sources-logos">
+                            ${sourcesHtml}
+                        </div>
+                        ` : ''}
+                    </div>
                 </div>
             `;
 
@@ -1170,10 +1466,17 @@
         }
 
         function showLoading(show) {
+            const progress = window.mdcComponents?.circularProgress;
             if (show) {
                 loadingSpinner.classList.remove('container-hidden');
+                if (progress) {
+                    progress.open();
+                }
             } else {
                 loadingSpinner.classList.add('container-hidden');
+                if (progress) {
+                    progress.close();
+                }
             }
         }
 
@@ -1422,10 +1725,77 @@
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize MDC components
+            const mdcComponents = {
+                buttons: [],
+                checkboxes: [],
+                textFields: [],
+                slider: null,
+                tabBar: null,
+                iconButtons: [],
+                circularProgress: null
+            };
+
+            // Initialize all buttons
+            document.querySelectorAll('.mdc-button').forEach(button => {
+                mdcComponents.buttons.push(new mdc.ripple.MDCRipple(button));
+            });
+
+            // Initialize all icon buttons
+            document.querySelectorAll('.mdc-icon-button').forEach(iconButton => {
+                const ripple = new mdc.ripple.MDCRipple(iconButton);
+                ripple.unbounded = true;
+                mdcComponents.iconButtons.push(ripple);
+            });
+
+            // Initialize all checkboxes
+            document.querySelectorAll('.mdc-checkbox').forEach(checkbox => {
+                mdcComponents.checkboxes.push(new mdc.checkbox.MDCCheckbox(checkbox));
+            });
+
+            // Initialize all form fields
+            document.querySelectorAll('.mdc-form-field').forEach(formField => {
+                new mdc.formField.MDCFormField(formField);
+            });
+
+            // Initialize text fields
+            document.querySelectorAll('.mdc-text-field').forEach(textField => {
+                mdcComponents.textFields.push(new mdc.textField.MDCTextField(textField));
+            });
+
+            // Initialize population slider
+            const sliderEl = document.getElementById('populationSlider');
+            if (sliderEl) {
+                mdcComponents.slider = new mdc.slider.MDCSlider(sliderEl);
+                
+                // Listen for slider changes
+                mdcComponents.slider.listen('MDCSlider:change', () => {
+                    updatePopulationLabels();
+                });
+            }
+
+            // Initialize tab bar
+            const tabBarEl = document.querySelector('.mdc-tab-bar');
+            if (tabBarEl) {
+                mdcComponents.tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
+                mdcComponents.tabBar.listen('MDCTabBar:activated', (e) => {
+                    const view = e.detail.index === 0 ? 'list' : 'map';
+                    switchView(view);
+                });
+            }
+
+            // Initialize circular progress
+            const progressEl = document.querySelector('.mdc-circular-progress');
+            if (progressEl) {
+                mdcComponents.circularProgress = new mdc.circularProgress.MDCCircularProgress(progressEl);
+            }
+
+            // Store MDC components globally for later access
+            window.mdcComponents = mdcComponents;
+            
             await initializeReformTypeFilter();
             initializeLocationFilter();
             updatePopulationLabels();
-            updateSliderFill();
             
             // Try to load from saved search first, then URL params, then default
             const loadedSaved = await loadSavedSearch();
@@ -1452,5 +1822,6 @@
             }
         });
     </script>
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
 </body>
 </html>

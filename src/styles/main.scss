@@ -1,0 +1,22 @@
+/* ============================================================================
+   URBANIST REFORM MAP - MATERIAL DESIGN WITH SASS
+   ============================================================================ */
+
+/* Import Material Design Components - includes base styles for checkmark SVG sizing, form-field alignment, tabs, buttons, and icon-buttons */
+@use '@material/checkbox/mdc-checkbox';
+@use '@material/checkbox' as checkbox;
+@use '@material/form-field/mdc-form-field';
+@use '@material/tab/mdc-tab';
+@use '@material/tab-scroller/mdc-tab-scroller';
+@use '@material/tab-indicator/mdc-tab-indicator';
+@use '@material/tab-bar/mdc-tab-bar';
+@use '@material/button/mdc-button';
+@use '@material/icon-button/mdc-icon-button';
+
+/* Import custom styles (must be at the top with other @use statements) */
+@use 'custom' as *;
+
+/* Apply density after base styles are included */
+.mdc-checkbox {
+  @include checkbox.density(-2);
+}

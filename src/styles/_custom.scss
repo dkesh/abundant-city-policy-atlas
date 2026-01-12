@@ -1,0 +1,560 @@
+/* ============================================================================
+   URBANIST REFORM MAP - CUSTOM STYLES
+   ============================================================================ */
+
+/* MDC Theme Customization */
+:root {
+    --mdc-theme-primary: #2ecc71;
+    --mdc-theme-secondary: #3498db;
+    --mdc-theme-error: #e74c3c;
+    --mdc-theme-surface: #ffffff;
+    --mdc-theme-on-surface: #34495e;
+    --mdc-theme-on-primary: #ffffff;
+    
+    /* Custom color variables */
+    --color-primary: #2ecc71;
+    --color-primary-dark: #27ae60;
+    --color-secondary: #3498db;
+    --color-light: #ecf0f1;
+    --color-dark: #2c3e50;
+    --color-text: #34495e;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* ============================================================================
+   HEADER
+   ============================================================================ */
+
+header {
+    background-color: transparent;
+    color: white;
+    padding: 0;
+    margin-bottom: 30px;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.banner-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    max-height: 250px;
+    object-fit: cover;
+}
+
+.header-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    padding: 10px;
+}
+
+.about-link {
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    padding: 6px 12px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* ============================================================================
+   LAYOUT
+   ============================================================================ */
+
+.main-content {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 30px;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ============================================================================
+   FILTERS PANEL
+   ============================================================================ */
+
+.filters-panel {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    height: fit-content;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 20px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.filters-panel h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-light);
+}
+
+.filter-group {
+    margin-bottom: 20px;
+}
+
+.filter-label {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--color-dark);
+}
+
+/* Hierarchical checkbox styles */
+.category-header,
+.region-header {
+    display: flex;
+    align-items: center;
+}
+
+.chevron {
+    cursor: pointer;
+    font-size: 20px;
+    color: #7f8c8d;
+    transition: transform 0.2s ease;
+    user-select: none;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chevron-collapsed {
+    transform: rotate(-90deg);
+}
+
+.chevron-expanded {
+    transform: rotate(0deg);
+}
+
+.reforms-container,
+.states-container {
+    padding-left: 28px;
+    border-left: 1px solid #eee;
+    margin-left: 10px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.reform-item {
+    border-radius: 4px;
+}
+
+/* Date range inputs */
+.date-range-inputs {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.date-range-inputs .mdc-text-field {
+    flex: 1;
+}
+
+.date-range-separator {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+.date-checkbox-wrapper {
+    margin-top: 8px;
+}
+
+/* Population slider */
+.slider-values {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+/* Filter buttons */
+.filter-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 24px;
+}
+
+.filter-buttons .mdc-button {
+    width: 100%;
+}
+
+/* ============================================================================
+   CONTENT AREA
+   ============================================================================ */
+
+.content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Tabs */
+.mdc-tab-bar {
+    background: white;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Results info */
+.results-info {
+    background: white;
+    padding: 16px 20px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.results-info strong {
+    color: var(--mdc-theme-primary);
+}
+
+/* Loading spinner */
+.loading {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.loading .mdc-circular-progress {
+    margin: 0 auto 16px;
+}
+
+/* View containers */
+.view-container {
+    display: none;
+}
+
+.view-container.active {
+    display: block;
+}
+
+/* ============================================================================
+   REFORM CARDS (MDC Cards)
+   ============================================================================ */
+
+.reforms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reform-card {
+    border-left: 4px solid var(--color-light);
+    transition: all 0.2s ease;
+}
+
+.reform-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+.reform-card .mdc-card__primary-action {
+    padding: 20px;
+}
+
+.reform-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.reform-title {
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+.reform-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reform-badges .mdc-chip {
+    height: 24px;
+    font-size: 12px;
+}
+
+.reform-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.meta-item {
+    font-size: 14px;
+}
+
+.reform-summary {
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.reform-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.detail-item strong {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.tag-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag-list .mdc-chip__text {
+    background: var(--color-light);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    display: inline-block;
+}
+
+.reform-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-light);
+}
+
+.reform-footer-text {
+    color: #95a5a6;
+}
+
+.sources-logos {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.source-logo {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+}
+
+.source-logo-link {
+    display: inline-block;
+    line-height: 0;
+}
+
+/* Reform type colors */
+.reform-card.rm_min,
+.reform-card.prn\:rm_min {
+    border-left-color: #27ae60;
+}
+
+.reform-card.reduce_min,
+.reform-card.prn\:reduce_min {
+    border-left-color: #2ecc71;
+}
+
+.reform-card.add_max,
+.reform-card.prn\:add_max {
+    border-left-color: #e74c3c;
+}
+
+/* No results */
+.no-results {
+    background: white;
+    padding: 40px;
+    border-radius: 6px;
+    text-align: center;
+    color: #95a5a6;
+}
+
+/* ============================================================================
+   MAP
+   ============================================================================ */
+
+#map {
+    width: 100%;
+    height: 600px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.map-overlay {
+    position: absolute;
+    bottom: 40px;
+    right: 10px;
+    max-width: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+}
+
+.map-overlay.active {
+    display: block;
+}
+
+.map-overlay-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+}
+
+.map-overlay-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--color-light);
+}
+
+.map-overlay .reforms-list {
+    padding: 16px;
+}
+
+/* Map markers */
+.marker-base {
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.marker-cluster {
+    border-radius: 50%;
+    background-color: var(--mdc-theme-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.marker-cluster-small {
+    width: 30px;
+    height: 30px;
+}
+
+.marker-cluster-medium {
+    width: 40px;
+    height: 40px;
+}
+
+.marker-cluster-large {
+    width: 50px;
+    height: 50px;
+}
+
+.marker-place {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.container-hidden {
+    display: none !important;
+}
+
+/* Toast notifications */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #27ae60;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.toast-visible {
+    opacity: 1;
+}
+
+.clipboard-textarea {
+    position: fixed;
+    left: -999999px;
+    top: 0;
+}
+
+@media (max-width: 768px) {
+    #map {
+        height: 400px;
+    }
+    
+    .map-overlay {
+        bottom: 20px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .reforms-list {
+        gap: 12px;
+    }
+    
+    .reform-card .mdc-card__primary-action {
+        padding: 16px;
+    }
+}

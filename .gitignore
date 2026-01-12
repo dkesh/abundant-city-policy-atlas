@@ -21,6 +21,9 @@ yarn-error.log*
 # Netlify
 .netlify/
 
+# Generated/compiled files
+src/public/styles.css
+
 # OS / editor junk
 .DS_Store
 Thumbs.db
