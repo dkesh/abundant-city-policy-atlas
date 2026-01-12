@@ -139,6 +139,17 @@ Then fix the migration file and run again.
 - Use `npm run migrate:verify` to see which database you're connected to
 - Check the endpoint ID in the connection string
 
+**Migration filename separator**
+
+This project uses migration files with dash separators (e.g., `1768087948000-migration-name.js`), 
+but `node-pg-migrate` by default expects underscores. A patch is automatically applied via 
+`postinstall` script to support both formats. The patch script (`patch-node-pg-migrate.js`) 
+modifies `node-pg-migrate`'s timestamp parsing to accept both `-` and `_` separators.
+
+If you see "Can't determine timestamp" warnings, ensure the patch script ran correctly:
+- The patch runs automatically after `npm install` (via `postinstall` script)
+- Or run manually: `node scripts/migrations/_helpers/patch-node-pg-migrate.js`
+
 ## Best Practices
 
 1. **Always test on a branch first** - Never run migrations directly on production

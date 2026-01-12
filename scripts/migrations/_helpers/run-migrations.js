@@ -24,6 +24,10 @@ async function runMigrations() {
   }
 
   try {
+    // Patch node-pg-migrate to support both dash and underscore separators
+    // This allows migration files to use either format
+    require('./patch-node-pg-migrate.js');
+
     // Run migrations using node-pg-migrate CLI
     // Use npx to ensure we get the locally installed version
     const migrationsDir = 'scripts/migrations';
