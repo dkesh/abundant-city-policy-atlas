@@ -2,6 +2,7 @@
   "name": "urbanist-reform-map",
   "version": "1.0.0",
   "scripts": {
+    "postinstall": "node scripts/migrations/_helpers/patch-node-pg-migrate.js",
     "predev": "node scripts/migrations/_helpers/run-migrations.js",
     "dev": "npm run build:css && netlify dev",
     "build": "node scripts/migrations/_helpers/run-migrations.js && npm run build:css && echo \"Build complete\"",
@@ -26,6 +27,7 @@
     "material-components-web": "^14.0.0",
     "netlify-cli": "^17.38.1",
     "node-pg-migrate": "^8.0.4",
+    "nouislider": "^15.8.1",
     "sass": "^1.97.2"
   },
   "dependencies": {
