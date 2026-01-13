@@ -45,19 +45,36 @@ function initializeMap() {
     }
 }
 
-function renderMap() {
+async function renderMap() {
     if (!map || !map.isStyleLoaded()) return;
 
-    // Group reforms by place and create GeoJSON
+    // Check if there are any state-level reforms
+    const hasStateLevelReforms = filteredReforms.some(reform => reform.place.type === 'state');
+    
+    // Group state-level reforms by state
+    stateReformsByState = groupStateLevelReforms();
+    
+    // If state-level reforms exist, load and render state boundaries
+    if (hasStateLevelReforms) {
+        await loadAndRenderStateBoundaries();
+    } else {
+        // Remove state boundaries if they exist
+        removeStateBoundaries();
+    }
+
+    // Group reforms by place and create GeoJSON for markers (city/county only)
     const placeReforms = {};
     reformsGeoJSON = [];
     
     filteredReforms.forEach(reform => {
-        const placeKey = reform.place.id;
-        if (!placeReforms[placeKey]) {
-            placeReforms[placeKey] = [];
+        // Only include city/county reforms for markers (state-level reforms are shown as polygons)
+        if (reform.place.type !== 'state') {
+            const placeKey = reform.place.id;
+            if (!placeReforms[placeKey]) {
+                placeReforms[placeKey] = [];
+            }
+            placeReforms[placeKey].push(reform);
         }
-        placeReforms[placeKey].push(reform);
     });
 
     // Convert to GeoJSON features for clustering
@@ -70,7 +87,7 @@ function renderMap() {
                     placeId: placeId,
                     reforms: reforms,
                     reformCount: reforms.length,
-                    color: getMarkerColor(reforms[0].reform.type)
+                    color: getMarkerColor(reforms[0].reform.type, reforms[0].reform.color)
                 },
                 geometry: {
                     type: 'Point',
@@ -159,7 +176,13 @@ function updateMarkersInViewport() {
     });
 }
 
-function getMarkerColor(reformType) {
+function getMarkerColor(reformType, reformColor = null) {
+    // Use reform color if available
+    if (reformColor) {
+        return reformColor;
+    }
+    
+    // Fallback to type-based colors
     // Handle both prefixed (prn:rm_min) and non-prefixed (rm_min) types
     const type = reformType.includes(':') ? reformType.split(':')[1] : reformType;
     switch (type) {
@@ -187,4 +210,175 @@ function showPlaceOverlay(placeId, reforms) {
     });
 
     mapOverlay.classList.add('active');
+}
+
+function showStateOverlay(stateName, stateCode, reforms) {
+    const countryDisplay = reforms[0]?.place?.country === 'US' ? 'USA' : reforms[0]?.place?.country === 'CA' ? 'Canada' : reforms[0]?.place?.country || '';
+    const countrySuffix = countryDisplay ? `, ${countryDisplay}` : '';
+    document.getElementById('overlayHeader').textContent = `${stateName}${countrySuffix} (${reforms.length} reforms)`;
+    
+    const overlayCards = document.getElementById('overlayCards');
+    overlayCards.innerHTML = '';
+    reforms.forEach(reform => {
+        overlayCards.appendChild(createReformCard(reform, true));
+    });
+
+    mapOverlay.classList.add('active');
+}
+
+function groupStateLevelReforms() {
+    const stateReforms = {};
+    
+    filteredReforms.forEach(reform => {
+        if (reform.place.type === 'state') {
+            const stateCode = reform.place.state_code || reform.place.state;
+            if (!stateReforms[stateCode]) {
+                stateReforms[stateCode] = [];
+            }
+            stateReforms[stateCode].push(reform);
+        }
+    });
+    
+    return stateReforms;
+}
+
+function getStateColor(stateCode) {
+    const reforms = stateReformsByState[stateCode];
+    if (!reforms || reforms.length === 0) {
+        return '#e0e0e0'; // Light gray for states without reforms
+    }
+    
+    // Use the color from the first reform (or could aggregate if multiple types)
+    return getMarkerColor(reforms[0].reform.type, reforms[0].reform.color);
+}
+
+async function loadAndRenderStateBoundaries() {
+    try {
+        // Ensure map is loaded
+        if (!map.isStyleLoaded()) {
+            map.once('style.load', () => loadAndRenderStateBoundaries());
+            return;
+        }
+        
+        // Fetch state boundaries from API
+        const response = await fetch('/.netlify/functions/get-state-boundaries');
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        if (!data.success || !data.data) {
+            throw new Error(data.error || 'Failed to fetch state boundaries');
+        }
+        
+        stateBoundariesGeoJSON = data.data;
+        
+        // Add color property to each feature based on reforms
+        stateBoundariesGeoJSON.features.forEach(feature => {
+            const stateCode = feature.properties.state_code;
+            feature.properties.fillColor = getStateColor(stateCode);
+            feature.properties.hasReforms = stateReformsByState[stateCode] ? stateReformsByState[stateCode].length > 0 : false;
+            feature.properties.reforms = stateReformsByState[stateCode] || [];
+        });
+        
+        // Add or update the source
+        if (!stateBoundariesSourceAdded || !map.getSource('state-boundaries')) {
+            map.addSource('state-boundaries', {
+                type: 'geojson',
+                data: stateBoundariesGeoJSON
+            });
+            stateBoundariesSourceAdded = true;
+        } else {
+            map.getSource('state-boundaries').setData(stateBoundariesGeoJSON);
+        }
+        
+        // Remove existing layers if they exist (to re-add in correct order)
+        if (map.getLayer('state-borders')) {
+            map.removeLayer('state-borders');
+        }
+        if (map.getLayer('state-fill')) {
+            map.removeLayer('state-fill');
+        }
+        
+        // Add fill layer first (bottom layer)
+        map.addLayer({
+            id: 'state-fill',
+            type: 'fill',
+            source: 'state-boundaries',
+            paint: {
+                'fill-color': [
+                    'get',
+                    'fillColor'
+                ],
+                'fill-opacity': [
+                    'case',
+                    ['get', 'hasReforms'],
+                    0.6, // 60% opacity for states with reforms
+                    0.2  // 20% opacity for states without reforms
+                ]
+            }
+        });
+        
+        // Add border layer on top of fill
+        map.addLayer({
+            id: 'state-borders',
+            type: 'line',
+            source: 'state-boundaries',
+            paint: {
+                'line-color': '#ffffff',
+                'line-width': 1,
+                'line-opacity': 0.8
+            }
+        });
+        
+        // Add click handler for state polygons (only once)
+        if (!map._stateClickHandlerAdded) {
+            map.on('click', 'state-fill', (e) => {
+                // Only show overlay if clicking on state polygon (not on a marker)
+                // Markers are HTML elements rendered on top, so if we get here, it's a state click
+                e.originalEvent.stopPropagation(); // Prevent event bubbling
+                const feature = e.features[0];
+                const stateCode = feature.properties.state_code;
+                const stateName = feature.properties.state_name;
+                const reforms = stateReformsByState[stateCode] || [];
+                
+                if (reforms.length > 0) {
+                    showStateOverlay(stateName, stateCode, reforms);
+                }
+            });
+            
+            // Change cursor on hover
+            map.on('mouseenter', 'state-fill', () => {
+                map.getCanvas().style.cursor = 'pointer';
+            });
+            
+            map.on('mouseleave', 'state-fill', () => {
+                map.getCanvas().style.cursor = '';
+            });
+            
+            map._stateClickHandlerAdded = true;
+        }
+        
+    } catch (error) {
+        console.error('Error loading state boundaries:', error);
+        // Don't throw - allow markers to still render
+    }
+}
+
+function removeStateBoundaries() {
+    // Remove layers if they exist
+    if (map.getLayer('state-fill')) {
+        map.removeLayer('state-fill');
+    }
+    if (map.getLayer('state-borders')) {
+        map.removeLayer('state-borders');
+    }
+    
+    // Remove source if it exists
+    if (map.getSource('state-boundaries')) {
+        map.removeSource('state-boundaries');
+    }
+    
+    stateBoundariesSourceAdded = false;
+    stateBoundariesGeoJSON = null;
 }

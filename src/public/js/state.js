@@ -8,6 +8,9 @@ let map = null;
 let mapMarkers = {};
 let clusterIndex = null;
 let reformsGeoJSON = [];
+let stateBoundariesGeoJSON = null;
+let stateReformsByState = {}; // Maps state_code to array of state-level reforms
+let stateBoundariesSourceAdded = false;
 
 const REGIONS = {
     'Northeast': ['Connecticut', 'Maine', 'Massachusetts', 'New Hampshire', 'Rhode Island', 'Vermont', 'New Jersey', 'New York', 'Pennsylvania'],
