@@ -146,14 +146,5 @@ function initializePopulationSlider() {
         window.mdcComponents.populationSlider.on('update', function(values) {
             updatePopulationLabels();
         });
-        
-        // Listen for end of drag to apply filters (debounced)
-        let filterTimeout;
-        window.mdcComponents.populationSlider.on('end', function() {
-            clearTimeout(filterTimeout);
-            filterTimeout = setTimeout(() => {
-                applyFilters();
-            }, 100);
-        });
     }
 }
