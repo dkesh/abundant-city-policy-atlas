@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 MERCATUS_SOURCE = 'Mercatus (2025 Housing Bills)'
 MERCATUS_REFORM_TRACKER_URL = 'https://www.quorum.us/spreadsheet/external/vehiYnJcriswPJrHpUKe/'
 MERCATUS_CSV_URL = (
-    MERCATUS_REFORM_TRACKER_URL,
+    MERCATUS_REFORM_TRACKER_URL +
     '?format=csv&exclude=%7B%7D&is_public_sheet_download=true&searchingValue=%7B%7D&sortType=2'
 )
 
