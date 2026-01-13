@@ -3,17 +3,39 @@
 // ============================================================================
 
 function switchView(view) {
+    // Hide all views
+    listView.classList.remove('active');
+    mapView.classList.remove('active');
+    aboutView.classList.remove('active');
+    
+    // Remove active from all tabs
+    listViewTab.classList.remove('active');
+    mapViewTab.classList.remove('active');
+    aboutViewTab.classList.remove('active');
+    
+    // Show/hide results banner based on view
+    if (view === 'about') {
+        if (resultsInfo) {
+            resultsInfo.classList.add('container-hidden');
+        }
+    } else {
+        // Results banner visibility is managed elsewhere for list/map views
+    }
+    
     if (view === 'list') {
         listView.classList.add('active');
-        mapView.classList.remove('active');
         listViewTab.classList.add('active');
-        mapViewTab.classList.remove('active');
-    } else {
-        listView.classList.remove('active');
+    } else if (view === 'map') {
         mapView.classList.add('active');
-        listViewTab.classList.remove('active');
         mapViewTab.classList.add('active');
         initializeMap();
+    } else if (view === 'about') {
+        aboutView.classList.add('active');
+        aboutViewTab.classList.add('active');
+        // Load sources when About tab is opened
+        if (typeof loadSources === 'function') {
+            loadSources();
+        }
     }
 }
 

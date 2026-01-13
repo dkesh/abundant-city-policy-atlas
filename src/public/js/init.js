@@ -102,7 +102,8 @@ function initializeMDCComponents() {
     if (tabBarEl) {
         mdcComponents.tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
         mdcComponents.tabBar.listen('MDCTabBar:activated', (e) => {
-            const view = e.detail.index === 0 ? 'list' : 'map';
+            const views = ['list', 'map', 'about'];
+            const view = views[e.detail.index];
             switchView(view);
         });
     }
@@ -167,3 +168,108 @@ window.addEventListener('popstate', async () => {
         applyFilters(true);
     }
 });
+
+// ============================================================================
+// SOURCES LOADING FOR ABOUT TAB
+// ============================================================================
+
+async function loadSources() {
+    const loadingEl = document.getElementById('sourcesLoading');
+    const errorEl = document.getElementById('sourcesError');
+    const gridEl = document.getElementById('sourcesGrid');
+
+    if (!loadingEl || !errorEl || !gridEl) return;
+
+    try {
+        // Try both API paths
+        let response = await fetch('/.netlify/functions/get-sources');
+        if (!response.ok) {
+            // Fallback to /api/ path
+            response = await fetch('/api/get-sources');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load sources');
+        }
+
+        if (!data.sources || data.sources.length === 0) {
+            throw new Error('No sources found');
+        }
+
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        errorEl.classList.add('container-hidden');
+        gridEl.classList.remove('container-hidden');
+        gridEl.style.display = 'grid';
+
+        // Clear existing cards
+        gridEl.innerHTML = '';
+
+        // Render source cards
+        data.sources.forEach(source => {
+            const card = createSourceCard(source);
+            gridEl.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Error loading sources:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.classList.remove('container-hidden');
+        errorEl.textContent = `Error: ${error.message}`;
+    }
+}
+
+function createSourceCard(source) {
+    const card = document.createElement('div');
+    card.className = 'mdc-card source-card';
+
+    const logoHtml = source.logoFilename 
+        ? `<div class="source-logo-container">
+             <img src="${escapeHtml(source.logoFilename)}" alt="${escapeHtml(source.name)} Logo" />
+           </div>`
+        : '';
+
+    const websiteLink = source.websiteUrl
+        ? `<div class="mdc-card__actions">
+             <div class="mdc-card__action-buttons">
+               <a href="${escapeHtml(source.websiteUrl)}" target="_blank" rel="noopener" class="mdc-button mdc-button--outlined">
+                 <span class="mdc-button__ripple"></span>
+                 <span class="mdc-button__label">Visit Website</span>
+               </a>
+             </div>
+           </div>`
+        : '';
+
+    card.innerHTML = `
+        <div class="mdc-card__primary">
+            ${logoHtml}
+            <h3 class="mdc-typography--headline6">${escapeHtml(source.name)}</h3>
+            ${source.description ? `<p class="mdc-typography--body2">${escapeHtml(source.description)}</p>` : ''}
+        </div>
+        ${websiteLink}
+    `;
+
+    // Initialize button ripple if website link exists
+    if (source.websiteUrl) {
+        const button = card.querySelector('.mdc-button');
+        if (button) {
+            new mdc.ripple.MDCRipple(button);
+        }
+    }
+
+    return card;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
