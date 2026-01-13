@@ -162,6 +162,14 @@ function createReformCard(reform, showDistance = false) {
             `<span class="mdc-chip__text">${escapeHtml(r)}</span>`
         ).join('');
 
+    // Helper function to create chip HTML with proper MDC structure
+    const createChip = (text) => `
+        <span class="mdc-chip">
+            <span class="mdc-chip__ripple"></span>
+            <span class="mdc-chip__text">${escapeHtml(text)}</span>
+        </span>
+    `;
+
     // Sources with logos only
     const reformLinkUrl = reform.reform.link_url || '';
     const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
@@ -187,74 +195,78 @@ function createReformCard(reform, showDistance = false) {
 
     card.innerHTML = `
         <div class="mdc-card__primary-action">
-        <div class="reform-header">
-                <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
-                ? escapeHtml(reform.place.state) 
-                : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}`}</h3>
-            <div class="reform-badges">
-                    <span class="mdc-chip"><span class="mdc-chip__text">${escapeHtml(reform.reform.type_name)}</span></span>
-                    <span class="mdc-chip"><span class="mdc-chip__text">${placeType}</span></span>
-                    ${reform.place.region ? `<span class="mdc-chip"><span class="mdc-chip__text">${escapeHtml(reform.place.region)}</span></span>` : ''}
-            </div>
-        </div>
+            <div class="mdc-card__primary">
+                <div class="reform-header">
+                    <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
+                        ? escapeHtml(reform.place.state) 
+                        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}`}</h3>
+                    <div class="reform-badges">
+                        ${createChip(reform.reform.type_name)}
+                        ${createChip(placeType)}
+                        ${reform.place.region ? createChip(reform.place.region) : ''}
+                    </div>
+                </div>
 
-            <div class="mdc-card__media-content reform-meta mdc-typography--body2">
-            <div class="meta-item">
-                <strong>Adopted:</strong> ${adoptionDate}
-            </div>
-            <div class="meta-item">
-                <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
-            </div>
-            ${reform.reform.policy_document && reform.reform.policy_document.title ? `
-            <div class="meta-item">
-                <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
-            </div>
-            ` : ''}
-            ${reform.place.population ? `
-            <div class="meta-item">
-                <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
-            </div>
-            ` : ''}
-        </div>
+                <div class="reform-meta mdc-typography--body2">
+                    <div class="meta-item">
+                        <strong>Adopted:</strong> ${adoptionDate}
+                    </div>
+                    <div class="meta-item">
+                        <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
+                    </div>
+                    ${reform.reform.policy_document && reform.reform.policy_document.title ? `
+                    <div class="meta-item">
+                        <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
+                    </div>
+                    ` : ''}
+                    ${reform.place.population ? `
+                    <div class="meta-item">
+                        <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
+                    </div>
+                    ` : ''}
+                </div>
 
-        ${reform.reform.summary ? `
-            <div class="reform-summary mdc-typography--body2">
-            ${escapeHtml(reform.reform.summary)}
-        </div>
-        ` : ''}
+                ${reform.reform.summary ? `
+                    <div class="reform-summary mdc-typography--body2">
+                        ${escapeHtml(reform.reform.summary)}
+                    </div>
+                ` : ''}
 
-        <div class="reform-details">
-            ${scopeTags ? `
-            <div class="detail-item">
-                    <strong class="mdc-typography--subtitle2">Scope</strong>
-                <div class="tag-list">${scopeTags}</div>
-            </div>
-            ` : ''}
-            
-            ${landUseTags ? `
-            <div class="detail-item">
-                    <strong class="mdc-typography--subtitle2">Land Use</strong>
-                <div class="tag-list">${landUseTags}</div>
-            </div>
-            ` : ''}
+                <div class="reform-details">
+                    ${scopeTags ? `
+                    <div class="detail-item">
+                        <strong class="mdc-typography--subtitle2">Scope</strong>
+                        <div class="tag-list">${scopeTags}</div>
+                    </div>
+                    ` : ''}
+                    
+                    ${landUseTags ? `
+                    <div class="detail-item">
+                        <strong class="mdc-typography--subtitle2">Land Use</strong>
+                        <div class="tag-list">${landUseTags}</div>
+                    </div>
+                    ` : ''}
 
-            ${requirementsTags ? `
-            <div class="detail-item">
-                    <strong class="mdc-typography--subtitle2">Requirements</strong>
-                <div class="tag-list">${requirementsTags}</div>
+                    ${requirementsTags ? `
+                    <div class="detail-item">
+                        <strong class="mdc-typography--subtitle2">Requirements</strong>
+                        <div class="tag-list">${requirementsTags}</div>
+                    </div>
+                    ` : ''}
+                </div>
             </div>
-            ` : ''}
-        </div>
 
-        <div class="reform-footer">
-                <span class="mdc-typography--caption reform-footer-text">
-                ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
-            </span>
-            ${sourcesHtml ? `
-            <div class="sources-logos">
-                ${sourcesHtml}
-            </div>
-            ` : ''}
+            <div class="mdc-card__actions">
+                <div class="mdc-card__action-buttons">
+                    <span class="mdc-typography--caption reform-footer-text">
+                        ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
+                    </span>
+                </div>
+                ${sourcesHtml ? `
+                <div class="mdc-card__action-icons sources-logos">
+                    ${sourcesHtml}
+                </div>
+                ` : ''}
             </div>
         </div>
     `;
