@@ -144,17 +144,23 @@ function createReformCard(reform, showDistance = false) {
     const adoptionDate = reform.reform.adoption_date || 'Date unknown';
     const placeType = reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1);
 
-    const scopeTags = (reform.reform.scope || []).map(s =>
-        `<span class="mdc-chip__text">${escapeHtml(s)}</span>`
-    ).join('');
+    const scopeTags = (reform.reform.scope || [])
+        .filter(s => s.toLowerCase() !== 'citywide')
+        .map(s =>
+            `<span class="mdc-chip__text">${escapeHtml(s)}</span>`
+        ).join('');
 
-    const landUseTags = (reform.reform.land_use || []).map(l =>
-        `<span class="mdc-chip__text">${escapeHtml(l)}</span>`
-    ).join('');
+    const landUseTags = (reform.reform.land_use || [])
+        .filter(l => l.toLowerCase() !== 'all uses')
+        .map(l =>
+            `<span class="mdc-chip__text">${escapeHtml(l)}</span>`
+        ).join('');
 
-    const requirementsTags = (reform.reform.requirements || []).map(r =>
-        `<span class="mdc-chip__text">${escapeHtml(r)}</span>`
-    ).join('');
+    const requirementsTags = (reform.reform.requirements || [])
+        .filter(r => r.toLowerCase() !== 'by right')
+        .map(r =>
+            `<span class="mdc-chip__text">${escapeHtml(r)}</span>`
+        ).join('');
 
     // Sources with logos only
     const reformLinkUrl = reform.reform.link_url || '';
@@ -218,21 +224,21 @@ function createReformCard(reform, showDistance = false) {
         ` : ''}
 
         <div class="reform-details">
-            ${reform.reform.scope.length > 0 ? `
+            ${scopeTags ? `
             <div class="detail-item">
                     <strong class="mdc-typography--subtitle2">Scope</strong>
                 <div class="tag-list">${scopeTags}</div>
             </div>
             ` : ''}
             
-            ${reform.reform.land_use.length > 0 ? `
+            ${landUseTags ? `
             <div class="detail-item">
                     <strong class="mdc-typography--subtitle2">Land Use</strong>
                 <div class="tag-list">${landUseTags}</div>
             </div>
             ` : ''}
 
-            ${reform.reform.requirements.length > 0 ? `
+            ${requirementsTags ? `
             <div class="detail-item">
                     <strong class="mdc-typography--subtitle2">Requirements</strong>
                 <div class="tag-list">${requirementsTags}</div>
