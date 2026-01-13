@@ -144,24 +144,6 @@ function createReformCard(reform, showDistance = false) {
     const adoptionDate = reform.reform.adoption_date || 'Date unknown';
     const placeType = reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1);
 
-    const scopeTags = (reform.reform.scope || [])
-        .filter(s => s.toLowerCase() !== 'citywide')
-        .map(s =>
-            `<span class="mdc-chip__text">${escapeHtml(s)}</span>`
-        ).join('');
-
-    const landUseTags = (reform.reform.land_use || [])
-        .filter(l => l.toLowerCase() !== 'all uses')
-        .map(l =>
-            `<span class="mdc-chip__text">${escapeHtml(l)}</span>`
-        ).join('');
-
-    const requirementsTags = (reform.reform.requirements || [])
-        .filter(r => r.toLowerCase() !== 'by right')
-        .map(r =>
-            `<span class="mdc-chip__text">${escapeHtml(r)}</span>`
-        ).join('');
-
     // Helper function to create chip HTML with proper MDC structure
     const createChip = (text) => `
         <span class="mdc-chip">
@@ -169,6 +151,39 @@ function createReformCard(reform, showDistance = false) {
             <span class="mdc-chip__text">${escapeHtml(text)}</span>
         </span>
     `;
+
+    // Build limitation chips with embedded headers
+    const limitationChips = [];
+    
+    const scopeItems = (reform.reform.scope || [])
+        .filter(s => s.toLowerCase() !== 'citywide');
+    scopeItems.forEach(s => {
+        limitationChips.push({ type: 'Scope', value: s });
+    });
+    
+    const landUseItems = (reform.reform.land_use || [])
+        .filter(l => l.toLowerCase() !== 'all uses');
+    landUseItems.forEach(l => {
+        limitationChips.push({ type: 'Land Use', value: l });
+    });
+    
+    const requirementsItems = (reform.reform.requirements || [])
+        .filter(r => r.toLowerCase() !== 'by right');
+    requirementsItems.forEach(r => {
+        limitationChips.push({ type: 'Requirements', value: r });
+    });
+
+    // Helper function to create limitation chip with embedded header
+    const createLimitationChip = (type, value) => `
+        <span class="mdc-chip limitation-chip">
+            <span class="mdc-chip__ripple"></span>
+            <span class="mdc-chip__text"><strong>${escapeHtml(type)}</strong>: ${escapeHtml(value)}</span>
+        </span>
+    `;
+
+    const limitationsHtml = limitationChips.length > 0
+        ? limitationChips.map(item => createLimitationChip(item.type, item.value)).join('')
+        : '';
 
     // Sources with logos only
     const reformLinkUrl = reform.reform.link_url || '';
@@ -196,61 +211,56 @@ function createReformCard(reform, showDistance = false) {
     card.innerHTML = `
         <div class="mdc-card__primary-action">
             <div class="mdc-card__primary">
-                <div class="reform-header">
-                    <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
-                        ? escapeHtml(reform.place.state) + (reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : '')
-                        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}${reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : ''}`}</h3>
-                    <div class="reform-badges">
-                        ${createChip(reform.reform.type_name)}
-                        ${createChip(placeType)}
-                        ${reform.place.region ? createChip(reform.place.region) : ''}
-                    </div>
-                </div>
+                <div class="reform-card-content">
+                    <div class="reform-main-content">
+                        <div class="reform-header">
+                            <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
+                                ? escapeHtml(reform.place.state) + (reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : '')
+                                : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}${reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : ''}`}</h3>
+                            <div class="reform-badges">
+                                ${createChip(reform.reform.type_name)}
+                                ${createChip(placeType)}
+                                ${reform.place.region ? createChip(reform.place.region) : ''}
+                            </div>
+                        </div>
 
-                <div class="reform-meta mdc-typography--body2">
-                    <div class="meta-item">
-                        <strong>Adopted:</strong> ${adoptionDate}
-                    </div>
-                    <div class="meta-item">
-                        <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
-                    </div>
-                    ${reform.reform.policy_document && reform.reform.policy_document.title ? `
-                    <div class="meta-item">
-                        <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
-                    </div>
-                    ` : ''}
-                    ${reform.place.population ? `
-                    <div class="meta-item">
-                        <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
-                    </div>
-                    ` : ''}
-                </div>
+                        <div class="reform-meta mdc-typography--body2">
+                            <div class="meta-item">
+                                <strong>Adopted:</strong> ${adoptionDate}
+                            </div>
+                            <div class="meta-item">
+                                <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
+                            </div>
+                            ${reform.reform.policy_document && reform.reform.policy_document.title ? `
+                            <div class="meta-item">
+                                <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
+                            </div>
+                            ` : ''}
+                            ${reform.place.population ? `
+                            <div class="meta-item">
+                                <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
+                            </div>
+                            ` : ''}
+                        </div>
 
-                ${reform.reform.summary ? `
-                    <div class="reform-summary mdc-typography--body2">
-                        ${escapeHtml(reform.reform.summary)}
+                        ${reform.reform.summary ? `
+                            <div class="reform-summary mdc-typography--body2">
+                                ${escapeHtml(reform.reform.summary)}
+                            </div>
+                        ` : ''}
                     </div>
-                ` : ''}
 
-                <div class="reform-details">
-                    ${scopeTags ? `
-                    <div class="detail-item">
-                        <strong class="mdc-typography--subtitle2">Scope</strong>
-                        <div class="tag-list">${scopeTags}</div>
-                    </div>
-                    ` : ''}
-                    
-                    ${landUseTags ? `
-                    <div class="detail-item">
-                        <strong class="mdc-typography--subtitle2">Land Use</strong>
-                        <div class="tag-list">${landUseTags}</div>
-                    </div>
-                    ` : ''}
-
-                    ${requirementsTags ? `
-                    <div class="detail-item">
-                        <strong class="mdc-typography--subtitle2">Requirements</strong>
-                        <div class="tag-list">${requirementsTags}</div>
+                    ${limitationsHtml ? `
+                    <div class="limitations-section">
+                        <div class="limitations-header">
+                            <span>Limitations</span>
+                            <button class="mdc-icon-button limitations-help-button" aria-label="Help with limitations" title="Limitations narrow the application of a reform. Scope limits the parts of a city the reform applies to. Land Use limits which zones a reform applies to. Requirements add additional requirements for development to use the reform.">
+                                <i class="material-icons">help_outline</i>
+                            </button>
+                        </div>
+                        <div class="limitations-chips">
+                            ${limitationsHtml}
+                        </div>
                     </div>
                     ` : ''}
                 </div>

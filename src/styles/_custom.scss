@@ -413,30 +413,63 @@ header {
     line-height: 1.5;
 }
 
-.reform-details {
+.reform-card-content {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 20px;
+    align-items: flex-start;
 }
 
-.detail-item strong {
-    display: block;
-    margin-bottom: 8px;
+.reform-main-content {
+    flex: 1;
+    min-width: 0;
 }
 
-.tag-list {
+/* Limitations Section */
+.limitations-section {
+    flex-shrink: 0;
+    width: 240px;
+    background: #fff8e1;
+    border: 1px solid #ffcc02;
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.limitations-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #e65100;
+}
+
+.limitations-help-button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    font-size: 16px;
+}
+
+.limitations-help-button .material-icons {
+    font-size: 16px;
+    color: #f57c00;
+}
+
+.limitations-chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px;
 }
 
-.tag-list .mdc-chip__text {
-    background: var(--color-light);
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    display: inline-block;
+.limitation-chip {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+}
+
+.limitation-chip .mdc-chip__text {
+    color: #856404;
+    font-size: 11px;
 }
 
 /* MDC card actions (replaces reform-footer) */
