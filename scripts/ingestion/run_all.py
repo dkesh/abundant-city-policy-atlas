@@ -55,6 +55,10 @@ def main():
         (
             "prn_state_legislation.py",
             []  # Downloads from Google Sheets automatically
+        ),
+        (
+            "centerforbuilding.py",
+            []  # Downloads from website automatically
         )
     ]
 

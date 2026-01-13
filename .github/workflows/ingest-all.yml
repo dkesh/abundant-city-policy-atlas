@@ -44,3 +44,8 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: python scripts/ingestion/prn_state_legislation.py
+      
+    - name: Run CBNA Ingestion
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: python scripts/ingestion/centerforbuilding.py --ingest
