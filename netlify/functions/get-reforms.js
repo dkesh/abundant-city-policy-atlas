@@ -4,7 +4,7 @@
 *
 * Returns parking and transit reforms from the database with support for filtering:
 * - By reform type (rm_min, reduce_min, add_max) - MULTI-SELECT
-* - By jurisdiction type (state, county, city) - MULTI-SELECT
+* - By level of government (state, county, city) - MULTI-SELECT
 * - By jurisdiction size (population thresholds)
 * - By region (Northeast, Midwest, South, West)
 * - By state - MULTI-SELECT
@@ -110,14 +110,14 @@ exports.handler = async (event, context) => {
 
     // Region filter
     if (region) {
-      whereClauses.push(`s.region = $${paramCount}`);
+      whereClauses.push(`tld.region = $${paramCount}`);
       queryParams.push(region);
       paramCount++;
     }
 
     // State filter (MULTI - uses ANY)
     if (states.length > 0) {
-      whereClauses.push(`s.state_name = ANY($${paramCount})`);
+      whereClauses.push(`tld.state_name = ANY($${paramCount})`);
       queryParams.push(states);
       paramCount++;
     }
@@ -176,9 +176,10 @@ exports.handler = async (event, context) => {
         p.longitude,
         p.encoded_name,
         r.link_url,
-        s.state_code,
-        s.state_name,
-        s.region,
+        tld.state_code,
+        tld.state_name,
+        tld.country,
+        tld.region,
         rt.code as reform_type_code,
         rt.name as reform_type_name,
         rt.color_hex,
@@ -211,18 +212,18 @@ exports.handler = async (event, context) => {
         ) as sources
       FROM reforms r
       JOIN places p ON r.place_id = p.id
-      JOIN states s ON p.state_code = s.state_code
+      JOIN top_level_division tld ON p.state_code = tld.state_code
       JOIN reform_types rt ON r.reform_type_id = rt.id
       LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
       LEFT JOIN reform_sources rs ON r.id = rs.reform_id
       LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
       GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
-               s.state_code, s.state_name, s.region,
+               tld.state_code, tld.state_name, tld.country, tld.region,
                rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
                pd.id, pd.title, pd.reference_number
-      ORDER BY s.state_name, p.name, rt.sort_order, r.adoption_date DESC
+      ORDER BY tld.state_name, p.name, rt.sort_order, r.adoption_date DESC
       LIMIT $${paramCount}
     `;
 
@@ -240,6 +241,7 @@ exports.handler = async (event, context) => {
         type: row.place_type,
         state: row.state_name,
         state_code: row.state_code,
+        country: row.country,
         population: row.population,
         latitude: row.latitude,
         longitude: row.longitude,

@@ -176,7 +176,9 @@ function getMarkerColor(reformType) {
 
 function showPlaceOverlay(placeId, reforms) {
     const place = reforms[0].place;
-    document.getElementById('overlayHeader').textContent = `${place.name}, ${place.state} (${reforms.length} reforms)`;
+    const countryDisplay = place.country === 'US' ? 'USA' : place.country === 'CA' ? 'Canada' : place.country || '';
+    const countrySuffix = countryDisplay ? `, ${countryDisplay}` : '';
+    document.getElementById('overlayHeader').textContent = `${place.name}, ${place.state}${countrySuffix} (${reforms.length} reforms)`;
     
     const overlayCards = document.getElementById('overlayCards');
     overlayCards.innerHTML = '';

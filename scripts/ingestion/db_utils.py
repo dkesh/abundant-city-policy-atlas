@@ -36,20 +36,24 @@ def geocode_place(place_name: str, state_code: Optional[str] = None, place_type:
     
     Args:
         place_name: Name of the place (e.g., "Berkeley")
-        state_code: US state code (e.g., "CA")
+        state_code: Top-level division code (e.g., "CA" for California, "ON" for Ontario)
         place_type: Type of place ('city', 'state', 'county')
     
     Returns:
         Tuple of (latitude, longitude) or (None, None)
     """
     try:
+        # Determine country from state_code
+        country = get_country_for_division(state_code) if state_code else 'US'
+        country_name = 'USA' if country == 'US' else 'Canada' if country == 'CA' else country
+        
         # Build query
         if place_type == 'state' and state_code:
-            query = f"{state_code}, USA"
+            query = f"{state_code}, {country_name}"
         elif state_code:
-            query = f"{place_name}, {state_code}, USA"
+            query = f"{place_name}, {state_code}, {country_name}"
         else:
-            query = f"{place_name}, USA"
+            query = f"{place_name}, {country_name}"
         
         # Nominatim API
         url = 'https://nominatim.openstreetmap.org/search'
@@ -166,7 +170,9 @@ def geocode_missing_places(conn, cursor, limit: int = 500) -> int:
 # STATE CODE UTILITIES
 # ============================================================================
 
-STATE_CODE_TO_NAME: Dict[str, str] = {
+# Top-level division codes (US states, US territories, Canadian provinces/territories)
+TOP_LEVEL_DIVISION_CODE_TO_NAME: Dict[str, str] = {
+    # US States
     'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
     'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
     'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
@@ -177,20 +183,60 @@ STATE_CODE_TO_NAME: Dict[str, str] = {
     'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
     'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
     'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming',
-    'DC': 'District of Columbia'
+    'DC': 'District of Columbia',
+    # US Territories
+    'PR': 'Puerto Rico', 'VI': 'US Virgin Islands', 'GU': 'Guam',
+    'AS': 'American Samoa', 'MP': 'Northern Mariana Islands',
+    # Canadian Provinces
+    'AB': 'Alberta', 'BC': 'British Columbia', 'MB': 'Manitoba', 'NB': 'New Brunswick',
+    'NL': 'Newfoundland and Labrador', 'NS': 'Nova Scotia', 'NT': 'Northwest Territories',
+    'NU': 'Nunavut', 'ON': 'Ontario', 'PE': 'Prince Edward Island',
+    'QC': 'Quebec', 'SK': 'Saskatchewan', 'YT': 'Yukon'
 }
 
-STATE_NAME_TO_CODE: Dict[str, str] = {name: code for code, name in STATE_CODE_TO_NAME.items()}
+# Country mapping for top-level divisions
+DIVISION_CODE_TO_COUNTRY: Dict[str, str] = {
+    # US States
+    'AL': 'US', 'AK': 'US', 'AZ': 'US', 'AR': 'US', 'CA': 'US',
+    'CO': 'US', 'CT': 'US', 'DE': 'US', 'FL': 'US', 'GA': 'US',
+    'HI': 'US', 'ID': 'US', 'IL': 'US', 'IN': 'US', 'IA': 'US',
+    'KS': 'US', 'KY': 'US', 'LA': 'US', 'ME': 'US', 'MD': 'US',
+    'MA': 'US', 'MI': 'US', 'MN': 'US', 'MS': 'US', 'MO': 'US',
+    'MT': 'US', 'NE': 'US', 'NV': 'US', 'NH': 'US', 'NJ': 'US',
+    'NM': 'US', 'NY': 'US', 'NC': 'US', 'ND': 'US', 'OH': 'US',
+    'OK': 'US', 'OR': 'US', 'PA': 'US', 'RI': 'US', 'SC': 'US',
+    'SD': 'US', 'TN': 'US', 'TX': 'US', 'UT': 'US', 'VT': 'US',
+    'VA': 'US', 'WA': 'US', 'WV': 'US', 'WI': 'US', 'WY': 'US',
+    'DC': 'US',
+    # US Territories
+    'PR': 'US', 'VI': 'US', 'GU': 'US', 'AS': 'US', 'MP': 'US',
+    # Canadian Provinces/Territories
+    'AB': 'CA', 'BC': 'CA', 'MB': 'CA', 'NB': 'CA', 'NL': 'CA',
+    'NS': 'CA', 'NT': 'CA', 'NU': 'CA', 'ON': 'CA', 'PE': 'CA',
+    'QC': 'CA', 'SK': 'CA', 'YT': 'CA'
+}
+
+# Backward compatibility alias
+STATE_CODE_TO_NAME = TOP_LEVEL_DIVISION_CODE_TO_NAME
+
+TOP_LEVEL_DIVISION_NAME_TO_CODE: Dict[str, str] = {name: code for code, name in TOP_LEVEL_DIVISION_CODE_TO_NAME.items()}
+# Backward compatibility alias
+STATE_NAME_TO_CODE = TOP_LEVEL_DIVISION_NAME_TO_CODE
 
 
 def get_state_name(state_code: str) -> Optional[str]:
-    """Get full state name from state code."""
-    return STATE_CODE_TO_NAME.get(state_code.upper())
+    """Get full state/province/territory name from code."""
+    return TOP_LEVEL_DIVISION_CODE_TO_NAME.get(state_code.upper())
 
 
 def get_state_code(state_name: str) -> Optional[str]:
-    """Get state code from full state name."""
-    return STATE_NAME_TO_CODE.get(state_name)
+    """Get state/province/territory code from full name."""
+    return TOP_LEVEL_DIVISION_NAME_TO_CODE.get(state_name)
+
+
+def get_country_for_division(division_code: str) -> Optional[str]:
+    """Get country code for a top-level division code."""
+    return DIVISION_CODE_TO_COUNTRY.get(division_code.upper())
 
 
 # ============================================================================

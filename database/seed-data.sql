@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SEED DATA
 -- Urbanist Reform Map
--- Populates initial reference data: reform types, sources, and US states
+-- Populates initial reference data: reform types, sources, and top-level divisions (US states, US territories, Canadian provinces)
 -- ============================================================================
 
 -- ============================================================================
@@ -54,64 +54,88 @@ INSERT INTO sources (name, short_name, description, website_url, logo_filename) 
 ON CONFLICT (short_name) DO NOTHING;
 
 -- ============================================================================
--- US STATES SEED DATA
--- Per US Census Bureau Regions and Divisions
+-- TOP-LEVEL DIVISIONS SEED DATA
+-- US States, US Territories, and Canadian Provinces
+-- Per US Census Bureau Regions and Divisions for US states
 -- ============================================================================
 
-INSERT INTO states (state_code, state_name, region, subregion) VALUES
-  -- Northeast Region
-  ('CT', 'Connecticut', 'Northeast', 'New England'),
-  ('ME', 'Maine', 'Northeast', 'New England'),
-  ('MA', 'Massachusetts', 'Northeast', 'New England'),
-  ('NH', 'New Hampshire', 'Northeast', 'New England'),
-  ('RI', 'Rhode Island', 'Northeast', 'New England'),
-  ('VT', 'Vermont', 'Northeast', 'New England'),
-  ('NJ', 'New Jersey', 'Northeast', 'Middle Atlantic'),
-  ('NY', 'New York', 'Northeast', 'Middle Atlantic'),
-  ('PA', 'Pennsylvania', 'Northeast', 'Middle Atlantic'),
-  -- Midwest Region
-  ('IL', 'Illinois', 'Midwest', 'East North Central'),
-  ('IN', 'Indiana', 'Midwest', 'East North Central'),
-  ('MI', 'Michigan', 'Midwest', 'East North Central'),
-  ('OH', 'Ohio', 'Midwest', 'East North Central'),
-  ('WI', 'Wisconsin', 'Midwest', 'East North Central'),
-  ('IA', 'Iowa', 'Midwest', 'West North Central'),
-  ('KS', 'Kansas', 'Midwest', 'West North Central'),
-  ('MN', 'Minnesota', 'Midwest', 'West North Central'),
-  ('MO', 'Missouri', 'Midwest', 'West North Central'),
-  ('NE', 'Nebraska', 'Midwest', 'West North Central'),
-  ('ND', 'North Dakota', 'Midwest', 'West North Central'),
-  ('SD', 'South Dakota', 'Midwest', 'West North Central'),  
-  -- South Region
-  ('DE', 'Delaware', 'South', 'South Atlantic'),
-  ('FL', 'Florida', 'South', 'South Atlantic'),
-  ('GA', 'Georgia', 'South', 'South Atlantic'),
-  ('MD', 'Maryland', 'South', 'South Atlantic'),
-  ('NC', 'North Carolina', 'South', 'South Atlantic'),
-  ('SC', 'South Carolina', 'South', 'South Atlantic'),
-  ('VA', 'Virginia', 'South', 'South Atlantic'),
-  ('WV', 'West Virginia', 'South', 'South Atlantic'),
-  ('DC', 'District of Columbia', 'South', 'South Atlantic'),
-  ('AL', 'Alabama', 'South', 'East South Central'),
-  ('KY', 'Kentucky', 'South', 'East South Central'),
-  ('MS', 'Mississippi', 'South', 'East South Central'),
-  ('TN', 'Tennessee', 'South', 'East South Central'),
-  ('AR', 'Arkansas', 'South', 'West South Central'),
-  ('LA', 'Louisiana', 'South', 'West South Central'),
-  ('OK', 'Oklahoma', 'South', 'West South Central'),
-  ('TX', 'Texas', 'South', 'West South Central'),
-  -- West Region
-  ('AZ', 'Arizona', 'West', 'Mountain'),
-  ('CO', 'Colorado', 'West', 'Mountain'),
-  ('ID', 'Idaho', 'West', 'Mountain'),
-  ('MT', 'Montana', 'West', 'Mountain'),
-  ('NV', 'Nevada', 'West', 'Mountain'),
-  ('NM', 'New Mexico', 'West', 'Mountain'),
-  ('UT', 'Utah', 'West', 'Mountain'),
-  ('WY', 'Wyoming', 'West', 'Mountain'),
-  ('AK', 'Alaska', 'West', 'Pacific'),
-  ('CA', 'California', 'West', 'Pacific'),
-  ('HI', 'Hawaii', 'West', 'Pacific'),
-  ('OR', 'Oregon', 'West', 'Pacific'),
-  ('WA', 'Washington', 'West', 'Pacific')
+INSERT INTO top_level_division (state_code, state_name, country, region, subregion) VALUES
+  -- US States - Northeast Region
+  ('CT', 'Connecticut', 'US', 'Northeast', 'New England'),
+  ('ME', 'Maine', 'US', 'Northeast', 'New England'),
+  ('MA', 'Massachusetts', 'US', 'Northeast', 'New England'),
+  ('NH', 'New Hampshire', 'US', 'Northeast', 'New England'),
+  ('RI', 'Rhode Island', 'US', 'Northeast', 'New England'),
+  ('VT', 'Vermont', 'US', 'Northeast', 'New England'),
+  ('NJ', 'New Jersey', 'US', 'Northeast', 'Middle Atlantic'),
+  ('NY', 'New York', 'US', 'Northeast', 'Middle Atlantic'),
+  ('PA', 'Pennsylvania', 'US', 'Northeast', 'Middle Atlantic'),
+  -- US States - Midwest Region
+  ('IL', 'Illinois', 'US', 'Midwest', 'East North Central'),
+  ('IN', 'Indiana', 'US', 'Midwest', 'East North Central'),
+  ('MI', 'Michigan', 'US', 'Midwest', 'East North Central'),
+  ('OH', 'Ohio', 'US', 'Midwest', 'East North Central'),
+  ('WI', 'Wisconsin', 'US', 'Midwest', 'East North Central'),
+  ('IA', 'Iowa', 'US', 'Midwest', 'West North Central'),
+  ('KS', 'Kansas', 'US', 'Midwest', 'West North Central'),
+  ('MN', 'Minnesota', 'US', 'Midwest', 'West North Central'),
+  ('MO', 'Missouri', 'US', 'Midwest', 'West North Central'),
+  ('NE', 'Nebraska', 'US', 'Midwest', 'West North Central'),
+  ('ND', 'North Dakota', 'US', 'Midwest', 'West North Central'),
+  ('SD', 'South Dakota', 'US', 'Midwest', 'West North Central'),  
+  -- US States - South Region
+  ('DE', 'Delaware', 'US', 'South', 'South Atlantic'),
+  ('FL', 'Florida', 'US', 'South', 'South Atlantic'),
+  ('GA', 'Georgia', 'US', 'South', 'South Atlantic'),
+  ('MD', 'Maryland', 'US', 'South', 'South Atlantic'),
+  ('NC', 'North Carolina', 'US', 'South', 'South Atlantic'),
+  ('SC', 'South Carolina', 'US', 'South', 'South Atlantic'),
+  ('VA', 'Virginia', 'US', 'South', 'South Atlantic'),
+  ('WV', 'West Virginia', 'US', 'South', 'South Atlantic'),
+  ('DC', 'District of Columbia', 'US', 'South', 'South Atlantic'),
+  ('AL', 'Alabama', 'US', 'South', 'East South Central'),
+  ('KY', 'Kentucky', 'US', 'South', 'East South Central'),
+  ('MS', 'Mississippi', 'US', 'South', 'East South Central'),
+  ('TN', 'Tennessee', 'US', 'South', 'East South Central'),
+  ('AR', 'Arkansas', 'US', 'South', 'West South Central'),
+  ('LA', 'Louisiana', 'US', 'South', 'West South Central'),
+  ('OK', 'Oklahoma', 'US', 'South', 'West South Central'),
+  ('TX', 'Texas', 'US', 'South', 'West South Central'),
+  -- US States - West Region
+  ('AZ', 'Arizona', 'US', 'West', 'Mountain'),
+  ('CO', 'Colorado', 'US', 'West', 'Mountain'),
+  ('ID', 'Idaho', 'US', 'West', 'Mountain'),
+  ('MT', 'Montana', 'US', 'West', 'Mountain'),
+  ('NV', 'Nevada', 'US', 'West', 'Mountain'),
+  ('NM', 'New Mexico', 'US', 'West', 'Mountain'),
+  ('UT', 'Utah', 'US', 'West', 'Mountain'),
+  ('WY', 'Wyoming', 'US', 'West', 'Mountain'),
+  ('AK', 'Alaska', 'US', 'West', 'Pacific'),
+  ('CA', 'California', 'US', 'West', 'Pacific'),
+  ('HI', 'Hawaii', 'US', 'West', 'Pacific'),
+  ('OR', 'Oregon', 'US', 'West', 'Pacific'),
+  ('WA', 'Washington', 'US', 'West', 'Pacific'),
+  -- US Territories - Caribbean
+  ('PR', 'Puerto Rico', 'US', 'US Territories', 'Caribbean'),
+  ('VI', 'US Virgin Islands', 'US', 'US Territories', 'Caribbean'),
+  -- US Territories - Pacific
+  ('GU', 'Guam', 'US', 'US Territories', 'Pacific'),
+  ('AS', 'American Samoa', 'US', 'US Territories', 'Pacific'),
+  ('MP', 'Northern Mariana Islands', 'US', 'US Territories', 'Pacific'),
+  -- Canadian Provinces - Western
+  ('AB', 'Alberta', 'CA', 'Canada', 'Western'),
+  ('BC', 'British Columbia', 'CA', 'Canada', 'Western'),
+  ('MB', 'Manitoba', 'CA', 'Canada', 'Western'),
+  ('SK', 'Saskatchewan', 'CA', 'Canada', 'Western'),
+  -- Canadian Provinces - Eastern
+  ('NB', 'New Brunswick', 'CA', 'Canada', 'Eastern'),
+  ('NL', 'Newfoundland and Labrador', 'CA', 'Canada', 'Eastern'),
+  ('NS', 'Nova Scotia', 'CA', 'Canada', 'Eastern'),
+  ('ON', 'Ontario', 'CA', 'Canada', 'Eastern'),
+  ('PE', 'Prince Edward Island', 'CA', 'Canada', 'Eastern'),
+  ('QC', 'Quebec', 'CA', 'Canada', 'Eastern'),
+  -- Canadian Territories - Northern
+  ('NT', 'Northwest Territories', 'CA', 'Canada', 'Northern'),
+  ('NU', 'Nunavut', 'CA', 'Canada', 'Northern'),
+  ('YT', 'Yukon', 'CA', 'Canada', 'Northern')
 ON CONFLICT (state_code) DO NOTHING;

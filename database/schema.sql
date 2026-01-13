@@ -14,12 +14,13 @@ CREATE EXTENSION IF NOT EXISTS postgis_topology;
 -- CORE TABLES
 -- ============================================================================
 
--- States table with geometry
-CREATE TABLE IF NOT EXISTS states (
+-- Top-level divisions table (states, provinces, territories) with geometry
+CREATE TABLE IF NOT EXISTS top_level_division (
   id SERIAL PRIMARY KEY,
   state_code VARCHAR(2) UNIQUE NOT NULL,
   state_name VARCHAR(100) NOT NULL,
-  region VARCHAR(50),                                    -- Northeast, Midwest, South, West
+  country VARCHAR(2) NOT NULL DEFAULT 'US',             -- Country code (e.g., 'US', 'CA')
+  region VARCHAR(50),                                    -- Northeast, Midwest, South, West, Canada - Western, etc.
   subregion VARCHAR(50),                                 -- New England, Middle Atlantic, etc.
   geom GEOMETRY(POLYGON, 4326),
   population INT,
@@ -27,8 +28,8 @@ CREATE TABLE IF NOT EXISTS states (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create spatial index on states geometry
-CREATE INDEX IF NOT EXISTS states_geom_idx ON states USING GIST(geom);
+-- Create spatial index on top_level_division geometry
+CREATE INDEX IF NOT EXISTS top_level_division_geom_idx ON top_level_division USING GIST(geom);
 
 -- Reform types table - Universal (Source Agnostic)
 CREATE TABLE IF NOT EXISTS reform_types (
@@ -187,8 +188,9 @@ CREATE TABLE IF NOT EXISTS data_ingestion (
 CREATE OR REPLACE VIEW v_state_reforms_detailed AS
 SELECT
   r.id,
-  s.state_code,
-  s.state_name,
+  tld.state_code,
+  tld.state_name,
+  tld.country,
   rt.code as reform_code,
   rt.name as reform_type,
   rt.color_hex,
@@ -199,7 +201,7 @@ SELECT
     WHEN p.place_type = 'state' THEN 'State'
     ELSE 'Municipality'
   END as governance_level,
-  s.region,
+  tld.region,
   r.summary as reform_name,
   r.notes as description,
   ARRAY_TO_STRING(r.scope, ', ') as scope,
@@ -214,53 +216,56 @@ SELECT
   r.created_at
 FROM reforms r
 JOIN places p ON r.place_id = p.id
-JOIN states s ON p.state_code = s.state_code
+JOIN top_level_division tld ON p.state_code = tld.state_code
 JOIN reform_types rt ON r.reform_type_id = rt.id
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
 LEFT JOIN sources src ON rs.source_id = src.id
-GROUP BY r.id, s.state_code, s.state_name, rt.code, rt.name, rt.color_hex, rt.sort_order, p.name, p.place_type, s.region, r.summary, r.notes, r.scope, r.reform_mechanism, r.reform_phase, r.adoption_date, p.latitude, p.longitude, r.created_at
-ORDER BY s.state_name, p.name, rt.sort_order;
+GROUP BY r.id, tld.state_code, tld.state_name, tld.country, rt.code, rt.name, rt.color_hex, rt.sort_order, p.name, p.place_type, tld.region, r.summary, r.notes, r.scope, r.reform_mechanism, r.reform_phase, r.adoption_date, p.latitude, p.longitude, r.created_at
+ORDER BY tld.state_name, p.name, rt.sort_order;
 
 -- View: Summary of reforms by state and type
 CREATE OR REPLACE VIEW v_reforms_by_state_summary AS
 SELECT
-  s.id,
-  s.state_code,
-  s.state_name,
+  tld.id,
+  tld.state_code,
+  tld.state_name,
+  tld.country,
   rt.id as reform_type_id,
   rt.code as reform_code,
   rt.name as reform_type,
   rt.color_hex,
   COUNT(r.id) as reform_count
-FROM states s
-LEFT JOIN places p ON p.state_code = s.state_code
+FROM top_level_division tld
+LEFT JOIN places p ON p.state_code = tld.state_code
 LEFT JOIN reforms r ON r.place_id = p.id
 LEFT JOIN reform_types rt ON r.reform_type_id = rt.id
-GROUP BY s.id, s.state_code, s.state_name, rt.id, rt.code, rt.name, rt.color_hex
-ORDER BY s.state_name, rt.sort_order;
+GROUP BY tld.id, tld.state_code, tld.state_name, tld.country, rt.id, rt.code, rt.name, rt.color_hex
+ORDER BY tld.state_name, rt.sort_order;
 
 -- View: States with at least one reform
 CREATE OR REPLACE VIEW v_states_with_reforms AS
 SELECT DISTINCT
-  s.id,
-  s.state_code,
-  s.state_name,
+  tld.id,
+  tld.state_code,
+  tld.state_name,
+  tld.country,
   COUNT(DISTINCT r.id) as total_reforms,
   COUNT(DISTINCT r.reform_type_id) as type_count,
   COUNT(DISTINCT rs.source_id) as source_count,
   MAX(r.adoption_date) as most_recent_reform
-FROM states s
-JOIN places p ON p.state_code = s.state_code
+FROM top_level_division tld
+JOIN places p ON p.state_code = tld.state_code
 JOIN reforms r ON r.place_id = p.id
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
-GROUP BY s.id, s.state_code, s.state_name;
+GROUP BY tld.id, tld.state_code, tld.state_name, tld.country;
 
 -- View: Reforms by municipality and source
 CREATE OR REPLACE VIEW v_reforms_by_municipality AS
 SELECT
   p.name as municipality_name,
-  s.state_code,
-  s.state_name,
+  tld.state_code,
+  tld.state_name,
+  tld.country,
   STRING_AGG(DISTINCT src.short_name, ', ') as sources,
   COUNT(DISTINCT r.id) as reform_count,
   COUNT(DISTINCT r.reform_type_id) as type_count,
@@ -268,11 +273,11 @@ SELECT
   p.longitude
 FROM reforms r
 JOIN places p ON r.place_id = p.id
-JOIN states s ON p.state_code = s.state_code
+JOIN top_level_division tld ON p.state_code = tld.state_code
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
 LEFT JOIN sources src ON rs.source_id = src.id
 WHERE p.name IS NOT NULL
-GROUP BY p.name, s.state_code, s.state_name, p.latitude, p.longitude
+GROUP BY p.name, tld.state_code, tld.state_name, tld.country, p.latitude, p.longitude
 ORDER BY reform_count DESC;
 
 -- ============================================================================

@@ -198,8 +198,8 @@ function createReformCard(reform, showDistance = false) {
             <div class="mdc-card__primary">
                 <div class="reform-header">
                     <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
-                        ? escapeHtml(reform.place.state) 
-                        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}`}</h3>
+                        ? escapeHtml(reform.place.state) + (reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : '')
+                        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}${reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : ''}`}</h3>
                     <div class="reform-badges">
                         ${createChip(reform.reform.type_name)}
                         ${createChip(placeType)}
