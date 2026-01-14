@@ -347,6 +347,8 @@ header {
 
 .reform-card .mdc-card__primary {
     margin-bottom: 0;
+    container-type: inline-size;
+    container-name: reform-card-primary;
 }
 
 .reform-header {
@@ -410,6 +412,28 @@ header {
     border: 1px solid #ffcc02;
     border-radius: 4px;
     padding: 12px;
+}
+
+/* When the reform card primary container is narrow, stack vertically */
+/* Using named container query on .mdc-card__primary (parent of .reform-card-content) */
+/* Breakpoint increased to account for min-width constraints (200px title + 240px limitations + gap + padding) */
+@container reform-card-primary (max-width: 600px) {
+    .reform-card-content {
+        flex-direction: column;
+    }
+    
+    .limitations-section {
+        width: 100%;
+    }
+    
+    /* Remove min-width constraints when stacked to allow container to shrink */
+    .reform-title {
+        min-width: 0;
+    }
+    
+    .reform-meta {
+        grid-template-columns: 1fr;
+    }
 }
 
 .limitations-header {
@@ -639,6 +663,15 @@ header {
 
 .map-overlay .reforms-list {
     padding: 16px;
+}
+
+/* Force vertical stacking in map overlay (narrow context) */
+.map-overlay .reform-card-content {
+    flex-direction: column;
+}
+
+.map-overlay .limitations-section {
+    width: 100%;
 }
 
 /* Map markers */
