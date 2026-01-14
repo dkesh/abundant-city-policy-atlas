@@ -10,8 +10,8 @@
 
 INSERT INTO reform_types (code, category, name, description, color_hex, icon_name, sort_order) VALUES
   -- PARKING
-  ('parking:eliminated', 'Parking', 'Parking Minimums Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
-  ('parking:reduced', 'Parking', 'Parking Minimums Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
+  ('parking:eliminated', 'Parking', 'Mandates Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
+  ('parking:reduced', 'Parking', 'Mandates Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
   ('parking:unspecified', 'Parking', 'Parking: unspecified', 'Parking policy changes', '#27ae60', 'car', 12),
   -- HOUSING TYPOLOGY
   ('housing:adu', 'Housing Typology', 'ADU', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
