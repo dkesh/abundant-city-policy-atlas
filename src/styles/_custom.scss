@@ -366,6 +366,7 @@ header {
     margin-bottom: 16px;
     flex-wrap: wrap;
     gap: 12px;
+    width: 100%;
 }
 
 .reform-title {
@@ -374,6 +375,30 @@ header {
     min-width: 200px;
 }
 
+.jurisdiction-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.jurisdiction-link:hover {
+    color: var(--mdc-theme-primary, #6200ee);
+    text-decoration: underline;
+}
+
+/* Jurisdiction badges (top) - use default chip styling */
+.jurisdiction-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.jurisdiction-badges .mdc-chip {
+    height: 24px;
+    font-size: 12px;
+}
+
+/* Reform badges (bottom left) - use different accent color */
 .reform-badges {
     display: flex;
     gap: 8px;
@@ -383,6 +408,12 @@ header {
 .reform-badges .mdc-chip {
     height: 24px;
     font-size: 12px;
+    background-color: rgba(98, 0, 238, 0.08); /* Light purple/primary tint */
+    color: rgba(98, 0, 238, 0.87); /* Primary color text */
+}
+
+.reform-badges .mdc-chip:hover {
+    background-color: rgba(98, 0, 238, 0.12);
 }
 
 .reform-meta {
@@ -405,6 +436,7 @@ header {
     display: flex;
     gap: 20px;
     align-items: flex-start;
+    margin-top: 0;
 }
 
 .reform-main-content {
@@ -420,6 +452,7 @@ header {
     border: 1px solid #ffcc02;
     border-radius: 4px;
     padding: 12px;
+    align-self: flex-start;
 }
 
 /* When the reform card primary container is narrow, stack vertically */
@@ -441,6 +474,11 @@ header {
     
     .reform-meta {
         grid-template-columns: 1fr;
+    }
+    
+    .reform-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 
@@ -488,7 +526,7 @@ header {
     justify-content: space-between;
     align-items: center;
     padding-top: 16px;
-    border-top: 1px solid var(--color-light);
+    border-top: none;
     margin-top: 0;
 }
 

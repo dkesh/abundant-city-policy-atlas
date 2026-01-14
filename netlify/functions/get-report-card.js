@@ -54,13 +54,14 @@ exports.handler = async (event, context) => {
     const client = await pool.connect();
 
     // Get place metadata
+    // For states, use population from top_level_division if places.population is null
     const placeQuery = `
       SELECT 
         p.id,
         p.name,
         p.place_type,
         p.state_code,
-        p.population,
+        COALESCE(p.population, CASE WHEN p.place_type = 'state' THEN tld.population ELSE NULL END) as population,
         tld.state_name,
         tld.region,
         tld.country

@@ -51,7 +51,13 @@ function renderReportCard(data) {
                 </div>
                 <h1 class="mdc-typography--headline3">${escapeHtml(place.name)} Report Card</h1>
                 <p class="mdc-typography--subtitle1">${escapeHtml(place.stateName || '')}${place.region ? ` • ${escapeHtml(place.region)}` : ''}</p>
-                ${place.population ? `<p class="mdc-typography--body2">Population: ${formatPopulationCompact(place.population)}</p>` : ''}
+                ${(() => {
+                    if (!place.population) return '';
+                    const popCategory = place.type === 'state' 
+                        ? getStatePopulationCategory(place.population)
+                        : getCityPopulationCategory(place.population);
+                    return `<p class="mdc-typography--body2" title="${popCategory.tooltip || ''}">${popCategory.label}</p>`;
+                })()}
             </div>
             
             <!-- Overall Grade -->

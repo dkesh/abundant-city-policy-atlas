@@ -2,6 +2,7 @@
 // REFORM FETCHING AND RENDERING
 // ============================================================================
 
+
 async function applyFilters(skipUrlUpdate = false) {
     const reformTypes = getSelectedReformTypes();
     const placeTypes = getSelectedPlaceTypes();
@@ -130,12 +131,13 @@ function renderReforms() {
         const card = createReformCard(reform);
         reformsList.appendChild(card);
         
-        // Add event listener for report card button
-        const reportCardBtn = card.querySelector('.view-report-card-btn');
-        if (reportCardBtn) {
-            reportCardBtn.addEventListener('click', (e) => {
+        // Add event listener for jurisdiction link
+        const jurisdictionLink = card.querySelector('.jurisdiction-link');
+        if (jurisdictionLink) {
+            jurisdictionLink.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation(); // Prevent card click
-                const placeId = reportCardBtn.getAttribute('data-place-id');
+                const placeId = jurisdictionLink.getAttribute('data-place-id');
                 if (placeId && typeof loadReportCardDetail === 'function') {
                     // Switch to report card view first
                     switchView('reportCard');
@@ -154,17 +156,48 @@ function renderReforms() {
 function createReformCard(reform, showDistance = false) {
     const card = document.createElement('div');
     card.className = `mdc-card reform-card ${reform.reform.type}`;
+    card.id = `reform-${reform.id}`;
 
-    const adoptionDate = reform.reform.adoption_date || 'Date unknown';
+    const adoptionDateRaw = reform.reform.adoption_date;
     const placeType = reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1);
 
+    // Helper function to format date for display
+    const formatAdoptionDate = (dateString) => {
+        if (!dateString) {
+            return { chipText: 'Adoption Date Unknown', tooltip: null };
+        }
+        
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return { chipText: 'Adoption Date Unknown', tooltip: null };
+            }
+            
+            const year = date.getFullYear();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const month = monthNames[date.getMonth()];
+            const day = date.getDate();
+            
+            return {
+                chipText: `Adopted ${year}`,
+                tooltip: `${month} ${day}, ${year}`
+            };
+        } catch (e) {
+            return { chipText: 'Adoption Date Unknown', tooltip: null };
+        }
+    };
+
     // Helper function to create chip HTML with proper MDC structure
-    const createChip = (text) => `
-        <span class="mdc-chip">
-            <span class="mdc-chip__ripple"></span>
-            <span class="mdc-chip__text">${escapeHtml(text)}</span>
-        </span>
-    `;
+    const createChip = (text, title = null) => {
+        const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
+        return `
+            <span class="mdc-chip"${titleAttr}>
+                <span class="mdc-chip__ripple"></span>
+                <span class="mdc-chip__text">${escapeHtml(text)}</span>
+            </span>
+        `;
+    };
 
     // Build limitation chips with embedded headers
     const limitationChips = [];
@@ -222,40 +255,49 @@ function createReformCard(reform, showDistance = false) {
         }).join('')
     : '';
 
+    // Build jurisdiction name with link to report card
+    const jurisdictionName = reform.place.type === 'state' 
+        ? escapeHtml(reform.place.state) + (reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : '')
+        : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}${reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : ''}`;
+    
+    const jurisdictionNameHtml = `<a href="#" class="jurisdiction-link" data-place-id="${reform.place.id}">${jurisdictionName}</a>`;
+
+    // Build reform chips (for bottom left)
+    const adoptionDateFormatted = formatAdoptionDate(adoptionDateRaw);
+    const reformChips = [];
+    reformChips.push(createChip(reform.reform.type_name));
+    reformChips.push(createChip(adoptionDateFormatted.chipText, adoptionDateFormatted.tooltip));
+    reformChips.push(createChip(`Status: ${escapeHtml(reform.reform.status || 'Adopted')}`));
+
     card.innerHTML = `
         <div class="mdc-card__primary-action">
             <div class="mdc-card__primary">
+                <!-- Jurisdiction header - full width -->
+                <div class="reform-header">
+                    <h3 class="mdc-typography--headline6 reform-title" id="place-${reform.place.id}">${jurisdictionNameHtml}</h3>
+                    <div class="jurisdiction-badges">
+                        ${createChip(placeType)}
+                        ${reform.place.region ? createChip(reform.place.region) : ''}
+                        ${(() => {
+                            if (!reform.place.population) return '';
+                            const popCategory = reform.place.type === 'state' 
+                                ? getStatePopulationCategory(reform.place.population)
+                                : getCityPopulationCategory(reform.place.population);
+                            return createChip(popCategory.label, popCategory.tooltip);
+                        })()}
+                    </div>
+                </div>
+
+                <!-- Main content and limitations side by side -->
                 <div class="reform-card-content">
                     <div class="reform-main-content">
-                        <div class="reform-header">
-                            <h3 class="mdc-typography--headline6 reform-title">${reform.place.type === 'state' 
-                                ? escapeHtml(reform.place.state) + (reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : '')
-                                : `${escapeHtml(reform.place.name)}, ${escapeHtml(reform.place.state)}${reform.place.country ? `, ${reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country}` : ''}`}</h3>
-                            <div class="reform-badges">
-                                ${createChip(reform.reform.type_name)}
-                                ${createChip(placeType)}
-                                ${reform.place.region ? createChip(reform.place.region) : ''}
-                            </div>
-                        </div>
-
+                        ${reform.reform.policy_document && reform.reform.policy_document.title ? `
                         <div class="reform-meta mdc-typography--body2">
-                            <div class="meta-item">
-                                <strong>Adopted:</strong> ${adoptionDate}
-                            </div>
-                            <div class="meta-item">
-                                <strong>Status:</strong> ${escapeHtml(reform.reform.status || 'Adopted')}
-                            </div>
-                            ${reform.reform.policy_document && reform.reform.policy_document.title ? `
                             <div class="meta-item">
                                 <strong>Bill Title:</strong> ${escapeHtml(reform.reform.policy_document.title)}
                             </div>
-                            ` : ''}
-                            ${reform.place.population ? `
-                            <div class="meta-item">
-                                <strong>Population:</strong> ${parseInt(reform.place.population).toLocaleString()}
-                            </div>
-                            ` : ''}
                         </div>
+                        ` : ''}
 
                         ${reform.reform.summary ? `
                             <div class="reform-summary mdc-typography--body2">
@@ -282,13 +324,9 @@ function createReformCard(reform, showDistance = false) {
 
             <div class="mdc-card__actions">
                 <div class="mdc-card__action-buttons">
-                    <button class="mdc-button mdc-button--outlined mdc-button--dense view-report-card-btn" data-place-id="${reform.place.id}">
-                        <span class="mdc-button__ripple"></span>
-                        <span class="mdc-button__label">View Report Card</span>
-                    </button>
-                    <span class="mdc-typography--caption reform-footer-text">
-                        ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
-                    </span>
+                    <div class="reform-badges">
+                        ${reformChips.join('')}
+                    </div>
                 </div>
                 ${sourcesHtml ? `
                 <div class="mdc-card__action-icons sources-logos">

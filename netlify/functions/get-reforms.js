@@ -165,13 +165,14 @@ exports.handler = async (event, context) => {
     console.log('============================');
 
     // Query reforms with all related data including sources and policy documents
+    // For states, use population from top_level_division if places.population is null
     const query = `
       SELECT
         r.id,
         p.id as place_id,
         p.name as place_name,
         p.place_type,
-        p.population,
+        COALESCE(p.population, CASE WHEN p.place_type = 'state' THEN tld.population ELSE NULL END) as population,
         p.latitude,
         p.longitude,
         p.encoded_name,
@@ -218,7 +219,7 @@ exports.handler = async (event, context) => {
       LEFT JOIN reform_sources rs ON r.id = rs.reform_id
       LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
-      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
+      GROUP BY r.id, p.id, p.name, p.place_type, p.population, tld.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
                tld.state_code, tld.state_name, tld.country, tld.region,
                rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
