@@ -451,3 +451,52 @@ function removeStateBoundaries() {
     stateBoundariesSourceAdded = false;
     stateBoundariesGeoJSON = null;
 }
+
+function printMap() {
+    // Check if map is initialized
+    if (!map || !map.isStyleLoaded()) {
+        console.warn('Map is not initialized or not ready for export');
+        return;
+    }
+
+    // Function to capture and download the map as PNG
+    const captureAndDownload = () => {
+        try {
+            // Get the map canvas
+            const canvas = map.getCanvas();
+            if (!canvas) {
+                console.error('Could not get map canvas');
+                return;
+            }
+
+            // Convert canvas to data URL (standard resolution, not high-res)
+            const dataUrl = canvas.toDataURL('image/png');
+
+            // Verify we got valid image data
+            if (!dataUrl || dataUrl === 'data:,') {
+                console.error('Failed to capture map canvas - empty data URL');
+                return;
+            }
+
+            // Create a temporary anchor element to trigger download
+            const link = document.createElement('a');
+            link.download = 'map-export.png';
+            link.href = dataUrl;
+            
+            // Append to body, click, and remove
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Error exporting map:', error);
+        }
+    };
+
+    // Wait for map to be fully rendered before capturing
+    // The 'idle' event fires when the map has finished rendering all tiles
+    map.once('idle', captureAndDownload);
+    
+    // Trigger a repaint to ensure the map is up to date
+    // This ensures all layers and tiles are rendered before we capture
+    map.triggerRepaint();
+}

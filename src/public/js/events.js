@@ -7,6 +7,11 @@ function setupEventListeners() {
     resetFiltersBtn.addEventListener('click', resetFilters);
     closeOverlayBtn.addEventListener('click', () => mapOverlay.classList.remove('active'));
     
+    // Print map button
+    if (printMapButton) {
+        printMapButton.addEventListener('click', printMap);
+    }
+    
     // Share Search button (combined save + share functionality)
     const shareSearchBtn = document.getElementById('shareSearch');
     shareSearchBtn.addEventListener('click', shareSearch);

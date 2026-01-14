@@ -27,4 +27,5 @@ const reportCardView = document.getElementById('reportCardView');
 const aboutView = document.getElementById('aboutView');
 const mapOverlay = document.getElementById('mapOverlay');
 const closeOverlayBtn = document.getElementById('closeOverlay');
+const printMapButton = document.getElementById('printMapButton');
 const populationRangeLabel = document.getElementById('populationRangeLabel');

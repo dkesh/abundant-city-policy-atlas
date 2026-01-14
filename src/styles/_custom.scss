@@ -744,11 +744,34 @@ header {
    MAP
    ============================================================================ */
 
+#mapView {
+    position: relative;
+}
+
 #map {
     width: 100%;
     height: 600px;
     border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.map-print-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+    color: var(--color-text, #333);
+}
+
+.map-print-button:hover {
+    background-color: var(--color-light, #f5f5f5);
+}
+
+.map-print-button:focus {
+    outline: 2px solid var(--mdc-theme-primary, #6200ee);
+    outline-offset: 2px;
 }
 
 .map-overlay {
