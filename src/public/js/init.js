@@ -266,3 +266,81 @@ function createSourceCard(source) {
 
     return card;
 }
+
+// ============================================================================
+// REFORM TYPES LOADING FOR ABOUT TAB
+// ============================================================================
+
+async function loadReformTypes() {
+    const loadingEl = document.getElementById('reformTypesLoading');
+    const errorEl = document.getElementById('reformTypesError');
+    const gridEl = document.getElementById('reformTypesGrid');
+
+    if (!loadingEl || !errorEl || !gridEl) return;
+
+    try {
+        // Try both API paths
+        let response = await fetch('/.netlify/functions/get-reform-types');
+        if (!response.ok) {
+            // Fallback to /api/ path
+            response = await fetch('/api/get-reform-types');
+        }
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to load reform types');
+        }
+
+        if (!data.reformTypes || data.reformTypes.length === 0) {
+            throw new Error('No reform types found');
+        }
+
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'none';
+        errorEl.classList.add('container-hidden');
+        gridEl.classList.remove('container-hidden');
+        gridEl.style.display = 'grid';
+
+        // Clear existing cards
+        gridEl.innerHTML = '';
+
+        // Render reform type cards
+        data.reformTypes.forEach(reformType => {
+            const card = createReformTypeCard(reformType);
+            gridEl.appendChild(card);
+        });
+
+    } catch (error) {
+        console.error('Error loading reform types:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.classList.remove('container-hidden');
+        errorEl.textContent = `Error: ${error.message}`;
+    }
+}
+
+function createReformTypeCard(reformType) {
+    const card = document.createElement('div');
+    card.className = 'mdc-card source-card';
+
+    const categoryHtml = reformType.category
+        ? `<div class="mdc-typography--caption" style="color: ${reformType.colorHex || '#666'}; font-weight: 500; margin-bottom: 8px;">
+             ${escapeHtml(reformType.category)}
+           </div>`
+        : '';
+
+    card.innerHTML = `
+        <div class="mdc-card__primary">
+            ${categoryHtml}
+            <h3 class="mdc-typography--headline6">${escapeHtml(reformType.name)}</h3>
+            ${reformType.description ? `<p class="mdc-typography--body2">${escapeHtml(reformType.description)}</p>` : ''}
+        </div>
+    `;
+
+    return card;
+}

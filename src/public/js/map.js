@@ -45,6 +45,10 @@ function switchView(view) {
         if (typeof loadSources === 'function') {
             loadSources();
         }
+        // Load reform types when About tab is opened
+        if (typeof loadReformTypes === 'function') {
+            loadReformTypes();
+        }
     }
 }
 

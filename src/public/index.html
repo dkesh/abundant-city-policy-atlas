@@ -523,50 +523,24 @@
                 <!-- ABOUT VIEW -->
                 <div id="aboutView" class="view-container">
                     <div class="about-content">
-                        <h2>What The Atlas Is</h2>
+                        <h2>Our Mission</h2>
                         <p>
-                            The Abundant City Policy Atlas is a tool to track and display pro-housing, pro-urban policies adopted in jurisdictions throughout the United States. 
-                            You can use it to track the spread of policy reforms throughout the country, or alternatively to examine which changes a particular 
-                            jurisdiction has adopted.
+                            In the last decade plus, a major new political force has emerged in North America, the English-speaking world, and beyond. 
+                            This loosely linked movement advocates for more housing, better cities, and related policies. It works at all levels of governement, from small town city halls to national governments. 
+                            Within this movement, there are tens of thousands of individuals and thousands of organizations working on related but distinct policies. 
+                            A matrix emerges of policy domains to reform and jurisdictions to target. This Atlas is a tool to track and display the spread of these policies across the country, giving
+                            placed-based advocates a method to identify future targets for action that have succeeded in comparable locations.  
                         </p>
+                        <h2>Our Data Sources</h2>
                         <p>
-                            You can filter reforms by type, jurisdiction (city/county/state), population, location, and view results on an interactive map or as a detailed list.
-                        </p>
-
-                        <h2>What The Atlas Doesn't Do</h2>
-                        <div class="disclaimer">
-                            <strong>Important Limitations:</strong>
-                            <ul>
-                                <li>This map does <strong>not</strong> provide legal advice or guarantee the accuracy of reform details</li>
-                                <li>Reforms are reported by various sources and may have incomplete or outdated information</li>
-                                <li>Not all parking and zoning reforms are included - coverage depends on our data sources</li>
-                                <li>The map shows reforms that have been proposed and adopted, not necessarily what is currently in effect (some reforms may have been repealed or modified)</li>
-                                <li>Always consult official municipal sources for authoritative information</li>
-                            </ul>
-                        </div>
-
-                        <h2>Types of Reforms Tracked</h2>
-                        <ul>
-                            <li><strong>Parking</strong> - changes to parking requirements, including:
-                                <ul>
-                                    <li><strong>Eliminated parking minimums</strong> - removed requirements that force developers to build parking</li>
-                                    <li><strong>Reduced parking minimums</strong> - lowered the amount of required parking</li>
-                                    <li><strong>Added parking maximums</strong> - capped the amount of parking that can be built</li>
-                                </ul>
-                            </li>
-                            <li><strong>Zoning</strong> - 
-                                <ul>
-                                    <li><strong>ADU Reforms</strong> - changes that make it easier to build accessory dwelling units</li>
-                                    <li><strong>Multi-Family Housing Legalization</strong> - reforms that allow duplexes, triplexes, and other multi-family housing types in more areas</li>
-                                    <li><strong>Transit-Oriented Development</strong> - zoning changes that promote higher density and mixed-use development near transit hubs</li>
-                                    <li><strong>Other Zoning Changes</strong> - various reforms aimed at increasing housing supply and affordability</li>   
-                                </ul>
-                            </li>
-                        </ul>
-
-                        <h2>Source Partners</h2>
+                            <p>Each partner we source our reforms through specializes in either a poarticular policy domain or a particular level of government. We then unify the data they provide into a single format,
+                                match any duplicate policies tracked by multiple organizations, and enrich the data with additional details. We cannot thank our partners enough, as without them, this project could not exist.
+                                </p>                        
+                                </p>
                         <p>
-                            This map aggregates data from multiple trusted sources in the urbanist movement. Each reform entry displays badges showing which sources reported it.
+                            These organizations are at the forefront of tracking how cities are changing their land use policies to enable 
+                            more housing, reduce parking requirements, and create more livable communities. Their work makes this atlas possible, 
+                            and we're proud to highlight their contributions to the movement for abundant, accessible cities.
                         </p>
 
                         <div id="sourcesLoading" class="loading">
@@ -604,58 +578,97 @@
 
                         <div id="sourcesGrid" class="sources-grid container-hidden" style="display: none;"></div>
 
-                        <h2>How to Contribute Data</h2>
+
+                        <h2>Policy Domains</h2>
+                        <p>
+                            The atlas tracks a range of housing and zoning reforms across multiple policy domains. 
+                            Each reform type represents a specific policy change that enables more housing, reduces barriers to development, 
+                            or creates more livable communities. Over time, we hope to broaden the range of reforms tracked, and produce more fine-grained details 
+                            on the existing domains.
+                        </p>
+
+                        <div id="reformTypesLoading" class="loading">
+                            <div class="mdc-circular-progress" style="width:48px;height:48px;margin:0 auto;" role="progressbar" aria-label="Loading reform types" aria-valuemin="0" aria-valuemax="1">
+                                <div class="mdc-circular-progress__determinate-container">
+                                    <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__indeterminate-container">
+                                    <div class="mdc-circular-progress__spinner-layer">
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__gap-patch">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mdc-typography--body1" style="margin-top: 16px;">Loading reform types...</p>
+                        </div>
+
+                        <div id="reformTypesError" class="error container-hidden" style="display: none;"></div>
+
+                        <div id="reformTypesGrid" class="sources-grid container-hidden" style="display: none;"></div>
+
+                        <h2>How to Contribute</h2>
                         
-                        <h3>Report a New Reform</h3>
-                        <p>If you know of a parking or zoning reform that's not on the map:</p>
+                        <h3>Report a New Reform or change to an existing reform</h3>
+                        <p>The Atlas doesn't collect data itself, but through our partner organizations. If you know of a reform that's not on the map, identify
+                            which of the partners would be good places to track this reform, then view the data in that tracker and follow that tracker's submission policy:
+                        </p>
                         <ol>
-                            <li><strong>For parking reforms:</strong> Submit directly to <a href="https://parkingreform.org/" target="_blank">Parking Reform Network</a></li>
+                            <li><strong>For parking reforms:</strong> Submit to the <a href="https://parkingreform.org/" target="_blank">Parking Reform Network</a></li>
+                            <li><strong>For building code reforms:</strong> Submit to the <a href="https://centerforbuilding.org/" target="_blank">Center for Building in North America</a></li>
                             <li><strong>For zoning reforms:</strong> Check if it's already tracked by <a href="https://belonging.berkeley.edu/zoning-reform-tracker" target="_blank">Berkeley's Zoning Reform Tracker</a></li>
-                            <li><strong>For this project:</strong> Open an issue or pull request on our GitHub repository</li>
                         </ol>
 
-                        <h3>Improve Existing Data</h3>
-                        <p>Found an error or want to add more detail to an existing reform?</p>
-                        <ul>
-                            <li>Contact the original data source (PRN or Berkeley) - corrections there will automatically flow to this map</li>
-                            <li>For technical issues with the map itself, report them via GitHub issues</li>
-                        </ul>
+                        <h3>Improve the Atlas</h3>
+                        <p>The code for the tlas is open source. You can contribute bug reports, bug fixes, feature requests, or new features via <a href="https://github.com/dkesh/urbanist-reform-map/issues">GitHub issues</a>.
 
-                        <h3>Technical Contributions</h3>
-                        <p>This is an open-source project! Developers and data scientists can contribute by:</p>
-                        <ul>
-                            <li>Adding new data sources or ingestion scripts</li>
-                            <li>Improving the map visualization and filtering capabilities</li>
-                            <li>Enhancing data quality and validation</li>
-                            <li>Adding new features or analysis tools</li>
-                        </ul>
-                        <p>See the repository's <code>README.md</code> for development setup instructions.</p>
+                        <p>
+                            For more general questions reach out to the project's author at <a href="mailto:dan@austinonyourfeet.org">dan@austinonyourfeet.org</a>.
+                        </p>
 
-                        <h2>Who Created This</h2>
-                        <p>
-                            This map was created by urbanist advocates to make parking and zoning reform data more accessible and actionable. The project combines data from the Parking Reform Network and UC Berkeley's Othering & Belonging Institute into a single, searchable interface.
-                        </p>
-                        <p>
-                            The map is built with:
-                        </p>
-                        <ul>
-                            <li><strong>Frontend:</strong> Vanilla JavaScript with Mapbox GL JS for mapping</li>
-                            <li><strong>Backend:</strong> Netlify Functions (serverless) with PostgreSQL/PostGIS database</li>
-                            <li><strong>Data:</strong> Regular ingestion from PRN and Berkeley ZRT sources</li>
-                            <li><strong>Hosting:</strong> Netlify with Neon (serverless PostgreSQL)</li>
-                        </ul>
+
+                        <h2>Our Team</h2>
+                        <div class="biography">
+                            <div class="biography-content">
+                                <p>
+                                    The Abundant City Policy Atlas was created by <strong>Dan Keshet</strong>, a longtime advocate for 
+                                    abundant cities and evidence-based housing policy. Dan has been at the forefront of 
+                                    the urbanist movement in Texas and beyond, working to make cities more livable, affordable, and 
+                                    sustainable through policy reform and data-driven advocacy.
+                                </p>
+                                <p>
+                                    Dan was a co-founder of <a href="http://aura-atx.org">AURA</a>, a grassroots organization that 
+                                    has been instrumental in promoting inclusive and sustainable urban development in Austin. 
+                                    AURA has helped guide significant reforms to Austin's land use policy.
+                                    Dan also founded <a href="http://texasforhousing.org">Texans for Housing</a>, an 
+                                    organization dedicated to advocating for legislative changes that eliminate obstacles to Texans living
+                                    in the places they want to live.
+                                </p>
+                            </div>
+                        </div>
 
                         <h2>License & Terms</h2>
                         <p>
                             This map and its underlying data are provided for informational purposes only. While we strive for accuracy, we make no guarantees about the completeness or correctness of the information presented.
+                            Indeed, the atlas is a long way from comprehensive today, but we're working on it.
                         </p>
                         <p>
-                            Data from our sources (PRN and Berkeley ZRT) remains subject to their respective licenses and terms of use. Please consult those organizations for authoritative information.
-                        </p>
-
-                        <h2>Contact</h2>
-                        <p>
-                            Questions, feedback, or suggestions? Open an issue on GitHub or reach out to the project maintainers.
+                            Data from our sources remains subject to their respective licenses and terms of use. Please consult those organizations for authoritative information.
                         </p>
                     </div>
                 </div>
