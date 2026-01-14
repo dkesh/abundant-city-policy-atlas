@@ -369,6 +369,16 @@
                                     </span>
                                     <span class="mdc-tab__ripple"></span>
                                 </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="reportCardViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">school</span>
+                                        <span class="mdc-tab__text-label">Report Cards</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
                                 <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="aboutViewTab">
                                     <span class="mdc-tab__content">
                                         <span class="mdc-tab__icon material-icons" aria-hidden="true">info</span>
@@ -448,6 +458,65 @@
                         </button>
                         <div class="map-overlay-header mdc-typography--headline6" id="overlayHeader"></div>
                         <div id="overlayCards" class="reforms-list"></div>
+                    </div>
+                </div>
+
+                <!-- REPORT CARD VIEW -->
+                <div id="reportCardView" class="view-container">
+                    <!-- Report Card List View -->
+                    <div id="reportCardListView" class="report-card-list-view">
+                        <div class="container">
+                            <h2 class="mdc-typography--headline4">Report Cards</h2>
+                            
+                            <!-- Search Bar -->
+                            <div class="report-card-search">
+                                <div class="mdc-text-field mdc-text-field--outlined">
+                                    <input type="text" class="mdc-text-field__input" id="reportCardSearchInput" placeholder="Search for a city, county, or state...">
+                                    <div class="mdc-notched-outline">
+                                        <div class="mdc-notched-outline__leading"></div>
+                                        <div class="mdc-notched-outline__notch">
+                                        </div>
+                                        <div class="mdc-notched-outline__trailing"></div>
+                                    </div>
+                                </div>
+                                <div id="reportCardSearchResults" class="report-card-search-results container-hidden"></div>
+                            </div>
+
+                            <!-- Top Ten Lists -->
+                            <div class="top-ten-lists">
+                                <h3 class="mdc-typography--headline5">Top Performers</h3>
+                                <div class="top-ten-filters">
+                                    <button class="mdc-button mdc-button--outlined active" data-filter="city" data-size="mid">
+                                        <span class="mdc-button__ripple"></span>
+                                        <span class="mdc-button__label">Mid-Sized Cities</span>
+                                    </button>
+                                    <button class="mdc-button mdc-button--outlined" data-filter="city" data-size="large">
+                                        <span class="mdc-button__ripple"></span>
+                                        <span class="mdc-button__label">Large Cities</span>
+                                    </button>
+                                    <button class="mdc-button mdc-button--outlined" data-filter="county">
+                                        <span class="mdc-button__ripple"></span>
+                                        <span class="mdc-button__label">Counties</span>
+                                    </button>
+                                    <button class="mdc-button mdc-button--outlined" data-filter="state">
+                                        <span class="mdc-button__ripple"></span>
+                                        <span class="mdc-button__label">States</span>
+                                    </button>
+                                </div>
+                                <div id="topTenList" class="top-ten-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Report Card Detail View -->
+                    <div id="reportCardDetailView" class="report-card-detail-view container-hidden">
+                        <div class="container">
+                            <button class="mdc-button mdc-button--outlined" id="backToReportCardList">
+                                <span class="mdc-button__ripple"></span>
+                                <span class="mdc-button__label">← Back to Report Cards</span>
+                            </button>
+                            <div id="reportCardDetailContent"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -597,6 +666,7 @@
     <!-- noUiSlider JS - must load before slider.js -->
     <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
     <!-- JavaScript modules - loaded in dependency order -->
+    <script src="/js/helpers.js"></script>
     <script src="/js/state.js"></script>
     <script src="/js/ui-elements.js"></script>
     <script src="/js/slider.js"></script>
@@ -607,6 +677,8 @@
     <script src="/js/map.js"></script>
     <script src="/js/share.js"></script>
     <script src="/js/events.js"></script>
+    <script src="/js/report-cards.js"></script>
+    <script src="/js/report-card-detail.js"></script>
     <script src="/js/init.js"></script>
 </body>
 </html>

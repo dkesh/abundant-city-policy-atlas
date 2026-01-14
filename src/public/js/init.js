@@ -102,7 +102,7 @@ function initializeMDCComponents() {
     if (tabBarEl) {
         mdcComponents.tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
         mdcComponents.tabBar.listen('MDCTabBar:activated', (e) => {
-            const views = ['list', 'map', 'about'];
+            const views = ['list', 'map', 'reportCard', 'about'];
             const view = views[e.detail.index];
             switchView(view);
         });
@@ -265,11 +265,4 @@ function createSourceCard(source) {
     }
 
     return card;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }

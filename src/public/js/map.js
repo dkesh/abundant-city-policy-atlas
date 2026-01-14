@@ -6,15 +6,17 @@ function switchView(view) {
     // Hide all views
     listView.classList.remove('active');
     mapView.classList.remove('active');
+    reportCardView.classList.remove('active');
     aboutView.classList.remove('active');
     
     // Remove active from all tabs
     listViewTab.classList.remove('active');
     mapViewTab.classList.remove('active');
+    reportCardViewTab.classList.remove('active');
     aboutViewTab.classList.remove('active');
     
     // Show/hide results banner based on view
-    if (view === 'about') {
+    if (view === 'about' || view === 'reportCard') {
         if (resultsInfo) {
             resultsInfo.classList.add('container-hidden');
         }
@@ -29,6 +31,13 @@ function switchView(view) {
         mapView.classList.add('active');
         mapViewTab.classList.add('active');
         initializeMap();
+    } else if (view === 'reportCard') {
+        reportCardView.classList.add('active');
+        reportCardViewTab.classList.add('active');
+        // Initialize report card list view if not already loaded
+        if (typeof loadReportCardList === 'function') {
+            loadReportCardList();
+        }
     } else if (view === 'about') {
         aboutView.classList.add('active');
         aboutViewTab.classList.add('active');
@@ -228,7 +237,21 @@ function showPlaceOverlay(placeId, reforms) {
     const overlayCards = document.getElementById('overlayCards');
     overlayCards.innerHTML = '';
     reforms.forEach(reform => {
-        overlayCards.appendChild(createReformCard(reform, true));
+        const card = createReformCard(reform, true);
+        overlayCards.appendChild(card);
+        
+        // Add event listener for report card button
+        const reportCardBtn = card.querySelector('.view-report-card-btn');
+        if (reportCardBtn) {
+            reportCardBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const placeId = reportCardBtn.getAttribute('data-place-id');
+                if (placeId && typeof loadReportCardDetail === 'function') {
+                    switchView('reportCard');
+                    loadReportCardDetail(parseInt(placeId));
+                }
+            });
+        }
     });
 
     mapOverlay.classList.add('active');
@@ -242,7 +265,21 @@ function showStateOverlay(stateName, stateCode, reforms) {
     const overlayCards = document.getElementById('overlayCards');
     overlayCards.innerHTML = '';
     reforms.forEach(reform => {
-        overlayCards.appendChild(createReformCard(reform, true));
+        const card = createReformCard(reform, true);
+        overlayCards.appendChild(card);
+        
+        // Add event listener for report card button
+        const reportCardBtn = card.querySelector('.view-report-card-btn');
+        if (reportCardBtn) {
+            reportCardBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const placeId = reportCardBtn.getAttribute('data-place-id');
+                if (placeId && typeof loadReportCardDetail === 'function') {
+                    switchView('reportCard');
+                    loadReportCardDetail(parseInt(placeId));
+                }
+            });
+        }
     });
 
     mapOverlay.classList.add('active');

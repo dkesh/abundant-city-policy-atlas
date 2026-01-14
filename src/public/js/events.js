@@ -21,4 +21,14 @@ function setupEventListeners() {
     if (dismissErrorBtn) {
         dismissErrorBtn.addEventListener('click', hideError);
     }
+    
+    // Back to report card list button
+    const backToReportCardListBtn = document.getElementById('backToReportCardList');
+    if (backToReportCardListBtn) {
+        backToReportCardListBtn.addEventListener('click', () => {
+            if (typeof navigateToReportCardList === 'function') {
+                navigateToReportCardList();
+            }
+        });
+    }
 }

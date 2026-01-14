@@ -129,6 +129,20 @@ function renderReforms() {
     filteredReforms.forEach(reform => {
         const card = createReformCard(reform);
         reformsList.appendChild(card);
+        
+        // Add event listener for report card button
+        const reportCardBtn = card.querySelector('.view-report-card-btn');
+        if (reportCardBtn) {
+            reportCardBtn.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card click
+                const placeId = reportCardBtn.getAttribute('data-place-id');
+                if (placeId && typeof loadReportCardDetail === 'function') {
+                    // Switch to report card view first
+                    switchView('reportCard');
+                    loadReportCardDetail(parseInt(placeId));
+                }
+            });
+        }
     });
 
     // Also render map if in map view
@@ -268,6 +282,10 @@ function createReformCard(reform, showDistance = false) {
 
             <div class="mdc-card__actions">
                 <div class="mdc-card__action-buttons">
+                    <button class="mdc-button mdc-button--outlined mdc-button--dense view-report-card-btn" data-place-id="${reform.place.id}">
+                        <span class="mdc-button__ripple"></span>
+                        <span class="mdc-button__label">View Report Card</span>
+                    </button>
                     <span class="mdc-typography--caption reform-footer-text">
                         ${reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)} ID: ${reform.id}
                     </span>
@@ -282,11 +300,4 @@ function createReformCard(reform, showDistance = false) {
     `;
 
     return card;
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
