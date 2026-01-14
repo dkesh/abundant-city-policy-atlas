@@ -31,11 +31,23 @@ CREATE TABLE IF NOT EXISTS top_level_division (
 -- Create spatial index on top_level_division geometry
 CREATE INDEX IF NOT EXISTS top_level_division_geom_idx ON top_level_division USING GIST(geom);
 
+-- Categories table - Groups of related reform types
+CREATE TABLE IF NOT EXISTS categories (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT NOT NULL,
+  icon VARCHAR(50) NOT NULL,
+  sort_order INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS categories_sort_order_idx ON categories(sort_order);
+
 -- Reform types table - Universal (Source Agnostic)
 CREATE TABLE IF NOT EXISTS reform_types (
   id SERIAL PRIMARY KEY,
   code VARCHAR(50) UNIQUE NOT NULL,  -- e.g., 'parking:eliminated', 'housing:adu'
-  category VARCHAR(50),              -- New Parent Category (e.g., 'Parking', 'Housing Types')
+  category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
   name VARCHAR(100) NOT NULL,        -- Display name
   description TEXT,
   color_hex VARCHAR(7),              -- Color for UI
@@ -43,6 +55,8 @@ CREATE TABLE IF NOT EXISTS reform_types (
   sort_order INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS reform_types_category_idx ON reform_types(category_id);
 
 -- Place types table (level of government)
 CREATE TYPE place_type AS ENUM ('city','county','state');

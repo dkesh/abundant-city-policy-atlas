@@ -268,7 +268,7 @@ function createSourceCard(source) {
 }
 
 // ============================================================================
-// REFORM TYPES LOADING FOR ABOUT TAB
+// CATEGORIES LOADING FOR ABOUT TAB
 // ============================================================================
 
 async function loadReformTypes() {
@@ -280,10 +280,10 @@ async function loadReformTypes() {
 
     try {
         // Try both API paths
-        let response = await fetch('/.netlify/functions/get-reform-types');
+        let response = await fetch('/.netlify/functions/get-categories');
         if (!response.ok) {
             // Fallback to /api/ path
-            response = await fetch('/api/get-reform-types');
+            response = await fetch('/api/get-categories');
         }
         
         if (!response.ok) {
@@ -293,11 +293,11 @@ async function loadReformTypes() {
         const data = await response.json();
 
         if (!data.success) {
-            throw new Error(data.error || 'Failed to load reform types');
+            throw new Error(data.error || 'Failed to load categories');
         }
 
-        if (!data.reformTypes || data.reformTypes.length === 0) {
-            throw new Error('No reform types found');
+        if (!data.categories || data.categories.length === 0) {
+            throw new Error('No categories found');
         }
 
         loadingEl.style.display = 'none';
@@ -309,14 +309,14 @@ async function loadReformTypes() {
         // Clear existing cards
         gridEl.innerHTML = '';
 
-        // Render reform type cards
-        data.reformTypes.forEach(reformType => {
-            const card = createReformTypeCard(reformType);
+        // Render category cards
+        data.categories.forEach(category => {
+            const card = createCategoryCard(category);
             gridEl.appendChild(card);
         });
 
     } catch (error) {
-        console.error('Error loading reform types:', error);
+        console.error('Error loading categories:', error);
         loadingEl.style.display = 'none';
         errorEl.style.display = 'block';
         errorEl.classList.remove('container-hidden');
@@ -324,21 +324,36 @@ async function loadReformTypes() {
     }
 }
 
-function createReformTypeCard(reformType) {
+function createCategoryCard(category) {
     const card = document.createElement('div');
     card.className = 'mdc-card source-card';
 
-    const categoryHtml = reformType.category
-        ? `<div class="mdc-typography--caption" style="color: ${reformType.colorHex || '#666'}; font-weight: 500; margin-bottom: 8px;">
-             ${escapeHtml(reformType.category)}
+    const iconHtml = category.icon
+        ? `<div class="category-icon" style="margin-bottom: 16px;">
+             <i class="material-icons" style="font-size: 48px; color: #666;">${escapeHtml(category.icon)}</i>
+           </div>`
+        : '';
+
+    const reformTypesList = category.reformTypes && category.reformTypes.length > 0
+        ? `<div class="reform-types-list" style="margin-top: 16px;">
+             <div class="mdc-typography--caption" style="font-weight: 500; margin-bottom: 8px; color: #666;">Includes:</div>
+             <ul style="margin: 0; padding-left: 20px; list-style-type: disc;">
+               ${category.reformTypes.map(reformType => 
+                 `<li style="margin-bottom: 8px;">
+                    <strong>${escapeHtml(reformType.name)}</strong>
+                    ${reformType.description ? `<div style="margin-top: 4px; font-size: 0.875rem; color: #666;">${escapeHtml(reformType.description)}</div>` : ''}
+                  </li>`
+               ).join('')}
+             </ul>
            </div>`
         : '';
 
     card.innerHTML = `
         <div class="mdc-card__primary">
-            ${categoryHtml}
-            <h3 class="mdc-typography--headline6">${escapeHtml(reformType.name)}</h3>
-            ${reformType.description ? `<p class="mdc-typography--body2">${escapeHtml(reformType.description)}</p>` : ''}
+            ${iconHtml}
+            <h3 class="mdc-typography--headline6">${escapeHtml(category.name)}</h3>
+            ${category.description ? `<p class="mdc-typography--body2" style="margin-top: 8px;">${escapeHtml(category.description)}</p>` : ''}
+            ${reformTypesList}
         </div>
     `;
 

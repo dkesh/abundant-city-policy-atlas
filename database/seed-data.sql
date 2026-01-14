@@ -5,39 +5,56 @@
 -- ============================================================================
 
 -- ============================================================================
+-- SEED DATA: Categories
+-- ============================================================================
+
+INSERT INTO categories (name, description, icon, sort_order) VALUES
+  ('Parking', 'Mostly reforms to off-street parking mandates, allowing developers to build the amount of parking that makes economic sense.  Additionally, some changes to on-street parking rules.', 'local_parking', 10),
+  ('Housing Typology', 'Reforms that legalize or make it easier to build diverse housing types like accessory dwelling units (ADUs), duplexes, triplexes, and other middle housing.', 'home_work', 20),
+  ('Zoning Category', 'Reforms that change zoning classifications and land use categories to allow more housing density and mixed-use development in specific places.', 'location_city', 30),
+  ('Physical Dimension', 'Reforms that adjust physical constraints like minimum lot sizes, building height limits, and floor area ratios to enable more housing.', 'square_foot', 40),
+  ('Process', 'Reforms that streamline permitting, approvals, and other bureaucratic processes to reduce delays and costs in building housing.', 'assignment', 50),
+  ('Building Code', 'Reforms that update building codes to allow more efficient building designs, such as single-stair buildings and elevator requirements.', 'domain', 60),
+  ('Other', 'Other types of housing and land use reforms that don''t fit into the standard categories.', 'more_horiz', 90)
+ON CONFLICT (name) DO UPDATE SET
+  description = EXCLUDED.description,
+  icon = EXCLUDED.icon,
+  sort_order = EXCLUDED.sort_order;
+
+-- ============================================================================
 -- SEED DATA: Reform Types (Universal)
 -- ============================================================================
 
-INSERT INTO reform_types (code, category, name, description, color_hex, icon_name, sort_order) VALUES
+INSERT INTO reform_types (code, category_id, name, description, color_hex, icon_name, sort_order) VALUES
   -- PARKING
-  ('parking:eliminated', 'Parking', 'Mandates Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
-  ('parking:reduced', 'Parking', 'Mandates Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
-  ('parking:unspecified', 'Parking', 'Parking: unspecified', 'Parking policy changes', '#27ae60', 'car', 12),
+  ('parking:eliminated', (SELECT id FROM categories WHERE name = 'Parking'), 'Mandates Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
+  ('parking:reduced', (SELECT id FROM categories WHERE name = 'Parking'), 'Mandates Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
+  ('parking:unspecified', (SELECT id FROM categories WHERE name = 'Parking'), 'Parking: unspecified', 'Parking policy changes', '#27ae60', 'car', 12),
   -- HOUSING TYPOLOGY
-  ('housing:adu', 'Housing Typology', 'ADU', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
-  ('housing:plex', 'Housing Typology', 'Plex', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
+  ('housing:adu', (SELECT id FROM categories WHERE name = 'Housing Typology'), 'ADU', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),
+  ('housing:plex', (SELECT id FROM categories WHERE name = 'Housing Typology'), 'Plex', 'Duplexes, triplexes, 4-plexes', '#9b59b6', 'th-large', 21),
   -- ZONING CATEGORY
-  ('zoning:ricz', 'Zoning Category', 'RICZ', 'Reform Income Community Zoning reforms', '#2980b9', 'map', 30),
-  ('zoning:yigby', 'Zoning Category', 'YIGBY', 'Yes In God''s Backyard reforms', '#3498db', 'church', 31),
-  ('zoning:tod', 'Zoning Category', 'TOD Upzones', 'Transit-oriented development reforms', '#2980b9', 'subway', 32),
+  ('zoning:ricz', (SELECT id FROM categories WHERE name = 'Zoning Category'), 'RICZ', 'Reform Income Community Zoning reforms', '#2980b9', 'map', 30),
+  ('zoning:yigby', (SELECT id FROM categories WHERE name = 'Zoning Category'), 'YIGBY', 'Yes In God''s Backyard reforms', '#3498db', 'church', 31),
+  ('zoning:tod', (SELECT id FROM categories WHERE name = 'Zoning Category'), 'TOD Upzones', 'Transit-oriented development reforms', '#2980b9', 'subway', 32),
   -- PHYSICAL DIMENSION
-  ('physical:lot_size', 'Physical Dimension', 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 40),
-  ('physical:height', 'Physical Dimension', 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 41),
-  ('physical:far', 'Physical Dimension', 'Floor Area Ratio', 'FAR regulations', '#d35400', 'expand', 42),
+  ('physical:lot_size', (SELECT id FROM categories WHERE name = 'Physical Dimension'), 'Lot Size', 'Minimum lot size reforms', '#16a085', 'ruler-combined', 40),
+  ('physical:height', (SELECT id FROM categories WHERE name = 'Physical Dimension'), 'Height Limits', 'Building height limit reforms', '#34495e', 'arrow-up', 41),
+  ('physical:far', (SELECT id FROM categories WHERE name = 'Physical Dimension'), 'Floor Area Ratio', 'FAR regulations', '#d35400', 'expand', 42),
   -- PROCESS
-  ('process:permitting', 'Process', 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 50),
-  ('process:courts_appeals', 'Process', 'Courts & Appeals', 'Court and appeals process reforms', '#8e44ad', 'gavel', 51),
-  ('process:planning_obligations', 'Process', 'Planning Obligations', 'Planning obligation reforms', '#f39c12', 'file-contract', 52),
+  ('process:permitting', (SELECT id FROM categories WHERE name = 'Process'), 'Permitting Process', 'Permitting process streamlining', '#2c3e50', 'clipboard-check', 50),
+  ('process:courts_appeals', (SELECT id FROM categories WHERE name = 'Process'), 'Courts & Appeals', 'Court and appeals process reforms', '#8e44ad', 'gavel', 51),
+  ('process:planning_obligations', (SELECT id FROM categories WHERE name = 'Process'), 'Planning Obligations', 'Planning obligation reforms', '#f39c12', 'file-contract', 52),
   -- BUILDING CODE
-  ('building:stairwells', 'Building Code', 'Stairwells', 'Stairwell reforms', '#95a5a6', 'stream', 60),
-  ('building:elevators', 'Building Code', 'Elevators', 'Elevator-related code reforms', '#7f8c8d', 'arrow-up', 61),
-  ('building:unspecified', 'Building Code', 'Building Code: Unspecified', 'Building code reforms', '#95a5a6', 'building', 62),
+  ('building:stairwells', (SELECT id FROM categories WHERE name = 'Building Code'), 'Stairwells', 'Stairwell reforms', '#95a5a6', 'stream', 60),
+  ('building:elevators', (SELECT id FROM categories WHERE name = 'Building Code'), 'Elevators', 'Elevator-related code reforms', '#7f8c8d', 'arrow-up', 61),
+  ('building:unspecified', (SELECT id FROM categories WHERE name = 'Building Code'), 'Building Code: Unspecified', 'Building code reforms', '#95a5a6', 'building', 62),
   -- OTHER
-  ('other:general', 'Other', 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 90),
-  ('other:land_value_tax', 'Other', 'Land Value Tax', 'Land value tax reforms', '#27ae60', 'dollar-sign', 91),
-  ('other:urbanity', 'Other', 'Urbanity', 'Urbanity-related reforms', '#2c3e50', 'city', 92)
+  ('other:general', (SELECT id FROM categories WHERE name = 'Other'), 'Other Reform', 'Other zoning or land use reforms', '#7f8c8d', 'question-circle', 90),
+  ('other:land_value_tax', (SELECT id FROM categories WHERE name = 'Other'), 'Land Value Tax', 'Land value tax reforms', '#27ae60', 'dollar-sign', 91),
+  ('other:urbanity', (SELECT id FROM categories WHERE name = 'Other'), 'Urbanity', 'Urbanity-related reforms', '#2c3e50', 'city', 92)
 ON CONFLICT (code) DO UPDATE SET
-  category = EXCLUDED.category,
+  category_id = EXCLUDED.category_id,
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   color_hex = EXCLUDED.color_hex,
