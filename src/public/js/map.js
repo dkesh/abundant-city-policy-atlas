@@ -211,24 +211,30 @@ function updateMarkersInViewport() {
     });
 }
 
+function getCssVariable(variableName) {
+    return getComputedStyle(document.documentElement)
+        .getPropertyValue(variableName)
+        .trim();
+}
+
 function getMarkerColor(reformType, reformColor = null) {
     // Use reform color if available
     if (reformColor) {
         return reformColor;
     }
     
-    // Fallback to type-based colors
+    // Fallback to type-based colors from CSS variables
     // Handle both prefixed (prn:rm_min) and non-prefixed (rm_min) types
     const type = reformType.includes(':') ? reformType.split(':')[1] : reformType;
     switch (type) {
-        case 'rm_min': return '#27ae60';
-        case 'reduce_min': return '#2ecc71';
-        case 'add_max': return '#e74c3c';
-        case 'adu': return '#3498db';
-        case 'plex': return '#9b59b6';
-        case 'tod': return '#f39c12';
-        case 'other': return '#95a5a6';
-        default: return '#3498db';
+        case 'rm_min': return getCssVariable('--color-reform-rm-min');
+        case 'reduce_min': return getCssVariable('--color-reform-reduce-min');
+        case 'add_max': return getCssVariable('--color-reform-add-max');
+        case 'adu': return getCssVariable('--color-reform-adu');
+        case 'plex': return getCssVariable('--color-reform-plex');
+        case 'tod': return getCssVariable('--color-reform-tod');
+        case 'other': return getCssVariable('--color-reform-other');
+        default: return getCssVariable('--color-secondary');
     }
 }
 

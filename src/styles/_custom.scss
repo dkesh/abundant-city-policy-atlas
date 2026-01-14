@@ -4,20 +4,29 @@
 
 /* MDC Theme Customization */
 :root {
-    --mdc-theme-primary: #2ecc71;
-    --mdc-theme-secondary: #3498db;
-    --mdc-theme-error: #e74c3c;
+    --mdc-theme-primary: #E67E22;
+    --mdc-theme-secondary: #3498DB;
+    --mdc-theme-error: #E74C3C;
     --mdc-theme-surface: #ffffff;
-    --mdc-theme-on-surface: #34495e;
+    --mdc-theme-on-surface: #2C3E50;
     --mdc-theme-on-primary: #ffffff;
     
     /* Custom color variables */
-    --color-primary: #2ecc71;
-    --color-primary-dark: #27ae60;
-    --color-secondary: #3498db;
-    --color-light: #ecf0f1;
-    --color-dark: #2c3e50;
-    --color-text: #34495e;
+    --color-primary: #E67E22;
+    --color-primary-dark: #D35400;
+    --color-secondary: #3498DB;
+    --color-light: #FFF4E6;
+    --color-dark: #1A252F;
+    --color-text: #2C3E50;
+    
+    /* Map marker colors */
+    --color-reform-rm-min: #D35400;
+    --color-reform-reduce-min: #E67E22;
+    --color-reform-add-max: #E74C3C;
+    --color-reform-adu: #3498DB;
+    --color-reform-plex: #9B59B6;
+    --color-reform-tod: #F39C12;
+    --color-reform-other: #95a5a6;
 }
 
 * {
@@ -26,7 +35,7 @@
 
 body {
     font-family: Roboto, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-    background-color: #f8f9fa;
+    background-color: #FFFBF5;
     margin: 0;
     padding: 0;
 }
@@ -195,17 +204,16 @@ header {
     border: none;
     border-radius: 2px;
     box-shadow: none;
-    height: 4px;
 }
 
 .noUi-connect {
-    background: var(--mdc-theme-primary, #2ecc71);
+    background: var(--mdc-theme-primary, #E67E22);
 }
 
 .noUi-handle {
     width: 20px;
     height: 20px;
-    border: 2px solid var(--mdc-theme-primary, #2ecc71);
+    border: 2px solid var(--mdc-theme-primary, #E67E22);
     border-radius: 50%;
     background: white;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -225,7 +233,7 @@ header {
 
 .noUi-handle:focus {
     outline: none;
-    box-shadow: 0 0 0 8px rgba(46, 204, 113, 0.2);
+    box-shadow: 0 0 0 8px rgba(230, 126, 34, 0.2);
 }
 
 .noUi-touch-area {
@@ -518,17 +526,17 @@ header {
 /* Reform type colors */
 .reform-card.rm_min,
 .reform-card.prn\:rm_min {
-    border-left-color: #27ae60;
+    border-left-color: #D35400;
 }
 
 .reform-card.reduce_min,
 .reform-card.prn\:reduce_min {
-    border-left-color: #2ecc71;
+    border-left-color: #E67E22;
 }
 
 .reform-card.add_max,
 .reform-card.prn\:add_max {
-    border-left-color: #e74c3c;
+    border-left-color: #E74C3C;
 }
 
 /* No results */
@@ -767,7 +775,7 @@ header {
 
 /* Error banner styling */
 .mdc-banner--error {
-    background-color: var(--mdc-theme-error, #e74c3c);
+    background-color: var(--mdc-theme-error, #E74C3C);
 }
 
 .mdc-banner--error .mdc-banner__text {
@@ -976,23 +984,23 @@ header {
 
 /* Grade Colors */
 .grade-a {
-    background-color: #27ae60;
+    background-color: #D35400;
 }
 
 .grade-b {
-    background-color: #2ecc71;
+    background-color: #E67E22;
 }
 
 .grade-c {
-    background-color: #f39c12;
+    background-color: #F39C12;
 }
 
 .grade-d {
-    background-color: #e67e22;
+    background-color: #E74C3C;
 }
 
 .grade-f {
-    background-color: #e74c3c;
+    background-color: #C0392B;
 }
 
 /* Report Card Detail View */
@@ -1037,7 +1045,7 @@ header {
     align-items: center;
     gap: 32px;
     padding: 32px;
-    background: #f8f9fa;
+    background: #FFF4E6;
     border-radius: 8px;
     margin-bottom: 32px;
 }
@@ -1069,7 +1077,7 @@ header {
 .report-card-comparisons {
     margin-bottom: 32px;
     padding: 24px;
-    background: #f8f9fa;
+    background: #FFF4E6;
     border-radius: 8px;
 }
 
@@ -1278,11 +1286,11 @@ header {
     }
     
     /* Optimize colors for printing */
-    .grade-a { background-color: #27ae60 !important; }
-    .grade-b { background-color: #2ecc71 !important; }
-    .grade-c { background-color: #f39c12 !important; }
-    .grade-d { background-color: #e67e22 !important; }
-    .grade-f { background-color: #e74c3c !important; }
+    .grade-a { background-color: #D35400 !important; }
+    .grade-b { background-color: #E67E22 !important; }
+    .grade-c { background-color: #F39C12 !important; }
+    .grade-d { background-color: #E74C3C !important; }
+    .grade-f { background-color: #C0392B !important; }
     
     /* Logo in header */
     .report-card-logo {
