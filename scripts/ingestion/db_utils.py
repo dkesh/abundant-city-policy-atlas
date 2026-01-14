@@ -627,14 +627,34 @@ def bulk_upsert_policy_documents(conn, cursor, documents: List[Dict]) -> Tuple[i
 
 
 def _dedupe_reforms(reforms: List[Dict]) -> List[Dict]:
+    """
+    Deduplicate reforms within a batch using normalized NULL values for comparison.
+    
+    Note: This only deduplicates within the current batch. The actual values
+    (including NULLs) are preserved. We normalize only for comparison purposes.
+    
+    PostgreSQL treats NULL != NULL in unique constraints, so we normalize for comparison:
+    - NULL adoption_date -> '1900-01-01' (sentinel date)
+    - NULL status -> '' (empty string)
+    """
     deduped: Dict[Tuple, Dict] = {}
     for reform in reforms:
+        # Normalize NULL values ONLY for comparison key (not in the actual data)
+        adoption_date = reform.get('adoption_date')
+        if adoption_date is None:
+            adoption_date = '1900-01-01'  # Sentinel date for NULL comparison
+        
+        status = reform.get('status')
+        if status is None:
+            status = ''  # Empty string for NULL comparison
+        
         key = (
             reform['place_id'],
             reform['reform_type_id'],
-            reform.get('adoption_date'),
-            reform.get('status')
+            adoption_date,
+            status
         )
+        # Keep the original reform dict with NULLs preserved
         deduped[key] = reform
     return list(deduped.values())
 
@@ -643,20 +663,94 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
     """
     Upsert reforms and return (created_count, updated_count, reform_ids, deduped_records).
     The order of reform_ids matches deduped_records for downstream citation handling.
+    
+    This function:
+    1. Deduplicates within the batch
+    2. Checks for existing reforms using normalized NULL comparison
+    3. Inserts new reforms with NULLs preserved
+    4. Updates existing reforms
     """
     deduped = _dedupe_reforms(reforms)
     if not deduped:
         return 0, 0, [], []
 
-    rows = [
-        (
+    # Check for existing reforms using normalized comparison
+    # This prevents duplicates even when existing rows have NULL values
+    # We need to check using the same normalization logic as the unique index
+    existing_map = {}  # Maps normalized key -> existing reform_id
+    if deduped:
+        # Get unique place_ids and reform_type_ids to limit the query
+        place_ids = list(set(r['place_id'] for r in deduped))
+        reform_type_ids = list(set(r['reform_type_id'] for r in deduped))
+        
+        # Query using the same COALESCE logic as the unique index
+        check_sql = """
+            SELECT id, place_id, reform_type_id, 
+                   COALESCE(adoption_date, '1900-01-01'::date) AS normalized_adoption_date,
+                   COALESCE(status, '') AS normalized_status
+            FROM reforms
+            WHERE place_id = ANY(%s) AND reform_type_id = ANY(%s)
+        """
+        cursor.execute(check_sql, (place_ids, reform_type_ids))
+        for row in cursor.fetchall():
+            # row: (id, place_id, reform_type_id, normalized_adoption_date, normalized_status)
+            # Database returns date object from COALESCE, normalize to string for comparison
+            norm_date = row[3]
+            if hasattr(norm_date, 'isoformat'):
+                # It's a date object, convert to ISO string
+                norm_date = norm_date.isoformat()
+            elif norm_date is None:
+                norm_date = '1900-01-01'
+            else:
+                norm_date = str(norm_date)
+            
+            key = (row[1], row[2], norm_date, row[4])
+            existing_map[key] = row[0]  # Store existing reform ID
+
+    # Separate reforms into new vs existing
+    new_reforms = []
+    update_reforms = []  # List of (existing_id, reform_dict) tuples
+    
+    for r in deduped:
+        # Normalize for comparison (but keep original values in the dict)
+        # Ensure date is properly normalized to ISO string format to match database query results
+        adoption_date = r.get('adoption_date')
+        if adoption_date is None:
+            norm_date = '1900-01-01'
+        elif hasattr(adoption_date, 'isoformat'):
+            # It's a date/datetime object, convert to ISO string
+            norm_date = adoption_date.isoformat()[:10]  # Get YYYY-MM-DD part
+        elif isinstance(adoption_date, str):
+            # Already a string, use as-is (should be in YYYY-MM-DD format)
+            norm_date = adoption_date
+        else:
+            # Fallback: convert to string
+            norm_date = str(adoption_date) if adoption_date else '1900-01-01'
+        
+        norm_status = r.get('status') or ''
+        key = (r['place_id'], r['reform_type_id'], norm_date, norm_status)
+        
+        if key in existing_map:
+            # This reform already exists - will update it
+            update_reforms.append((existing_map[key], r))
+        else:
+            # New reform - will insert it
+            new_reforms.append(r)
+
+    all_reform_ids = []
+    created_count = 0
+    updated_count = 0
+
+    # Insert new reforms (preserving NULLs)
+    if new_reforms:
+        rows = [(
             r['place_id'],
             r['reform_type_id'],
             r.get('policy_document_id'),
-            r.get('status'),
+            r.get('status'),  # Keep as None/NULL if not present
             r.get('scope'),
             r.get('land_use'),
-            r.get('adoption_date'),
+            r.get('adoption_date'),  # Keep as None/NULL if not present
             r.get('summary'),
             r.get('requirements'),
             r.get('notes'),
@@ -664,41 +758,168 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             r.get('reform_phase'),
             r.get('legislative_number'),
             r.get('link_url')
-        )
-        for r in deduped
-    ]
+        ) for r in new_reforms]
 
-    sql = """
-        INSERT INTO reforms (
-            place_id, reform_type_id, policy_document_id, status, scope, land_use,
-            adoption_date, summary, requirements, notes,
-            reform_mechanism, reform_phase, legislative_number, link_url
-        )
-        VALUES %s
-        ON CONFLICT (place_id, reform_type_id, adoption_date, status)
-        DO UPDATE SET
-            policy_document_id = EXCLUDED.policy_document_id,
-            scope = EXCLUDED.scope,
-            land_use = EXCLUDED.land_use,
-            summary = EXCLUDED.summary,
-            requirements = EXCLUDED.requirements,
-            notes = EXCLUDED.notes,
-            reform_mechanism = EXCLUDED.reform_mechanism,
-            reform_phase = EXCLUDED.reform_phase,
-            legislative_number = EXCLUDED.legislative_number,
-            link_url = EXCLUDED.link_url,
-            updated_at = CURRENT_TIMESTAMP
-        RETURNING id, (xmax = 0)::int AS is_insert
-    """
+        sql = """
+            INSERT INTO reforms (
+                place_id, reform_type_id, policy_document_id, status, scope, land_use,
+                adoption_date, summary, requirements, notes,
+                reform_mechanism, reform_phase, legislative_number, link_url
+            )
+            VALUES %s
+            ON CONFLICT (place_id, reform_type_id, adoption_date, status)
+            DO UPDATE SET
+                policy_document_id = EXCLUDED.policy_document_id,
+                scope = EXCLUDED.scope,
+                land_use = EXCLUDED.land_use,
+                summary = EXCLUDED.summary,
+                requirements = EXCLUDED.requirements,
+                notes = EXCLUDED.notes,
+                reform_mechanism = EXCLUDED.reform_mechanism,
+                reform_phase = EXCLUDED.reform_phase,
+                legislative_number = EXCLUDED.legislative_number,
+                link_url = EXCLUDED.link_url,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id, (xmax = 0)::int AS is_insert
+        """
 
-    results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+        try:
+            results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+            created_count = sum(1 for _, is_insert in results if is_insert)
+            all_reform_ids.extend([rid for rid, _ in results])
+        except psycopg2.IntegrityError as e:
+            # Handle case where normalized unique index catches a duplicate
+            # that our Python check missed (e.g., due to date type mismatches)
+            if 'reforms_unique_normalized' in str(e):
+                # Re-query to find the existing reform and update it instead
+                logging.warning(f"Normalized unique index caught duplicate, handling gracefully: {e}")
+                
+                # Find the conflicting reforms and move them to update_reforms
+                remaining_new_reforms = []
+                for r in new_reforms:
+                    # Normalize date properly for comparison
+                    adoption_date = r.get('adoption_date')
+                    if adoption_date is None:
+                        norm_date = '1900-01-01'
+                    elif isinstance(adoption_date, str):
+                        try:
+                            from datetime import datetime as dt
+                            norm_date = dt.strptime(adoption_date, '%Y-%m-%d').date()
+                        except (ValueError, TypeError):
+                            norm_date = '1900-01-01'
+                    else:
+                        norm_date = adoption_date
+                    
+                    norm_status = r.get('status') or ''
+                    
+                    # Query for existing reform with normalized values
+                    find_sql = """
+                        SELECT id FROM reforms
+                        WHERE place_id = %s
+                          AND reform_type_id = %s
+                          AND COALESCE(adoption_date, '1900-01-01'::date) = %s
+                          AND COALESCE(status, '') = %s
+                        LIMIT 1
+                    """
+                    cursor.execute(find_sql, (r['place_id'], r['reform_type_id'], norm_date, norm_status))
+                    existing = cursor.fetchone()
+                    
+                    if existing:
+                        # Update existing reform
+                        existing_id = existing[0]
+                        update_reforms.append((existing_id, r))
+                    else:
+                        # Keep for retry
+                        remaining_new_reforms.append(r)
+                
+                # Retry insert with remaining reforms
+                if remaining_new_reforms:
+                    rows = [(
+                        r['place_id'], r['reform_type_id'], r.get('policy_document_id'),
+                        r.get('status'), r.get('scope'), r.get('land_use'),
+                        r.get('adoption_date'), r.get('summary'), r.get('requirements'),
+                        r.get('notes'), r.get('reform_mechanism'), r.get('reform_phase'),
+                        r.get('legislative_number'), r.get('link_url')
+                    ) for r in remaining_new_reforms]
+                    
+                    results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+                    created_count = sum(1 for _, is_insert in results if is_insert)
+                    all_reform_ids.extend([rid for rid, _ in results])
+                else:
+                    created_count = 0
+            else:
+                # Re-raise if it's a different integrity error
+                raise
+
+    # Update existing reforms
+    if update_reforms:
+        for existing_id, r in update_reforms:
+            update_sql = """
+                UPDATE reforms SET
+                    policy_document_id = %s,
+                    scope = %s,
+                    land_use = %s,
+                    summary = %s,
+                    requirements = %s,
+                    notes = %s,
+                    reform_mechanism = %s,
+                    reform_phase = %s,
+                    legislative_number = %s,
+                    link_url = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %s
+                RETURNING id
+            """
+            cursor.execute(update_sql, (
+                r.get('policy_document_id'),
+                r.get('scope'),
+                r.get('land_use'),
+                r.get('summary'),
+                r.get('requirements'),
+                r.get('notes'),
+                r.get('reform_mechanism'),
+                r.get('reform_phase'),
+                r.get('legislative_number'),
+                r.get('link_url'),
+                existing_id
+            ))
+            result = cursor.fetchone()
+            if result:
+                all_reform_ids.append(result[0])
+                updated_count += 1
+
     conn.commit()
 
-    created = sum(1 for _, is_insert in results if is_insert)
-    updated = len(results) - created
-    reform_ids = [rid for rid, _ in results]
+    # Build reform_ids list in the same order as deduped records
+    # Create maps for efficient lookup using normalized keys
+    new_reform_id_map = {}  # Maps normalized key -> new ID
+    for i, r in enumerate(new_reforms):
+        if i < len(all_reform_ids):
+            # Use normalized key for consistency
+            norm_date = r.get('adoption_date') or '1900-01-01'
+            norm_status = r.get('status') or ''
+            key = (r['place_id'], r['reform_type_id'], norm_date, norm_status)
+            new_reform_id_map[key] = all_reform_ids[i]
+    
+    # Build final list matching deduped order
+    final_reform_ids = []
+    for r in deduped:
+        norm_date = r.get('adoption_date') or '1900-01-01'
+        norm_status = r.get('status') or ''
+        key = (r['place_id'], r['reform_type_id'], norm_date, norm_status)
+        
+        if key in existing_map:
+            # Existing reform - use existing ID
+            final_reform_ids.append(existing_map[key])
+        elif key in new_reform_id_map:
+            # New reform - use ID from insertion
+            final_reform_ids.append(new_reform_id_map[key])
+        else:
+            # Fallback: should not happen, but log warning
+            logging.warning(f"Could not find reform_id for reform: {r}")
+            final_reform_ids.append(None)
 
-    return created, updated, reform_ids, deduped
+    return created_count, updated_count, final_reform_ids, deduped
 
 
 def build_citation_rows(reform_ids: List[int], reforms: List[Dict]) -> List[Tuple]:
