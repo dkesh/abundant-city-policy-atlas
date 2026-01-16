@@ -50,6 +50,11 @@ jobs:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: python scripts/ingestion/centerforbuilding.py --ingest
     
+    - name: Run CLE Ingestion
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      run: python scripts/ingestion/center_for_land_economics.py
+    
     - name: Run Bill Scraping
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}

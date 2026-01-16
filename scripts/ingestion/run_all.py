@@ -59,6 +59,10 @@ def main():
         (
             "centerforbuilding.py",
             []  # Downloads from website automatically
+        ),
+        (
+            "center_for_land_economics.py",
+            []  # Downloads from Google Sheets automatically
         )
     ]
 
