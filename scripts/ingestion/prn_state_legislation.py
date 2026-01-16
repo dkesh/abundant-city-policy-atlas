@@ -24,7 +24,6 @@ import traceback
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 
-from dotenv import load_dotenv
 from db_utils import (
     build_citation_rows,
     bulk_insert_citations,
@@ -43,11 +42,12 @@ from db_utils import (
     normalize_reform_status,
     place_key,
     read_csv_file,
-    USER_AGENT
+    USER_AGENT,
+    initialize_environment
 )
 
 # Load environment variables from .env file
-load_dotenv()
+initialize_environment()
 
 # ============================================================================
 # CONFIGURATION

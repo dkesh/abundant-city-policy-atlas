@@ -1,0 +1,36 @@
+name: AI Enrichment
+
+on:
+  schedule:
+    # Run daily at 06:00 UTC (after bill scraping completes)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  enrich-reforms:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        
+    - name: Run AI Enrichment
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+        AI_MODEL: ${{ secrets.AI_MODEL }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ENRICHMENT_VERSION: ${{ secrets.ENRICHMENT_VERSION }}
+      run: python scripts/enrichment/ai_enrichment.py --all

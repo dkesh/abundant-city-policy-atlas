@@ -326,47 +326,47 @@ def parse_flexible_date(date_str: Optional[str]) -> Optional[str]:
 
 def normalize_reform_status(raw_status: Optional[str]) -> str:
     """
-    Normalize reform status to standardized values: 'Adopted', 'Failed', 'Proposed'.
+    Normalize reform status to standardized lowercase values: 'adopted', 'failed', 'proposed'.
     
-    Maps various status formats to standardized values with case-insensitive matching.
-    Defaults to 'Proposed' for unknown statuses.
+    Maps various status formats to standardized lowercase values with case-insensitive matching.
+    Defaults to 'proposed' for unknown statuses.
     
     Args:
         raw_status: Raw status string from source data
     
     Returns:
-        Normalized status string: 'Adopted', 'Failed', or 'Proposed'
+        Normalized status string: 'adopted', 'failed', or 'proposed' (all lowercase)
     """
     logger = logging.getLogger(__name__)
     
     if not raw_status:
-        return 'Proposed'
+        return 'proposed'
     
     status_lower = str(raw_status).lower().strip()
     
     # Adopted statuses
-    if status_lower in ['approved', 'enacted', 'effective', 'signed', 'signed by governor']:
-        return 'Adopted'
+    if status_lower in ['approved', 'enacted', 'effective', 'signed', 'signed by governor', 'adopted']:
+        return 'adopted'
     
     # Failed statuses
     if status_lower in ['denied/rejected', 'denied', 'rejected', 'vetoed', 'failed', 'died', 'defeat']:
-        return 'Failed'
+        return 'failed'
     
     # Proposed/in-process statuses
     if status_lower in ['early process', 'late process', 'introduced', 'in committee', 'passed chamber',
                         'introduced or prefiled', 'passed original chamber', 'passed second chamber',
-                        'out of committee']:
-        return 'Proposed'
+                        'out of committee', 'proposed']:
+        return 'proposed'
     
     # Heuristic matching for partial matches
     if 'effective' in status_lower or 'signed' in status_lower or 'enacted' in status_lower:
-        return 'Adopted'
+        return 'adopted'
     if 'fail' in status_lower or 'veto' in status_lower or 'died' in status_lower or 'defeat' in status_lower:
-        return 'Failed'
+        return 'failed'
     
-    # Default to Proposed for unknown statuses
-    logger.warning(f"Unknown status '{raw_status}', defaulting to 'Proposed'")
-    return 'Proposed'
+    # Default to proposed for unknown statuses
+    logger.warning(f"Unknown status '{raw_status}', defaulting to 'proposed'")
+    return 'proposed'
 
 
 # ============================================================================
@@ -479,6 +479,20 @@ def read_csv_file(filepath: str, encoding: str = 'utf-8-sig') -> List[Dict]:
     except Exception as e:
         logger.error(f"✗ Error reading CSV: {e}")
         raise
+
+
+# ============================================================================
+# ENVIRONMENT INITIALIZATION
+# ============================================================================
+
+def initialize_environment():
+    """
+    Initialize environment by loading variables from .env file.
+    
+    This should be called at the start of scripts that need environment variables.
+    """
+    from dotenv import load_dotenv
+    load_dotenv()
 
 
 # ============================================================================
@@ -770,16 +784,18 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             ON CONFLICT (place_id, reform_type_id, adoption_date, status)
             DO UPDATE SET
                 policy_document_id = EXCLUDED.policy_document_id,
-                scope = EXCLUDED.scope,
-                land_use = EXCLUDED.land_use,
-                summary = EXCLUDED.summary,
-                requirements = EXCLUDED.requirements,
-                notes = EXCLUDED.notes,
-                reform_mechanism = EXCLUDED.reform_mechanism,
-                reform_phase = EXCLUDED.reform_phase,
-                legislative_number = EXCLUDED.legislative_number,
-                link_url = EXCLUDED.link_url,
+                scope = COALESCE(EXCLUDED.scope, reforms.scope),
+                land_use = COALESCE(EXCLUDED.land_use, reforms.land_use),
+                summary = COALESCE(EXCLUDED.summary, reforms.summary),
+                requirements = COALESCE(EXCLUDED.requirements, reforms.requirements),
+                notes = COALESCE(EXCLUDED.notes, reforms.notes),
+                reform_mechanism = COALESCE(EXCLUDED.reform_mechanism, reforms.reform_mechanism),
+                reform_phase = COALESCE(EXCLUDED.reform_phase, reforms.reform_phase),
+                legislative_number = COALESCE(EXCLUDED.legislative_number, reforms.legislative_number),
+                link_url = COALESCE(EXCLUDED.link_url, reforms.link_url),
                 updated_at = CURRENT_TIMESTAMP
+                -- Note: ai_enriched_fields, ai_enrichment_version, ai_enriched_at are preserved automatically
+                -- (not in UPDATE SET clause, so they remain unchanged)
             RETURNING id, (xmax = 0)::int AS is_insert
         """
 
@@ -852,21 +868,24 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
                 raise
 
     # Update existing reforms
+    # Preserve AI enrichment fields - only update if tracker provides new value
     if update_reforms:
         for existing_id, r in update_reforms:
             update_sql = """
                 UPDATE reforms SET
-                    policy_document_id = %s,
-                    scope = %s,
-                    land_use = %s,
-                    summary = %s,
-                    requirements = %s,
-                    notes = %s,
-                    reform_mechanism = %s,
-                    reform_phase = %s,
-                    legislative_number = %s,
-                    link_url = %s,
+                    policy_document_id = COALESCE(%s, reforms.policy_document_id),
+                    scope = COALESCE(%s, reforms.scope),
+                    land_use = COALESCE(%s, reforms.land_use),
+                    summary = COALESCE(%s, reforms.summary),
+                    requirements = COALESCE(%s, reforms.requirements),
+                    notes = COALESCE(%s, reforms.notes),
+                    reform_mechanism = COALESCE(%s, reforms.reform_mechanism),
+                    reform_phase = COALESCE(%s, reforms.reform_phase),
+                    legislative_number = COALESCE(%s, reforms.legislative_number),
+                    link_url = COALESCE(%s, reforms.link_url),
                     updated_at = CURRENT_TIMESTAMP
+                    -- Note: ai_enriched_fields, ai_enrichment_version, ai_enriched_at are preserved
+                    -- (not in UPDATE SET clause, so they remain unchanged)
                 WHERE id = %s
                 RETURNING id
             """

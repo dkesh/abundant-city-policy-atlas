@@ -6,11 +6,12 @@ These should be deleted since we now have correctly classified versions.
 
 import os
 import sys
-from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-load_dotenv()
+from scripts.ingestion.db_utils import initialize_environment
+
+initialize_environment()
 
 db_url = os.getenv('DATABASE_URL')
 if not db_url:

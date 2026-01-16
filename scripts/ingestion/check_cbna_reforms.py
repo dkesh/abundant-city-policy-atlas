@@ -5,12 +5,13 @@ Check for CBNA reforms in the database.
 
 import os
 import sys
-from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from scripts.ingestion.db_utils import initialize_environment
+
 # Load environment variables
-load_dotenv()
+initialize_environment()
 
 # Get database URL
 db_url = os.getenv('DATABASE_URL')

@@ -20,7 +20,6 @@ from datetime import datetime
 from typing import List, Dict, Tuple, Optional
 import tempfile
 
-from dotenv import load_dotenv
 from helpers import normalize_place_name
 from db_utils import (
     build_citation_rows,
@@ -36,11 +35,12 @@ from db_utils import (
     load_reform_type_map,
     log_ingestion,
     parse_flexible_date,
-    place_key
+    place_key,
+    initialize_environment
 )
 
 # Load environment variables from .env file
-load_dotenv()
+initialize_environment()
 
 # ============================================================================
 # LOGGING SETUP

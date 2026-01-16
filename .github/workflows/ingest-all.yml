@@ -49,3 +49,21 @@ jobs:
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: python scripts/ingestion/centerforbuilding.py --ingest
+    
+    - name: Run Bill Scraping
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: python scripts/enrichment/run_bill_scraping.py --all
+    
+    - name: Run AI Enrichment
+      env:
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+        AI_MODEL: ${{ secrets.AI_MODEL }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ENRICHMENT_VERSION: ${{ secrets.ENRICHMENT_VERSION }}
+      run: python scripts/enrichment/ai_enrichment.py --all

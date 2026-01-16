@@ -192,9 +192,18 @@ exports.handler = async (event, context) => {
         r.requirements,
         r.notes,
         r.created_at,
+        r.ai_enriched_fields,
+        r.ai_enrichment_version,
+        r.summary as original_summary,
+        r.scope as original_scope,
+        r.land_use as original_land_use,
+        r.requirements as original_requirements,
         pd.id as policy_document_id,
         pd.title as policy_document_title,
         pd.reference_number as policy_document_reference,
+        pd.ai_enriched_fields as policy_doc_ai_fields,
+        pd.key_points as original_key_points,
+        pd.analysis as original_analysis,
         COALESCE(
           json_agg(
             json_build_object(
@@ -223,7 +232,8 @@ exports.handler = async (event, context) => {
                tld.state_code, tld.state_name, tld.country, tld.region,
                rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
-               pd.id, pd.title, pd.reference_number
+               r.ai_enriched_fields, r.ai_enrichment_version,
+               pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
       ORDER BY tld.state_name, p.name, rt.sort_order, r.adoption_date DESC
       LIMIT $${paramCount}
     `;
@@ -233,42 +243,83 @@ exports.handler = async (event, context) => {
     const result = await client.query(query, queryParams);
     client.release();
 
-    // Transform results for API response
-    const reforms = result.rows.map(row => ({
-      id: row.id,
-      place: {
-        id: row.place_id,
-        name: row.place_name,
-        type: row.place_type,
-        state: row.state_name,
-        state_code: row.state_code,
-        country: row.country,
-        population: row.population,
-        latitude: row.latitude,
-        longitude: row.longitude,
-        encoded_name: row.encoded_name,
-        region: row.region
-      },
-      reform: {
-        type: row.reform_type_code,
-        type_name: row.reform_type_name,
-        color: row.color_hex,
-        status: row.status,
-        scope: row.scope || [],
-        land_use: row.land_use || [],
-        adoption_date: row.adoption_date ? row.adoption_date.toISOString().split('T')[0] : null,
-        summary: row.summary || '',
-        requirements: row.requirements || [],
-        notes: row.notes || '',
-        link_url: row.link_url,
-        sources: row.sources || [],
-        policy_document: row.policy_document_id ? {
-          id: row.policy_document_id,
-          title: row.policy_document_title,
-          reference_number: row.policy_document_reference
-        } : null
+    // Helper function to get merged value (AI if available, otherwise original)
+    const getMergedValue = (aiEnrichment, fieldName, originalValue) => {
+      if (aiEnrichment?.fields?.[fieldName]?.value !== undefined && 
+          aiEnrichment?.fields?.[fieldName]?.value !== null) {
+        return aiEnrichment.fields[fieldName].value;
       }
-    }));
+      return originalValue;
+    };
+
+    // Transform results for API response
+    const reforms = result.rows.map(row => {
+      const aiEnrichment = row.ai_enriched_fields || null;
+      
+      // Get merged values (AI where available, original otherwise)
+      const mergedSummary = getMergedValue(aiEnrichment, 'summary', row.summary);
+      const mergedScope = getMergedValue(aiEnrichment, 'scope', row.scope) || [];
+      const mergedLandUse = getMergedValue(aiEnrichment, 'land_use', row.land_use) || [];
+      const mergedRequirements = getMergedValue(aiEnrichment, 'requirements', row.requirements) || [];
+      
+      return {
+        id: row.id,
+        place: {
+          id: row.place_id,
+          name: row.place_name,
+          type: row.place_type,
+          state: row.state_name,
+          state_code: row.state_code,
+          country: row.country,
+          population: row.population,
+          latitude: row.latitude,
+          longitude: row.longitude,
+          encoded_name: row.encoded_name,
+          region: row.region
+        },
+        reform: {
+          type: row.reform_type_code,
+          type_name: row.reform_type_name,
+          color: row.color_hex,
+          status: row.status,
+          scope: mergedScope,
+          land_use: mergedLandUse,
+          adoption_date: row.adoption_date ? row.adoption_date.toISOString().split('T')[0] : null,
+          summary: mergedSummary || '',
+          requirements: mergedRequirements,
+          notes: row.notes || '',
+          link_url: row.link_url,
+          sources: row.sources || [],
+          original: {
+            summary: row.original_summary || '',
+            scope: row.original_scope || [],
+            land_use: row.original_land_use || [],
+            requirements: row.original_requirements || []
+          },
+          ai_enrichment: aiEnrichment ? {
+            version: aiEnrichment.version,
+            enriched_at: aiEnrichment.enriched_at,
+            model: aiEnrichment.model,
+            provider: aiEnrichment.provider,
+            fields: aiEnrichment.fields || {}
+          } : null,
+          policy_document: row.policy_document_id ? {
+            id: row.policy_document_id,
+            title: row.policy_document_title,
+            reference_number: row.policy_document_reference,
+            original: {
+              key_points: row.original_key_points || [],
+              analysis: row.original_analysis || ''
+            },
+            ai_enrichment: row.policy_doc_ai_fields ? {
+              version: row.policy_doc_ai_fields.version,
+              enriched_at: row.policy_doc_ai_fields.enriched_at,
+              fields: row.policy_doc_ai_fields.fields || {}
+            } : null
+          } : null
+        }
+      };
+    });
 
     return {
       statusCode: 200,

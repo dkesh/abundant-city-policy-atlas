@@ -153,6 +153,95 @@ function renderReforms() {
     }
 }
 
+// Helper to get field value (AI if available, otherwise original)
+function getFieldValue(fieldName, reform, useOriginal = false) {
+    if (useOriginal) {
+        return reform.reform.original?.[fieldName] || reform.reform[fieldName] || '';
+    }
+    
+    // Prefer AI value if available, fall back to original
+    const aiValue = reform.reform.ai_enrichment?.fields?.[fieldName]?.value;
+    if (aiValue !== undefined && aiValue !== null) {
+        return aiValue;
+    }
+    return reform.reform.original?.[fieldName] || reform.reform[fieldName] || '';
+}
+
+// Helper to check if field has AI enrichment
+function hasAIEnrichment(fieldName, reform) {
+    return !!reform.reform.ai_enrichment?.fields?.[fieldName];
+}
+
+// Helper to render AI indicator (clickable sparkle logo)
+function renderAIIndicator(fieldName, reform) {
+    if (!hasAIEnrichment(fieldName, reform)) return '';
+    
+    const field = reform.reform.ai_enrichment.fields[fieldName];
+    const fieldId = `field-${reform.id}-${fieldName}`;
+    
+    // Get original value for tooltip
+    const original = reform.reform.original?.[fieldName] || reform.reform[fieldName] || '';
+    const formatValueForTooltip = (val) => {
+        if (Array.isArray(val)) {
+            return val.length > 0 ? val.join(', ') : '(none)';
+        }
+        return val || '(none)';
+    };
+    const originalFormatted = formatValueForTooltip(original);
+    
+    return `
+        <button class="ai-indicator" 
+                onclick="toggleFieldSource('${fieldId}')"
+                title="AI-generated (${field.confidence} confidence): ${escapeHtml(field.reasoning || '')}\nOriginal value: ${escapeHtml(originalFormatted)}"
+                aria-label="View original value">
+            <img src="/images/ai-sparkle.svg" alt="AI" class="ai-icon" />
+        </button>
+    `;
+}
+
+// Helper to render field comparison view (only shows original value)
+function renderFieldComparison(fieldName, reform) {
+    if (!hasAIEnrichment(fieldName, reform)) return '';
+    
+    const fieldId = `field-${reform.id}-${fieldName}`;
+    const original = reform.reform.original?.[fieldName] || '';
+    
+    // Format array fields
+    const formatValue = (val) => {
+        if (Array.isArray(val)) {
+            return val.length > 0 ? val.map(v => escapeHtml(v)).join(', ') : '';
+        }
+        return val || '';
+    };
+    
+    const originalFormatted = formatValue(original);
+    if (!originalFormatted) return '';
+    
+    return `
+        <div id="${fieldId}-comparison" class="field-comparison hidden">
+            <div class="comparison-header">
+                <span>Original (Tracker): ${fieldName}</span>
+                <button onclick="toggleFieldSource('${fieldId}')" class="mdc-icon-button" aria-label="Close comparison" style="min-width: 32px; width: 32px; height: 32px; padding: 0;">
+                    <i class="material-icons" style="font-size: 18px;">close</i>
+                </button>
+            </div>
+            <div class="comparison-content">
+                <div class="original-value">
+                    <div class="value-content">${originalFormatted}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// Global toggle function (add to window scope)
+window.toggleFieldSource = function(fieldId) {
+    const comparison = document.getElementById(`${fieldId}-comparison`);
+    if (comparison) {
+        comparison.classList.toggle('hidden');
+    }
+};
+
 function createReformCard(reform, showDistance = false) {
     const card = document.createElement('div');
     card.className = `mdc-card reform-card ${reform.reform.type}`;
@@ -267,7 +356,10 @@ function createReformCard(reform, showDistance = false) {
     const reformChips = [];
     reformChips.push(createChip(reform.reform.type_name));
     reformChips.push(createChip(adoptionDateFormatted.chipText, adoptionDateFormatted.tooltip));
-    reformChips.push(createChip(`Status: ${escapeHtml(reform.reform.status || 'Adopted')}`));
+    const statusDisplay = reform.reform.status 
+        ? reform.reform.status.charAt(0).toUpperCase() + reform.reform.status.slice(1).toLowerCase()
+        : 'Adopted';
+    reformChips.push(createChip(`Status: ${escapeHtml(statusDisplay)}`));
 
     card.innerHTML = `
         <div class="mdc-card__primary-action">
@@ -299,9 +391,13 @@ function createReformCard(reform, showDistance = false) {
                         </div>
                         ` : ''}
 
-                        ${reform.reform.summary ? `
+                        ${reform.reform.summary || reform.reform.ai_enrichment?.fields?.summary ? `
                             <div class="reform-summary mdc-typography--body2">
-                                ${escapeHtml(reform.reform.summary)}
+                                <div id="field-${reform.id}-summary">
+                                    ${escapeHtml(getFieldValue('summary', reform))}
+                                    ${renderAIIndicator('summary', reform)}
+                                </div>
+                                ${renderFieldComparison('summary', reform)}
                             </div>
                         ` : ''}
                     </div>

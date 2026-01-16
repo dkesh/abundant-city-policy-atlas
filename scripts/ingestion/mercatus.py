@@ -11,10 +11,9 @@ import argparse
 from datetime import datetime
 from typing import Dict, List, Set, Tuple
 
-from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+initialize_environment()
 
 # Ensure we can import from local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -32,7 +31,8 @@ from db_utils import (
     normalize_reform_status,
     parse_flexible_date,
     place_key,
-    read_csv_file
+    read_csv_file,
+    initialize_environment
 )
 
 # Configure logging

@@ -28,7 +28,6 @@ from typing import Optional, Dict, List, Tuple
 
 import requests
 
-from dotenv import load_dotenv
 from helpers import normalize_place_name
 from db_utils import (
     build_citation_rows,
@@ -50,7 +49,7 @@ from db_utils import (
 )
 
 # Load environment variables from .env file
-load_dotenv()
+initialize_environment()
 
 # ============================================================================
 # CONFIGURATION

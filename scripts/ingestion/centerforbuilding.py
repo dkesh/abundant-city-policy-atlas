@@ -29,7 +29,6 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
-from dotenv import load_dotenv
 from helpers import normalize_place_name
 from db_utils import (
     build_citation_rows,
@@ -49,7 +48,7 @@ from db_utils import (
 )
 
 # Load environment variables
-load_dotenv()
+initialize_environment()
 
 # ============================================================================
 # CONFIGURATION
