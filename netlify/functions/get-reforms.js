@@ -81,9 +81,14 @@ exports.handler = async (event, context) => {
     let queryParams = [];
     let paramCount = 1;
 
-    // Reform type filter (MULTI - uses ANY)
+    // Reform type filter (MULTI - uses EXISTS with junction table)
     if (reformTypes.length > 0) {
-      whereClauses.push(`rt.code = ANY($${paramCount})`);
+      whereClauses.push(`EXISTS (
+        SELECT 1 FROM reform_reform_types rrt_filter
+        JOIN reform_types rt_filter ON rrt_filter.reform_type_id = rt_filter.id
+        WHERE rrt_filter.reform_id = r.id
+          AND rt_filter.code = ANY($${paramCount})
+      )`);
       queryParams.push(reformTypes);
       paramCount++;
     }
@@ -181,9 +186,25 @@ exports.handler = async (event, context) => {
         tld.state_name,
         tld.country,
         tld.region,
-        rt.code as reform_type_code,
-        rt.name as reform_type_name,
-        rt.color_hex,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'code', rt_sub.code,
+                'name', rt_sub.name,
+                'color_hex', rt_sub.color_hex,
+                'sort_order', rt_sub.sort_order
+              ) ORDER BY rt_sub.sort_order
+            )
+            FROM (
+              SELECT DISTINCT rt2.code, rt2.name, rt2.color_hex, rt2.sort_order
+              FROM reform_reform_types rrt2
+              JOIN reform_types rt2 ON rrt2.reform_type_id = rt2.id
+              WHERE rrt2.reform_id = r.id
+            ) rt_sub
+          ),
+          '[]'::json
+        ) as reform_types,
         r.status,
         r.scope,
         r.land_use,
@@ -205,36 +226,39 @@ exports.handler = async (event, context) => {
         pd.key_points as original_key_points,
         pd.analysis as original_analysis,
         COALESCE(
-          json_agg(
-            json_build_object(
-              'id', src.id,
-              'name', src.name,
-              'short_name', src.short_name,
-              'logo', src.logo_filename,
-              'website_url', src.website_url,
-              'reporter', rs.reporter,
-              'source_url', rs.source_url,
-              'notes', rs.notes,
-              'is_primary', rs.is_primary
-            ) ORDER BY rs.is_primary DESC, src.name
-          ) FILTER (WHERE src.id IS NOT NULL),
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', s.id,
+                'name', s.name,
+                'short_name', s.short_name,
+                'logo', s.logo_filename,
+                'website_url', s.website_url,
+                'reporter', rs.reporter,
+                'source_url', rs.source_url,
+                'notes', rs.notes,
+                'is_primary', rs.is_primary
+              ) ORDER BY rs.is_primary DESC, s.name
+            )
+            FROM reform_sources rs
+            JOIN sources s ON rs.source_id = s.id
+            WHERE rs.reform_id = r.id
+          ),
           '[]'::json
         ) as sources
       FROM reforms r
       JOIN places p ON r.place_id = p.id
       JOIN top_level_division tld ON p.state_code = tld.state_code
-      JOIN reform_types rt ON r.reform_type_id = rt.id
+      LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+      LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
       LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
-      LEFT JOIN reform_sources rs ON r.id = rs.reform_id
-      LEFT JOIN sources src ON rs.source_id = src.id
       WHERE ${whereClause}
       GROUP BY r.id, p.id, p.name, p.place_type, p.population, tld.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
                tld.state_code, tld.state_name, tld.country, tld.region,
-               rt.id, rt.code, rt.name, rt.color_hex, rt.sort_order,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
                r.ai_enriched_fields, r.ai_enrichment_version,
                pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
-      ORDER BY tld.state_name, p.name, rt.sort_order, r.adoption_date DESC
+      ORDER BY tld.state_name, p.name, r.adoption_date DESC
       LIMIT $${paramCount}
     `;
 
@@ -278,9 +302,11 @@ exports.handler = async (event, context) => {
           region: row.region
         },
         reform: {
-          type: row.reform_type_code,
-          type_name: row.reform_type_name,
-          color: row.color_hex,
+          types: row.reform_types || [],  // Array of reform types
+          // For backwards compatibility, use first type if available
+          type: row.reform_types && row.reform_types.length > 0 ? row.reform_types[0].code : null,
+          type_name: row.reform_types && row.reform_types.length > 0 ? row.reform_types[0].name : null,
+          color: row.reform_types && row.reform_types.length > 0 ? row.reform_types[0].color_hex : null,
           status: row.status,
           scope: mergedScope,
           land_use: mergedLandUse,

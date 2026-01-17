@@ -354,7 +354,17 @@ function createReformCard(reform, showDistance = false) {
     // Build reform chips (for bottom left)
     const adoptionDateFormatted = formatAdoptionDate(adoptionDateRaw);
     const reformChips = [];
-    reformChips.push(createChip(reform.reform.type_name));
+    
+    // Show one chip for each reform type (policy domain)
+    if (reform.reform.types && reform.reform.types.length > 0) {
+        reform.reform.types.forEach(reformType => {
+            reformChips.push(createChip(reformType.name));
+        });
+    } else if (reform.reform.type_name) {
+        // Fallback to backwards compatibility field if types array is missing
+        reformChips.push(createChip(reform.reform.type_name));
+    }
+    
     reformChips.push(createChip(adoptionDateFormatted.chipText, adoptionDateFormatted.tooltip));
     const statusDisplay = reform.reform.status 
         ? reform.reform.status.charAt(0).toUpperCase() + reform.reform.status.slice(1).toLowerCase()

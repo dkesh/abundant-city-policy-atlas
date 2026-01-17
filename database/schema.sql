@@ -99,10 +99,10 @@ CREATE TABLE IF NOT EXISTS policy_documents (
 CREATE INDEX IF NOT EXISTS policy_docs_state_ref_idx ON policy_documents(state_code, reference_number);
 
 -- Normalized reforms table (place-based) - supports both PRN and ZRT data
+-- Note: Reforms can have multiple reform_types via reform_reform_types junction table
 CREATE TABLE IF NOT EXISTS reforms (
   id SERIAL NOT NULL,
   place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
-  reform_type_id INTEGER NOT NULL REFERENCES reform_types(id) ON DELETE CASCADE,
   policy_document_id INTEGER REFERENCES policy_documents(id) ON DELETE SET NULL,
   -- status and details
   status VARCHAR(50),
@@ -120,15 +120,23 @@ CREATE TABLE IF NOT EXISTS reforms (
   link_url TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY(id),
-  UNIQUE(place_id, reform_type_id, adoption_date, status)
+  PRIMARY KEY(id)
 );
 
 -- Indexes for common queries on reforms
 CREATE INDEX IF NOT EXISTS reforms_place_idx ON reforms(place_id);
-CREATE INDEX IF NOT EXISTS reforms_type_idx ON reforms(reform_type_id);
 CREATE INDEX IF NOT EXISTS reforms_adoption_idx ON reforms(adoption_date);
 CREATE INDEX IF NOT EXISTS reforms_policy_doc_idx ON reforms(policy_document_id);
+
+-- Junction table for many-to-many relationship between reforms and reform_types
+CREATE TABLE IF NOT EXISTS reform_reform_types (
+  reform_id INTEGER NOT NULL REFERENCES reforms(id) ON DELETE CASCADE,
+  reform_type_id INTEGER NOT NULL REFERENCES reform_types(id) ON DELETE CASCADE,
+  PRIMARY KEY (reform_id, reform_type_id)
+);
+
+CREATE INDEX IF NOT EXISTS reform_reform_types_reform_idx ON reform_reform_types(reform_id);
+CREATE INDEX IF NOT EXISTS reform_reform_types_type_idx ON reform_reform_types(reform_type_id);
 
 -- Data sources table - tracks intermediate sources (PRN, ZRT, etc.)
 CREATE TABLE IF NOT EXISTS sources (
@@ -205,9 +213,9 @@ SELECT
   tld.state_code,
   tld.state_name,
   tld.country,
-  rt.code as reform_code,
-  rt.name as reform_type,
-  rt.color_hex,
+  STRING_AGG(DISTINCT rt.code, ', ') as reform_codes,
+  STRING_AGG(DISTINCT rt.name, ', ') as reform_types,
+  STRING_AGG(DISTINCT rt.color_hex, ', ') as color_hexes,
   p.name as municipality_name,
   CASE 
     WHEN p.place_type = 'city' THEN 'Municipality'
@@ -231,11 +239,12 @@ SELECT
 FROM reforms r
 JOIN places p ON r.place_id = p.id
 JOIN top_level_division tld ON p.state_code = tld.state_code
-JOIN reform_types rt ON r.reform_type_id = rt.id
+LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
 LEFT JOIN sources src ON rs.source_id = src.id
-GROUP BY r.id, tld.state_code, tld.state_name, tld.country, rt.code, rt.name, rt.color_hex, rt.sort_order, p.name, p.place_type, tld.region, r.summary, r.notes, r.scope, r.reform_mechanism, r.reform_phase, r.adoption_date, p.latitude, p.longitude, r.created_at
-ORDER BY tld.state_name, p.name, rt.sort_order;
+GROUP BY r.id, tld.state_code, tld.state_name, tld.country, p.name, p.place_type, tld.region, r.summary, r.notes, r.scope, r.reform_mechanism, r.reform_phase, r.adoption_date, p.latitude, p.longitude, r.created_at
+ORDER BY tld.state_name, p.name;
 
 -- View: Summary of reforms by state and type
 CREATE OR REPLACE VIEW v_reforms_by_state_summary AS
@@ -252,9 +261,10 @@ SELECT
 FROM top_level_division tld
 LEFT JOIN places p ON p.state_code = tld.state_code
 LEFT JOIN reforms r ON r.place_id = p.id
-LEFT JOIN reform_types rt ON r.reform_type_id = rt.id
+LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
 GROUP BY tld.id, tld.state_code, tld.state_name, tld.country, rt.id, rt.code, rt.name, rt.color_hex
-ORDER BY tld.state_name, rt.sort_order;
+ORDER BY tld.state_name;
 
 -- View: States with at least one reform
 CREATE OR REPLACE VIEW v_states_with_reforms AS
@@ -270,6 +280,7 @@ SELECT DISTINCT
 FROM top_level_division tld
 JOIN places p ON p.state_code = tld.state_code
 JOIN reforms r ON r.place_id = p.id
+LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
 GROUP BY tld.id, tld.state_code, tld.state_name, tld.country;
 
@@ -282,12 +293,13 @@ SELECT
   tld.country,
   STRING_AGG(DISTINCT src.short_name, ', ') as sources,
   COUNT(DISTINCT r.id) as reform_count,
-  COUNT(DISTINCT r.reform_type_id) as type_count,
+  COUNT(DISTINCT rrt.reform_type_id) as type_count,
   p.latitude,
   p.longitude
 FROM reforms r
 JOIN places p ON r.place_id = p.id
 JOIN top_level_division tld ON p.state_code = tld.state_code
+LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
 LEFT JOIN reform_sources rs ON r.id = rs.reform_id
 LEFT JOIN sources src ON rs.source_id = src.id
 WHERE p.name IS NOT NULL

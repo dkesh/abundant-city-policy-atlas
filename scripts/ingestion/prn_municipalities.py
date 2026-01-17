@@ -253,7 +253,7 @@ def _build_reform_records(
 
             reform_records.append({
                 'place_id': place_id,
-                'reform_type_id': reform_type_id,
+                'reform_type_ids': [reform_type_id],  # Convert to list for new schema
                 'status': reform['status'],
                 'scope': reform['scope'],
                 'land_use': reform['land_use'],

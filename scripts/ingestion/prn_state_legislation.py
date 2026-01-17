@@ -191,7 +191,7 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
         # Create reform record (place_id will be set after place upsert)
         reform_record = {
             'place_id': None,  # Will be set after place upsert
-            'reform_type_id': reform_type_id,
+            'reform_type_ids': [reform_type_id],  # Convert to list for new schema
             'policy_document_id': None,  # Will be set after policy_doc upsert
             'status': normalize_reform_status(bill_status),
             'scope': None,

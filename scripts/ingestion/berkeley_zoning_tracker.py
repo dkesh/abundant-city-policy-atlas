@@ -159,7 +159,7 @@ def parse_csv_row(row: Dict, place_id_map: Dict, reform_type_map: Dict) -> Optio
 
         return {
             'place_id': pid,
-            'reform_type_id': reform_type_map[reform_code],
+            'reform_type_ids': [reform_type_map[reform_code]],  # Convert to list for new schema
             'status': normalize_reform_status(reform_phase),
             'scope': scope,
             'land_use': land_use,

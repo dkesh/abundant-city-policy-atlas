@@ -250,14 +250,14 @@ def main():
         # 5. Construct Reforms
         reforms_to_insert = []
         for bill in bill_data:
-            # Reform needs: place_id, reform_type_id, status, etc.
+            # Reform needs: place_id, reform_type_ids (list), status, etc.
             # place_id: from place_map using state
             state_name = get_state_name(bill['state_code']) or bill['state_code']
             place_key_val = place_key(state_name, bill['state_code'], 'state')
             place_id = place_map.get(place_key_val)
             
             if not place_id:
-                logger.warning(f"Place ID not found for {place_key}")
+                logger.warning(f"Place ID not found for {place_key_val}")
                 continue
                 
             doc_id = doc_map.get((bill['state_code'], bill['ref']))
@@ -269,6 +269,8 @@ def main():
                     source_url = doc.get('document_url')
                     break
             
+            # Collect all reform_type_ids for this bill (one reform with multiple types)
+            reform_type_ids = []
             for issue in bill['issues']:
                 issue_lower = issue.lower().strip()
                 # Skip anti-investor and anti-trust (discard)
@@ -276,25 +278,30 @@ def main():
                     continue
                 
                 rt_id = reform_type_map.get(issue_lower)
-                if not rt_id:
-                    # Issue not mapped - skip it
+                if rt_id:
+                    reform_type_ids.append(rt_id)
+                else:
                     logger.debug(f"Skipping unmapped issue: {issue}")
-                    continue
-                
-                reform = {
-                    'place_id': place_id,
-                    'reform_type_id': rt_id,
-                    'policy_document_id': doc_id,
-                    'status': bill['status'],
-                    'adoption_date': bill['date'],
-                    'summary': bill['desc'],
-                    'legislative_number': bill['ref'],
-                    'link_url': MERCATUS_REFORM_TRACKER_URL,
-                    'source_url': source_url,
-                    'source_notes': 'Mercatus 2025 Housing Bills',
-                    'citations': []
-                }
-                reforms_to_insert.append(reform)
+            
+            # Only create reform if we have at least one reform_type
+            if not reform_type_ids:
+                logger.debug(f"No valid reform types for bill {bill['ref']}, skipping")
+                continue
+            
+            reform = {
+                'place_id': place_id,
+                'reform_type_ids': reform_type_ids,
+                'policy_document_id': doc_id,
+                'status': bill['status'],
+                'adoption_date': bill['date'],
+                'summary': bill['desc'],
+                'legislative_number': bill['ref'],
+                'link_url': MERCATUS_REFORM_TRACKER_URL,
+                'source_url': source_url,
+                'source_notes': 'Mercatus 2025 Housing Bills',
+                'citations': []
+            }
+            reforms_to_insert.append(reform)
         
         # 6. Upsert Reforms
         logger.info(f"Upserting {len(reforms_to_insert)} reforms...")
