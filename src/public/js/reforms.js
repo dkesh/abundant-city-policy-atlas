@@ -445,3 +445,146 @@ function createReformCard(reform, showDistance = false) {
 
     return card;
 }
+
+// ============================================================================
+// CSV EXPORT FUNCTION
+// ============================================================================
+
+/**
+ * Escape CSV value - wraps in quotes if contains commas, quotes, or newlines
+ * @param {string} value - Value to escape
+ * @returns {string} Escaped CSV value
+ */
+function escapeCSV(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    
+    const stringValue = String(value);
+    
+    // If contains comma, quote, or newline, wrap in quotes and escape internal quotes
+    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    
+    return stringValue;
+}
+
+/**
+ * Export filtered reforms to CSV file
+ * @param {Array} reforms - Array of reform objects to export
+ */
+function exportReformsToCSV(reforms) {
+    if (!reforms || reforms.length === 0) {
+        if (typeof showToast === 'function') {
+            showToast('No reforms available to export');
+        }
+        return;
+    }
+
+    // Define CSV headers
+    const headers = [
+        'Jurisdiction Name',
+        'Level of Government',
+        'State/Province',
+        'Country',
+        'Region',
+        'Population',
+        'Policy Domain',
+        'Status',
+        'Adoption Date',
+        'Summary'
+    ];
+
+    // Build CSV rows
+    const rows = [headers.join(',')];
+
+    reforms.forEach(reform => {
+        // Get jurisdiction name (use state name for state-level reforms)
+        const jurisdictionName = reform.place.type === 'state' 
+            ? reform.place.state 
+            : reform.place.name;
+
+        // Format place type (capitalize first letter)
+        const placeType = reform.place.type 
+            ? reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1)
+            : '';
+
+        // Get state/province
+        const stateProvince = reform.place.state || '';
+
+        // Get country
+        const country = reform.place.country || '';
+
+        // Get region
+        const region = reform.place.region || '';
+
+        // Get population
+        const population = reform.place.population ? String(reform.place.population) : '';
+
+        // Get reform types (comma-separated list of names)
+        const reformTypes = reform.reform.types && reform.reform.types.length > 0
+            ? reform.reform.types.map(rt => rt.name).join(', ')
+            : (reform.reform.type_name || '');
+
+        // Get status (capitalized)
+        const status = reform.reform.status 
+            ? reform.reform.status.charAt(0).toUpperCase() + reform.reform.status.slice(1).toLowerCase()
+            : '';
+
+        // Get adoption date (YYYY-MM-DD format)
+        const adoptionDate = reform.reform.adoption_date || '';
+
+        // Get summary (use AI-enriched value if available, otherwise original)
+        const summary = getFieldValue('summary', reform) || '';
+
+        // Build CSV row
+        const row = [
+            escapeCSV(jurisdictionName),
+            escapeCSV(placeType),
+            escapeCSV(stateProvince),
+            escapeCSV(country),
+            escapeCSV(region),
+            escapeCSV(population),
+            escapeCSV(reformTypes),
+            escapeCSV(status),
+            escapeCSV(adoptionDate),
+            escapeCSV(summary)
+        ];
+
+        rows.push(row.join(','));
+    });
+
+    // Create CSV content
+    const csvContent = rows.join('\n');
+
+    // Create Blob with UTF-8 BOM for Excel compatibility
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // Generate filename with timestamp
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    const filename = `reforms-export-${year}-${month}-${day}-${hours}${minutes}${seconds}.csv`;
+
+    // Create download link and trigger download
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    // Show success message
+    if (typeof showToast === 'function') {
+        showToast(`Exported ${reforms.length} reform${reforms.length !== 1 ? 's' : ''} to CSV`);
+    }
+}

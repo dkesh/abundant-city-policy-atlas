@@ -16,6 +16,20 @@ function setupEventListeners() {
     const shareSearchBtn = document.getElementById('shareSearch');
     shareSearchBtn.addEventListener('click', shareSearch);
     
+    // Download button in results banner
+    const downloadBannerBtn = document.getElementById('downloadBannerBtn');
+    if (downloadBannerBtn) {
+        downloadBannerBtn.addEventListener('click', () => {
+            if (typeof filteredReforms !== 'undefined' && filteredReforms.length > 0) {
+                exportReformsToCSV(filteredReforms);
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast('No reforms available to export');
+                }
+            }
+        });
+    }
+    
     // Share button in results banner
     const shareBannerBtn = document.getElementById('shareBannerBtn');
     if (shareBannerBtn) {
