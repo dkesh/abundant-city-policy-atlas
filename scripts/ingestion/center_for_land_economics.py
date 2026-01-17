@@ -281,7 +281,7 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
             'reform_mechanism': None,
             'reform_phase': None,
             'legislative_number': link1_text if link1_text else None,
-            'link_url': link1_url if link1_url else (link2_url if link2_url else 'https://landeconomics.org/'),
+            'link_url': 'https://landeconomics.org/problem#legislation',
             'citations': citations,
             # Source-specific fields (for reform_sources table)
             'reporter': None,
