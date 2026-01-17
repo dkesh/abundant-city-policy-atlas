@@ -145,6 +145,21 @@ function renderReforms() {
                 }
             });
         }
+        
+        // Add event listener for expand button
+        const expandButton = card.querySelector('.expand-reform-button');
+        if (expandButton) {
+            // Initialize MDC ripple for the button
+            if (window.mdc && window.mdc.ripple) {
+                const ripple = new mdc.ripple.MDCRipple(expandButton);
+                ripple.unbounded = true;
+            }
+            expandButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showExpandedReformView(reform);
+            });
+        }
     });
 
     // Also render map if in map view
@@ -310,12 +325,15 @@ function createReformCard(reform, showDistance = false) {
     });
 
     // Helper function to create limitation chip with embedded header
-    const createLimitationChip = (type, value) => `
-        <span class="mdc-chip limitation-chip">
+    const createLimitationChip = (type, value) => {
+        const fullText = `${type}: ${value}`;
+        return `
+        <span class="mdc-chip limitation-chip" title="${escapeHtml(fullText)}">
             <span class="mdc-chip__ripple"></span>
             <span class="mdc-chip__text"><strong>${escapeHtml(type)}</strong>: ${escapeHtml(value)}</span>
         </span>
     `;
+    };
 
     const limitationsHtml = limitationChips.length > 0
         ? limitationChips.map(item => createLimitationChip(item.type, item.value)).join('')
@@ -434,16 +452,405 @@ function createReformCard(reform, showDistance = false) {
                         ${reformChips.join('')}
                     </div>
                 </div>
-                ${sourcesHtml ? `
-                <div class="mdc-card__action-icons sources-logos">
-                    ${sourcesHtml}
+                <div class="mdc-card__action-icons">
+                    ${sourcesHtml ? `
+                    <div class="sources-logos">
+                        ${sourcesHtml}
+                    </div>
+                    ` : ''}
+                    <button class="mdc-icon-button expand-reform-button" 
+                            data-reform-id="${reform.id}" 
+                            aria-label="Expand reform details"
+                            title="View full details">
+                        <i class="material-icons mdc-icon-button__icon">open_in_full</i>
+                    </button>
                 </div>
-                ` : ''}
             </div>
         </div>
     `;
 
     return card;
+}
+
+// Helper to get policy document field value (AI if available, otherwise original)
+function getPolicyDocFieldValue(fieldName, reform) {
+    if (!reform.reform.policy_document) return null;
+    
+    const policyDoc = reform.reform.policy_document;
+    const aiValue = policyDoc.ai_enrichment?.fields?.[fieldName]?.value;
+    if (aiValue !== undefined && aiValue !== null) {
+        return aiValue;
+    }
+    return policyDoc.original?.[fieldName] || null;
+}
+
+// Helper to check if policy document field has AI enrichment
+function hasPolicyDocAIEnrichment(fieldName, reform) {
+    if (!reform.reform.policy_document) return false;
+    return !!reform.reform.policy_document.ai_enrichment?.fields?.[fieldName];
+}
+
+// Helper to render AI indicator for policy document fields
+function renderPolicyDocAIIndicator(fieldName, reform) {
+    if (!hasPolicyDocAIEnrichment(fieldName, reform)) return '';
+    
+    const field = reform.reform.policy_document.ai_enrichment.fields[fieldName];
+    const fieldId = `policy-doc-${reform.id}-${fieldName}`;
+    
+    // Get original value for tooltip
+    const original = reform.reform.policy_document.original?.[fieldName] || null;
+    const formatValueForTooltip = (val) => {
+        if (Array.isArray(val)) {
+            return val.length > 0 ? val.join(', ') : '(none)';
+        }
+        return val || '(none)';
+    };
+    const originalFormatted = formatValueForTooltip(original);
+    
+    return `
+        <button class="ai-indicator" 
+                onclick="toggleFieldSource('${fieldId}')"
+                title="AI-generated (${field.confidence} confidence): ${escapeHtml(field.reasoning || '')}\nOriginal value: ${escapeHtml(originalFormatted)}"
+                aria-label="View original value">
+            <img src="/images/ai-sparkle.svg" alt="AI" class="ai-icon" />
+        </button>
+    `;
+}
+
+// Helper to render field comparison for policy document fields
+function renderPolicyDocFieldComparison(fieldName, reform) {
+    if (!hasPolicyDocAIEnrichment(fieldName, reform)) return '';
+    
+    const fieldId = `policy-doc-${reform.id}-${fieldName}`;
+    const original = reform.reform.policy_document.original?.[fieldName] || null;
+    
+    // Format array fields
+    const formatValue = (val) => {
+        if (Array.isArray(val)) {
+            return val.length > 0 ? val.map(v => escapeHtml(v)).join(', ') : '';
+        }
+        return val || '';
+    };
+    
+    const originalFormatted = formatValue(original);
+    if (!originalFormatted) return '';
+    
+    return `
+        <div id="${fieldId}-comparison" class="field-comparison hidden">
+            <div class="comparison-header">
+                <span>Original (Tracker): ${fieldName}</span>
+                <button onclick="toggleFieldSource('${fieldId}')" class="mdc-icon-button" aria-label="Close comparison" style="min-width: 32px; width: 32px; height: 32px; padding: 0;">
+                    <i class="material-icons" style="font-size: 18px;">close</i>
+                </button>
+            </div>
+            <div class="comparison-content">
+                <div class="original-value">
+                    <div class="value-content">${originalFormatted}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function showExpandedReformView(reform) {
+    // Get or create modal element
+    let modal = document.getElementById('expandedReformModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'expandedReformModal';
+        modal.className = 'expanded-reform-modal';
+        document.body.appendChild(modal);
+    }
+    
+    const adoptionDateRaw = reform.reform.adoption_date;
+    const placeType = reform.place.type.charAt(0).toUpperCase() + reform.place.type.slice(1);
+    const countryDisplay = reform.place.country === 'US' ? 'USA' : reform.place.country === 'CA' ? 'Canada' : reform.place.country || '';
+    const countrySuffix = countryDisplay ? `, ${countryDisplay}` : '';
+    
+    // Format adoption date
+    const formatAdoptionDate = (dateString) => {
+        if (!dateString) {
+            return 'Adoption Date Unknown';
+        }
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) {
+                return 'Adoption Date Unknown';
+            }
+            const year = date.getFullYear();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                              'July', 'August', 'September', 'October', 'November', 'December'];
+            const month = monthNames[date.getMonth()];
+            const day = date.getDate();
+            return `${month} ${day}, ${year}`;
+        } catch (e) {
+            return 'Adoption Date Unknown';
+        }
+    };
+    
+    const adoptionDateFormatted = formatAdoptionDate(adoptionDateRaw);
+    const statusDisplay = reform.reform.status 
+        ? reform.reform.status.charAt(0).toUpperCase() + reform.reform.status.slice(1).toLowerCase()
+        : 'Adopted';
+    
+    // Build jurisdiction name
+    const jurisdictionName = reform.place.type === 'state' 
+        ? reform.place.state + countrySuffix
+        : `${reform.place.name}, ${reform.place.state}${countrySuffix}`;
+    
+    // Build reform types chips
+    const reformTypesChips = [];
+    if (reform.reform.types && reform.reform.types.length > 0) {
+        reform.reform.types.forEach(reformType => {
+            reformTypesChips.push(`<span class="mdc-chip"><span class="mdc-chip__ripple"></span><span class="mdc-chip__text">${escapeHtml(reformType.name)}</span></span>`);
+        });
+    } else if (reform.reform.type_name) {
+        reformTypesChips.push(`<span class="mdc-chip"><span class="mdc-chip__ripple"></span><span class="mdc-chip__text">${escapeHtml(reform.reform.type_name)}</span></span>`);
+    }
+    
+    // Build place badges
+    const placeBadges = [];
+    placeBadges.push(`<span class="mdc-chip"><span class="mdc-chip__ripple"></span><span class="mdc-chip__text">${escapeHtml(placeType)}</span></span>`);
+    if (reform.place.region) {
+        placeBadges.push(`<span class="mdc-chip"><span class="mdc-chip__ripple"></span><span class="mdc-chip__text">${escapeHtml(reform.place.region)}</span></span>`);
+    }
+    if (reform.place.population) {
+        const popCategory = reform.place.type === 'state' 
+            ? getStatePopulationCategory(reform.place.population)
+            : getCityPopulationCategory(reform.place.population);
+        placeBadges.push(`<span class="mdc-chip" title="${popCategory.tooltip || ''}"><span class="mdc-chip__ripple"></span><span class="mdc-chip__text">${escapeHtml(popCategory.label)}</span></span>`);
+    }
+    
+    // Build scope items
+    const scopeItems = (reform.reform.scope || []).filter(s => s.toLowerCase() !== 'citywide');
+    const scopeHtml = scopeItems.length > 0 
+        ? scopeItems.map(s => `<li>${escapeHtml(s)}</li>`).join('')
+        : '<li>None</li>';
+    
+    // Build land use items
+    const landUseItems = (reform.reform.land_use || []).filter(l => l.toLowerCase() !== 'all uses');
+    const landUseHtml = landUseItems.length > 0 
+        ? landUseItems.map(l => `<li>${escapeHtml(l)}</li>`).join('')
+        : '<li>None</li>';
+    
+    // Build requirements items
+    const requirementsItems = (reform.reform.requirements || []).filter(r => r.toLowerCase() !== 'by right');
+    const requirementsHtml = requirementsItems.length > 0 
+        ? requirementsItems.map(r => `<li>${escapeHtml(r)}</li>`).join('')
+        : '<li>None</li>';
+    
+    // Build sources HTML
+    const reformLinkUrl = reform.reform.link_url || '';
+    const sourcesHtml = (reform.reform.sources && reform.reform.sources.length > 0) ? 
+        reform.reform.sources.map(source => {
+            const sourceUrl = reformLinkUrl || source.website_url || '';
+            const logoUrl = source.logo ? `${source.logo}` : '';
+            if (!logoUrl && !source.name) return '';
+            
+            const sourceNameHtml = source.name ? `<span class="source-name">${escapeHtml(source.name)}</span>` : '';
+            const sourceLinkHtml = sourceUrl ? `<a href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" class="source-link">${sourceNameHtml}<i class="material-icons" style="font-size: 16px; vertical-align: middle;">open_in_new</i></a>` : sourceNameHtml;
+            
+            return `
+                <div class="source-item">
+                    ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(source.short_name || source.name)}" class="source-logo" />` : ''}
+                    ${sourceLinkHtml}
+                    ${source.reporter ? `<span class="source-reporter">Reported by: ${escapeHtml(source.reporter)}</span>` : ''}
+                    ${source.source_url ? `<a href="${escapeHtml(source.source_url)}" target="_blank" rel="noopener" class="source-reference-link">Source <i class="material-icons" style="font-size: 14px; vertical-align: middle;">link</i></a>` : ''}
+                </div>
+            `;
+        }).join('')
+    : '<p class="mdc-typography--body2">No sources available</p>';
+    
+    // Build policy document HTML
+    let policyDocHtml = '';
+    if (reform.reform.policy_document) {
+        const policyDoc = reform.reform.policy_document;
+        const keyPoints = getPolicyDocFieldValue('key_points', reform) || policyDoc.original?.key_points || [];
+        const analysis = getPolicyDocFieldValue('analysis', reform) || policyDoc.original?.analysis || '';
+        
+        const keyPointsHtml = Array.isArray(keyPoints) && keyPoints.length > 0
+            ? keyPoints.map(kp => `<li>${escapeHtml(kp)}</li>`).join('')
+            : '<li>No key points available</li>';
+        
+        policyDocHtml = `
+            <div class="expanded-section policy-document-section">
+                <h3 class="mdc-typography--headline6">Policy Document</h3>
+                ${policyDoc.title ? `
+                <div class="expanded-field">
+                    <strong>Title:</strong>
+                    <div class="field-value">
+                        ${escapeHtml(policyDoc.title)}
+                    </div>
+                </div>
+                ` : ''}
+                ${policyDoc.reference_number ? `
+                <div class="expanded-field">
+                    <strong>Reference Number:</strong>
+                    <div class="field-value">
+                        ${escapeHtml(policyDoc.reference_number)}
+                    </div>
+                </div>
+                ` : ''}
+                <div class="expanded-field">
+                    <strong>Key Points:</strong>
+                    <div class="field-value">
+                        <ul class="expanded-list">${keyPointsHtml}</ul>
+                        ${renderPolicyDocAIIndicator('key_points', reform)}
+                    </div>
+                    ${renderPolicyDocFieldComparison('key_points', reform)}
+                </div>
+                ${analysis ? `
+                <div class="expanded-field">
+                    <strong>Analysis:</strong>
+                    <div class="field-value">
+                        <div id="policy-doc-${reform.id}-analysis">${escapeHtml(analysis)}</div>
+                        ${renderPolicyDocAIIndicator('analysis', reform)}
+                    </div>
+                    ${renderPolicyDocFieldComparison('analysis', reform)}
+                </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // Build the modal content
+    modal.innerHTML = `
+        <div class="expanded-reform-modal-backdrop"></div>
+        <div class="expanded-reform-modal-content">
+            <div class="expanded-reform-modal-header">
+                <h2 class="mdc-typography--headline5">${escapeHtml(jurisdictionName)}</h2>
+                <button class="mdc-icon-button expanded-reform-modal-close" aria-label="Close expanded view">
+                    <i class="material-icons mdc-icon-button__icon">close</i>
+                </button>
+            </div>
+            <div class="expanded-reform-modal-body">
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Place Information</h3>
+                    <div class="expanded-badges">
+                        ${placeBadges.join('')}
+                    </div>
+                    ${reform.place.population ? `
+                    <div class="expanded-field">
+                        <strong>Population:</strong>
+                        <div class="field-value">${reform.place.population.toLocaleString()}</div>
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Reform Details</h3>
+                    <div class="expanded-badges">
+                        ${reformTypesChips.join('')}
+                    </div>
+                    <div class="expanded-field">
+                        <strong>Status:</strong>
+                        <div class="field-value">${escapeHtml(statusDisplay)}</div>
+                    </div>
+                    <div class="expanded-field">
+                        <strong>Adoption Date:</strong>
+                        <div class="field-value">${escapeHtml(adoptionDateFormatted)}</div>
+                    </div>
+                    ${reform.reform.summary || reform.reform.ai_enrichment?.fields?.summary ? `
+                    <div class="expanded-field">
+                        <strong>Summary:</strong>
+                        <div class="field-value">
+                            <div id="field-${reform.id}-summary-expanded">${escapeHtml(getFieldValue('summary', reform))}</div>
+                            ${renderAIIndicator('summary', reform)}
+                        </div>
+                        ${renderFieldComparison('summary', reform)}
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Limitations</h3>
+                    <div class="expanded-field">
+                        <strong>Scope:</strong>
+                        <div class="field-value">
+                            <ul class="expanded-list">${scopeHtml}</ul>
+                        </div>
+                    </div>
+                    <div class="expanded-field">
+                        <strong>Land Use:</strong>
+                        <div class="field-value">
+                            <ul class="expanded-list">${landUseHtml}</ul>
+                        </div>
+                    </div>
+                    <div class="expanded-field">
+                        <strong>Requirements:</strong>
+                        <div class="field-value">
+                            <ul class="expanded-list">${requirementsHtml}</ul>
+                        </div>
+                    </div>
+                </div>
+                
+                ${reform.reform.notes ? `
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Notes</h3>
+                    <div class="expanded-field">
+                        <div class="field-value">${escapeHtml(reform.reform.notes)}</div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${reform.reform.link_url ? `
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Links</h3>
+                    <div class="expanded-field">
+                        <a href="${escapeHtml(reform.reform.link_url)}" target="_blank" rel="noopener" class="external-link">
+                            View External Link <i class="material-icons" style="font-size: 16px; vertical-align: middle;">open_in_new</i>
+                        </a>
+                    </div>
+                </div>
+                ` : ''}
+                
+                ${policyDocHtml}
+                
+                <div class="expanded-section">
+                    <h3 class="mdc-typography--headline6">Sources</h3>
+                    <div class="sources-list">
+                        ${sourcesHtml}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Show modal
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Initialize MDC components for new buttons
+    const closeButton = modal.querySelector('.expanded-reform-modal-close');
+    if (closeButton && window.mdcComponents) {
+        const ripple = new mdc.ripple.MDCRipple(closeButton);
+        ripple.unbounded = true;
+    }
+    
+    // Add event listeners
+    const backdrop = modal.querySelector('.expanded-reform-modal-backdrop');
+    const closeBtn = modal.querySelector('.expanded-reform-modal-close');
+    
+    const closeModal = () => {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    };
+    
+    if (backdrop) {
+        backdrop.addEventListener('click', closeModal);
+    }
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+    
+    // Close on ESC key
+    const handleEsc = (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
 }
 
 // ============================================================================

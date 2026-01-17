@@ -262,6 +262,21 @@ function showPlaceOverlay(placeId, reforms) {
                 }
             });
         }
+        
+        // Add event listener for expand button
+        const expandButton = card.querySelector('.expand-reform-button');
+        if (expandButton && typeof showExpandedReformView === 'function') {
+            // Initialize MDC ripple for the button
+            if (window.mdc && window.mdc.ripple) {
+                const ripple = new mdc.ripple.MDCRipple(expandButton);
+                ripple.unbounded = true;
+            }
+            expandButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showExpandedReformView(reform);
+            });
+        }
     });
 
     mapOverlay.classList.add('active');
@@ -288,6 +303,21 @@ function showStateOverlay(stateName, stateCode, reforms) {
                     switchView('reportCard');
                     loadReportCardDetail(parseInt(placeId));
                 }
+            });
+        }
+        
+        // Add event listener for expand button
+        const expandButton = card.querySelector('.expand-reform-button');
+        if (expandButton && typeof showExpandedReformView === 'function') {
+            // Initialize MDC ripple for the button
+            if (window.mdc && window.mdc.ripple) {
+                const ripple = new mdc.ripple.MDCRipple(expandButton);
+                ripple.unbounded = true;
+            }
+            expandButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                showExpandedReformView(reform);
             });
         }
     });
