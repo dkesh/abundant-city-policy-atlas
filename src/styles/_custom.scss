@@ -331,11 +331,16 @@ header {
 /* Position share button at the right edge of the banner */
 #resultsInfo .mdc-banner__content {
     justify-content: space-between;
+    max-width: none; /* Overrides MDC banner max-width */
 }
 
 #resultsInfo .mdc-banner__actions {
     margin-left: auto;
     padding-left: 16px;
+}
+
+.expand-reform-button {
+    padding-right: 0;
 }
 
 /* Loading spinner */
@@ -568,6 +573,7 @@ header {
     padding-top: 16px;
     border-top: none;
     margin-top: 0;
+    padding-right: 0;
 }
 
 .reform-card .mdc-card__action-buttons {
