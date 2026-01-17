@@ -194,8 +194,8 @@ function renderAIIndicator(fieldName, reform) {
     const field = reform.reform.ai_enrichment.fields[fieldName];
     const fieldId = `field-${reform.id}-${fieldName}`;
     
-    // Get original value for tooltip
-    const original = reform.reform.original?.[fieldName] || reform.reform[fieldName] || '';
+    // Get original value for tooltip - ONLY use the original object, don't fall back to merged value
+    const original = reform.reform.original?.[fieldName] || '';
     const formatValueForTooltip = (val) => {
         if (Array.isArray(val)) {
             return val.length > 0 ? val.join(', ') : '(none)';
