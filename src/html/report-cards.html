@@ -3,7 +3,7 @@
                     <!-- Report Card List View -->
                     <div id="reportCardListView" class="report-card-list-view">
                         <div class="container">
-                            <h2 class="mdc-typography--headline4">Report Cards</h2>
+                            <h2 class="mdc-typography--headline4">Explore Places</h2>
                             
                             <!-- Search Bar -->
                             <div class="report-card-search">
@@ -19,28 +19,14 @@
                                 <div id="reportCardSearchResults" class="report-card-search-results container-hidden"></div>
                             </div>
 
-                            <!-- Top Ten Lists -->
+                            <!-- Movers and Shakers -->
                             <div class="top-ten-lists">
-                                <h3 class="mdc-typography--headline5">Top Performers</h3>
-                                <div class="top-ten-filters">
-                                    <button class="mdc-button mdc-button--outlined active" data-filter="city" data-size="mid">
-                                        <span class="mdc-button__ripple"></span>
-                                        <span class="mdc-button__label">Mid-Sized Cities</span>
-                                    </button>
-                                    <button class="mdc-button mdc-button--outlined" data-filter="city" data-size="large">
-                                        <span class="mdc-button__ripple"></span>
-                                        <span class="mdc-button__label">Large Cities</span>
-                                    </button>
-                                    <button class="mdc-button mdc-button--outlined" data-filter="county">
-                                        <span class="mdc-button__ripple"></span>
-                                        <span class="mdc-button__label">Counties</span>
-                                    </button>
-                                    <button class="mdc-button mdc-button--outlined" data-filter="state">
-                                        <span class="mdc-button__ripple"></span>
-                                        <span class="mdc-button__label">States</span>
-                                    </button>
-                                </div>
-                                <div id="topTenList" class="top-ten-list"></div>
+                                <h3 class="mdc-typography--headline5">Movers and Shakers</h3>
+                                <p class="mdc-typography--body2" style="color:#95a5a6; margin-top: 8px;">
+                                    Some of the jurisdicitons with the most reform activity matching your filters!
+                                </p>
+
+                                <div id="moversSections" class="movers-sections"></div>
                             </div>
                         </div>
                     </div>
@@ -50,7 +36,7 @@
                         <div class="container">
                             <button class="mdc-button mdc-button--outlined" id="backToReportCardList">
                                 <span class="mdc-button__ripple"></span>
-                                <span class="mdc-button__label">← Back to Report Cards</span>
+                                <span class="mdc-button__label">← Back to Explore Places</span>
                             </button>
                             <div id="reportCardDetailContent"></div>
                         </div>

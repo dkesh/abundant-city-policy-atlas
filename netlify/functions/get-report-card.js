@@ -1,17 +1,15 @@
 /**
- * Netlify Function: Get Report Card for a Jurisdiction
+ * Netlify Function: Get Policy Profile for a Jurisdiction
  * Endpoint: /.netlify/functions/get-report-card?place_id={id}
  * 
- * Returns comprehensive report card data for a specific jurisdiction including:
+ * Returns policy profile data for a specific jurisdiction including:
  * - Place metadata
- * - Grades by category
- * - Overall grade
- * - TODO list items
- * - Comparison percentages
+ * - Reforms timeline (chronological)
+ * - Domain summaries
+ * - Priority areas for improvement (peer-based suggestions)
  */
 
 const { Pool } = require('pg');
-const { calculateScores } = require('./scoring');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -86,12 +84,12 @@ exports.handler = async (event, context) => {
 
     const place = placeResult.rows[0];
 
-    // Get all reforms for this place with reform type info
+    // Get all reforms for this place with reform type info, sorted by adoption date for timeline
     const reformsQuery = `
       SELECT 
         r.id,
         r.place_id,
-        r.reform_type_id,
+        rt.id as reform_type_id,
         r.scope,
         r.land_use,
         r.requirements,
@@ -101,15 +99,21 @@ exports.handler = async (event, context) => {
         rt.category,
         rt.name as reform_name
       FROM reforms r
-      JOIN reform_types rt ON r.reform_type_id = rt.id
+      JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+      JOIN reform_types rt ON rrt.reform_type_id = rt.id
       WHERE r.place_id = $1
         AND rt.category IS NOT NULL
+      ORDER BY 
+        CASE WHEN r.adoption_date IS NULL THEN 1 ELSE 0 END,
+        r.adoption_date DESC NULLS LAST,
+        rt.category,
+        rt.name
     `;
 
     const reformsResult = await client.query(reformsQuery, [placeId]);
     const reforms = reformsResult.rows;
 
-    // Get all reform types (for calculating total possible reforms)
+    // Get all reform types by category for domain overview
     const reformTypesQuery = `
       SELECT 
         id,
@@ -123,26 +127,6 @@ exports.handler = async (event, context) => {
 
     const reformTypesResult = await client.query(reformTypesQuery);
     const reformTypes = reformTypesResult.rows;
-
-    // Calculate scores using JavaScript
-    const scores = calculateScores(reforms, reformTypes);
-
-    // Get comparison data
-    const comparisonQuery = `
-      SELECT 
-        state_percentile,
-        region_percentile,
-        national_percentile
-      FROM v_place_comparisons
-      WHERE place_id = $1
-    `;
-
-    const comparisonResult = await client.query(comparisonQuery, [placeId]);
-    const comparisons = comparisonResult.rows[0] || {
-      state_percentile: 0,
-      region_percentile: 0,
-      national_percentile: 0
-    };
 
     // Get TODO items: reform types that are common in similar jurisdictions but missing here
     // Strategy: Find reform types that are common in similar-sized jurisdictions in the same state/region
@@ -171,7 +155,8 @@ exports.handler = async (event, context) => {
           rt.category,
           COUNT(DISTINCT r.place_id) as adoption_count
         FROM reforms r
-        JOIN reform_types rt ON r.reform_type_id = rt.id
+        JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+        JOIN reform_types rt ON rrt.reform_type_id = rt.id
         WHERE r.place_id IN (SELECT id FROM similar_places)
         GROUP BY rt.id, rt.code, rt.name, rt.category
         HAVING COUNT(DISTINCT r.place_id) >= 3
@@ -182,7 +167,11 @@ exports.handler = async (event, context) => {
         WHERE NOT EXISTS (
           SELECT 1 FROM reforms r
           WHERE r.place_id = $5
-            AND r.reform_type_id = cr.reform_type_id
+            AND EXISTS (
+              SELECT 1 FROM reform_reform_types rrt2
+              WHERE rrt2.reform_id = r.id
+                AND rrt2.reform_type_id = cr.reform_type_id
+            )
         )
       )
       SELECT 
@@ -204,7 +193,7 @@ exports.handler = async (event, context) => {
       placeId
     ]);
 
-    // Get reform summary by category for detailed breakdown
+    // Get reform summary by category for domain overview
     const reformSummaryQuery = `
       SELECT 
         rt.category,
@@ -212,7 +201,8 @@ exports.handler = async (event, context) => {
         rt.name as reform_name,
         COUNT(DISTINCT r.id) as reform_count
       FROM reforms r
-      JOIN reform_types rt ON r.reform_type_id = rt.id
+      JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+      JOIN reform_types rt ON rrt.reform_type_id = rt.id
       WHERE r.place_id = $1
       GROUP BY rt.category, rt.code, rt.name
       ORDER BY rt.category, rt.name
@@ -221,6 +211,39 @@ exports.handler = async (event, context) => {
     const reformSummaryResult = await client.query(reformSummaryQuery, [placeId]);
 
     client.release();
+
+    // Build domain summaries: count reform types per category
+    const domainSummaries = {};
+    const reformTypesByCategory = {};
+    
+    // Group reform types by category
+    reformTypes.forEach(rt => {
+      if (!reformTypesByCategory[rt.category]) {
+        reformTypesByCategory[rt.category] = [];
+      }
+      reformTypesByCategory[rt.category].push(rt.code);
+    });
+
+    // Build domain summaries with counts
+    reformSummaryResult.rows.forEach(r => {
+      if (!domainSummaries[r.category]) {
+        domainSummaries[r.category] = {
+          reformTypes: [],
+          totalTracked: reformTypesByCategory[r.category]?.length || 0
+        };
+      }
+      domainSummaries[r.category].reformTypes.push(r.reform_code);
+    });
+
+    // Ensure all categories with tracked types are represented
+    Object.keys(reformTypesByCategory).forEach(category => {
+      if (!domainSummaries[category]) {
+        domainSummaries[category] = {
+          reformTypes: [],
+          totalTracked: reformTypesByCategory[category].length
+        };
+      }
+    });
 
     // Build response
     const response = {
@@ -235,25 +258,18 @@ exports.handler = async (event, context) => {
         country: place.country,
         population: place.population
       },
-      overallGrade: {
-        score: scores.overallGrade.overallScore,
-        letter: scores.overallGrade.overallLetterGrade,
-        categoriesWithReforms: scores.overallGrade.categoriesWithReforms
-      },
-      categoryGrades: scores.categoryGrades.map(g => ({
-        category: g.category,
-        reformsAdopted: g.reformsAdoptedCount,
-        totalPossible: g.totalPossibleReforms,
-        limitationsPenalty: g.limitationsPenalty,
-        baseScore: g.baseScore,
-        finalScore: g.finalScore,
-        letterGrade: g.letterGrade
+      reforms: reforms.map(r => ({
+        id: r.id,
+        adoption_date: r.adoption_date,
+        status: r.status,
+        reform_name: r.reform_name,
+        reform_code: r.reform_code,
+        category: r.category,
+        scope: r.scope,
+        land_use: r.land_use,
+        requirements: r.requirements
       })),
-      comparisons: {
-        statePercentile: comparisons.state_percentile ? parseFloat(comparisons.state_percentile) : 0,
-        regionPercentile: comparisons.region_percentile ? parseFloat(comparisons.region_percentile) : 0,
-        nationalPercentile: comparisons.national_percentile ? parseFloat(comparisons.national_percentile) : 0
-      },
+      domains: domainSummaries,
       todoItems: todoResult.rows.map(r => ({
         reformCode: r.reform_code,
         reformName: r.reform_name,
@@ -284,11 +300,11 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({
-        success: false,
-        error: 'Failed to fetch report card',
-        message: process.env.NODE_ENV === 'development' ? error.message : undefined
-      })
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to fetch policy profile',
+          message: process.env.NODE_ENV === 'development' ? error.message : undefined
+        })
     };
   }
 };

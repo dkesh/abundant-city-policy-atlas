@@ -2,7 +2,7 @@
 // REPORT CARD LIST VIEW
 // ============================================================================
 
-let currentReportCardFilter = { type: 'city', size: 'mid' };
+let explorePlacesListenersInstalled = false;
 
 // Initialize report card list view
 async function loadReportCardList() {
@@ -13,84 +13,129 @@ async function loadReportCardList() {
     if (listView) listView.classList.remove('container-hidden');
     if (detailView) detailView.classList.add('container-hidden');
     
-    // Load the top ten list
-    await loadTopTenList(currentReportCardFilter.type, currentReportCardFilter.size);
+    // Load movers and shakers lists
+    installExplorePlacesListeners();
+    await loadMoversAndShakers();
     
     // Initialize search
     initializeReportCardSearch();
-    
-    // Initialize filter buttons
-    initializeReportCardFilters();
 }
 
-// Load top ten list based on filters
-async function loadTopTenList(placeType, sizeCategory) {
-    const topTenContainer = document.getElementById('topTenList');
-    if (!topTenContainer) return;
-    
-    topTenContainer.innerHTML = '<p>Loading...</p>';
-    
-    try {
-        const params = new URLSearchParams();
-        if (placeType) params.append('type', placeType);
-        if (sizeCategory) params.append('size', sizeCategory);
-        params.append('limit', '10');
-        
-        const response = await fetch(`/.netlify/functions/get-report-cards-list?${params.toString()}`);
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to load report cards');
-        }
-        
-        renderTopTenList(data.reportCards, placeType, sizeCategory);
-        
-    } catch (error) {
-        console.error('Error loading top ten list:', error);
-        topTenContainer.innerHTML = '<p class="error">Failed to load report cards. Please try again.</p>';
-    }
+function installExplorePlacesListeners() {
+    if (explorePlacesListenersInstalled) return;
+    explorePlacesListenersInstalled = true;
+
+    // Re-render Movers & Shakers when the level-of-government filter changes.
+    // This is intentionally independent of Apply Filters: Explore Places is a separate discovery surface.
+    document.querySelectorAll('.placeTypeCheckbox').forEach(cb => {
+        cb.addEventListener('change', () => {
+            if (typeof reportCardView !== 'undefined' && reportCardView?.classList?.contains('active')) {
+                loadMoversAndShakers();
+            }
+        });
+    });
 }
 
-// Render top ten list
-function renderTopTenList(reportCards, placeType, sizeCategory) {
-    const container = document.getElementById('topTenList');
-    if (!container) return;
-    
-    if (reportCards.length === 0) {
-        container.innerHTML = '<p>No report cards found for this category.</p>';
+async function loadMoversAndShakers() {
+    const moversSectionsEl = document.getElementById('moversSections');
+    if (!moversSectionsEl) return;
+
+    const selectedPlaceTypes = (typeof getSelectedPlaceTypes === 'function')
+        ? getSelectedPlaceTypes()
+        : Array.from(document.querySelectorAll('.placeTypeCheckbox:checked')).map(cb => cb.value);
+
+    const sectionDefs = buildMoversSectionDefs(selectedPlaceTypes);
+
+    if (sectionDefs.length === 0) {
+        moversSectionsEl.innerHTML = `
+            <div class="mdc-typography--body2" style="color:#95a5a6;">
+                Select Cities, Counties, and/or States in the filters to see Movers and Shakers for those levels of government.
+            </div>
+        `;
         return;
     }
-    
-    const sizeLabel = {
-        'small': 'Small',
-        'mid': 'Mid-Sized',
-        'large': 'Large',
-        'very_large': 'Very Large'
-    }[sizeCategory] || '';
-    
-    const typeLabel = {
-        'city': 'Cities',
-        'county': 'Counties',
-        'state': 'States'
-    }[placeType] || '';
-    
-    const title = sizeCategory ? `${sizeLabel} ${typeLabel}` : typeLabel;
-    
-    container.innerHTML = `
-        <h4 class="mdc-typography--headline6">Top 10 ${title}</h4>
-        <div class="report-card-list">
-            ${reportCards.map((card, index) => `
-                <div class="mdc-card report-card-item" data-place-id="${card.id}">
+
+    moversSectionsEl.innerHTML = sectionDefs.map(s => `
+        <div class="movers-section">
+            <h4 class="mdc-typography--headline6">${escapeHtml(s.title)}</h4>
+            <div id="${escapeHtml(s.containerId)}" class="top-ten-list"><p>Loading...</p></div>
+        </div>
+    `).join('');
+
+    try {
+        const fetchGroup = async ({ placeType, sizeCategory, limit }) => {
+            const params = new URLSearchParams();
+            if (placeType) params.append('type', placeType);
+            if (sizeCategory) params.append('size', sizeCategory);
+            if (limit) params.append('limit', String(limit));
+            const response = await fetch(`/.netlify/functions/get-report-cards-list?${params.toString()}`);
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load movers');
+            }
+            return data.movers || [];
+        };
+
+        const results = await Promise.all(sectionDefs.map(async (s) => {
+            const movers = await fetchGroup({ placeType: s.placeType, sizeCategory: s.sizeCategory, limit: 5 });
+            return { ...s, movers };
+        }));
+
+        results.forEach(r => {
+            const containerEl = document.getElementById(r.containerId);
+            renderMoversList(containerEl, r.movers);
+        });
+    } catch (error) {
+        console.error('Error loading movers and shakers:', error);
+        moversSectionsEl.querySelectorAll('.top-ten-list').forEach(el => {
+            el.innerHTML = '<p class="error">Failed to load movers and shakers. Please try again.</p>';
+        });
+    }
+}
+
+function buildMoversSectionDefs(placeTypes) {
+    const defs = [];
+    const addTriplet = (placeType, labelBase) => {
+        defs.push({ placeType, sizeCategory: 'small', title: `Small ${labelBase}`, containerId: `movers-${placeType}-small` });
+        defs.push({ placeType, sizeCategory: 'mid', title: `Mid-Sized ${labelBase}`, containerId: `movers-${placeType}-mid` });
+        defs.push({ placeType, sizeCategory: 'large', title: `Large ${labelBase}`, containerId: `movers-${placeType}-large` });
+    };
+
+    if (placeTypes.includes('city')) addTriplet('city', 'Cities');
+    if (placeTypes.includes('state')) addTriplet('state', 'States');
+    if (placeTypes.includes('county')) addTriplet('county', 'Counties');
+
+    return defs;
+}
+
+function renderMoversList(containerEl, movers) {
+    if (!containerEl) return;
+
+    if (!movers || movers.length === 0) {
+        containerEl.innerHTML = '<p>No places found for this category.</p>';
+        return;
+    }
+
+    containerEl.innerHTML = `
+        <div class="report-card-list movers-list">
+            ${movers.map((place) => `
+                <div class="mdc-card report-card-item movers-item" data-place-id="${place.id}">
                     <div class="mdc-card__primary-action">
-                        <div class="report-card-item-content">
-                            <div class="report-card-rank">${index + 1}</div>
-                            <div class="report-card-info">
-                                <h3 class="mdc-typography--headline6">${escapeHtml(card.name)}</h3>
-                                <p class="mdc-typography--body2">${escapeHtml(card.stateName || '')}</p>
-                            </div>
-                            <div class="report-card-grade">
-                                <div class="grade-letter grade-${card.overallGrade.letter.toLowerCase()}">${card.overallGrade.letter}</div>
-                                <div class="grade-score">${card.overallGrade.score.toFixed(1)}</div>
+                        <div class="report-card-item-content movers-item-content">
+                            <div class="report-card-info movers-info">
+                                ${place.type === 'state'
+                                    ? `<h3 class="mdc-typography--headline6">${escapeHtml(place.name)}</h3>`
+                                    : `<h3 class="mdc-typography--headline6">${escapeHtml(place.name)}${place.stateName ? ` <span class="place-sep">•</span> <span class="place-state">${escapeHtml(place.stateName)}</span>` : ''}</h3>`
+                                }
+                                ${Array.isArray(place.domains) && place.domains.length > 0 ? `
+                                    <div class="jurisdiction-badges movers-domains">
+                                        ${place.domains.map(d => `
+                                            <span class="mdc-chip">
+                                                <span class="mdc-chip__text">${escapeHtml(d)}</span>
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -98,9 +143,9 @@ function renderTopTenList(reportCards, placeType, sizeCategory) {
             `).join('')}
         </div>
     `;
-    
+
     // Add click handlers
-    container.querySelectorAll('.report-card-item').forEach(item => {
+    containerEl.querySelectorAll('.report-card-item').forEach(item => {
         item.addEventListener('click', () => {
             const placeId = item.getAttribute('data-place-id');
             showReportCardDetail(parseInt(placeId));
@@ -189,30 +234,6 @@ async function performReportCardSearch(query) {
         console.error('Search error:', error);
         searchResults.innerHTML = '<p class="error">Search failed. Please try again.</p>';
     }
-}
-
-// Initialize filter buttons
-function initializeReportCardFilters() {
-    const filterButtons = document.querySelectorAll('.top-ten-filters .mdc-button');
-    
-    filterButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            // Remove active class from all buttons
-            filterButtons.forEach(b => b.classList.remove('active'));
-            
-            // Add active class to clicked button
-            button.classList.add('active');
-            
-            // Get filter values
-            const type = button.getAttribute('data-filter');
-            const size = button.getAttribute('data-size');
-            
-            currentReportCardFilter = { type, size };
-            
-            // Reload list
-            loadTopTenList(type, size);
-        });
-    });
 }
 
 // Show report card detail (called from report-card-detail.js)
