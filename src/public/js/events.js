@@ -41,12 +41,12 @@ function setupEventListeners() {
         dismissErrorBtn.addEventListener('click', hideError);
     }
     
-    // Back to report card list button
-    const backToReportCardListBtn = document.getElementById('backToReportCardList');
-    if (backToReportCardListBtn) {
-        backToReportCardListBtn.addEventListener('click', () => {
-            if (typeof navigateToReportCardList === 'function') {
-                navigateToReportCardList();
+    // Back to explore places list button
+    const backToExplorePlacesBtn = document.getElementById('backToExplorePlaces');
+    if (backToExplorePlacesBtn) {
+        backToExplorePlacesBtn.addEventListener('click', () => {
+            if (typeof navigateToExplorePlacesList === 'function') {
+                navigateToExplorePlacesList();
             }
         });
     }

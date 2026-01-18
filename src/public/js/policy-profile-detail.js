@@ -3,10 +3,10 @@
 // ============================================================================
 
 // Load and display policy profile detail
-async function loadReportCardDetail(placeId) {
-    const listView = document.getElementById('reportCardListView');
-    const detailView = document.getElementById('reportCardDetailView');
-    const detailContent = document.getElementById('reportCardDetailContent');
+async function loadPolicyProfileDetail(placeId) {
+    const listView = document.getElementById('explorePlacesListView');
+    const detailView = document.getElementById('policyProfileDetailView');
+    const detailContent = document.getElementById('policyProfileDetailContent');
     
     if (!detailContent) return;
     
@@ -17,7 +17,7 @@ async function loadReportCardDetail(placeId) {
     detailContent.innerHTML = '<p>Loading policy profile...</p>';
     
     try {
-        const response = await fetch(`/.netlify/functions/get-report-card?place_id=${placeId}`);
+        const response = await fetch(`/.netlify/functions/get-policy-profile?place_id=${placeId}`);
         const data = await response.json();
         
         if (!data.success) {
@@ -27,7 +27,7 @@ async function loadReportCardDetail(placeId) {
         renderPlaceProfile(data);
         
         // Update URL
-        window.history.pushState({ placeId }, '', `/report-card?place_id=${placeId}`);
+        window.history.pushState({ placeId }, '', `/place?place_id=${placeId}`);
         
     } catch (error) {
         console.error('Error loading policy profile:', error);
@@ -37,7 +37,7 @@ async function loadReportCardDetail(placeId) {
 
 // Render policy profile
 function renderPlaceProfile(data) {
-    const container = document.getElementById('reportCardDetailContent');
+    const container = document.getElementById('policyProfileDetailContent');
     if (!container) return;
     
     const { place, reforms, domains, todoItems, reformSummary } = data;

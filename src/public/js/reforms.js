@@ -138,10 +138,10 @@ function renderReforms() {
                 e.preventDefault();
                 e.stopPropagation(); // Prevent card click
                 const placeId = jurisdictionLink.getAttribute('data-place-id');
-                if (placeId && typeof loadReportCardDetail === 'function') {
-                    // Switch to report card view first
-                    switchView('reportCard');
-                    loadReportCardDetail(parseInt(placeId));
+                if (placeId && typeof loadPolicyProfileDetail === 'function') {
+                    // Switch to explore places view first
+                    switchView('explorePlaces');
+                    loadPolicyProfileDetail(parseInt(placeId));
                 }
             });
         }

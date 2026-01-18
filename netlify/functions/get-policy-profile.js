@@ -1,6 +1,6 @@
 /**
  * Netlify Function: Get Policy Profile for a Jurisdiction
- * Endpoint: /.netlify/functions/get-report-card?place_id={id}
+ * Endpoint: /.netlify/functions/get-policy-profile?place_id={id}
  * 
  * Returns policy profile data for a specific jurisdiction including:
  * - Place metadata

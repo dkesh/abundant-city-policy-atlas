@@ -6,17 +6,17 @@ function switchView(view) {
     // Hide all views
     listView.classList.remove('active');
     mapView.classList.remove('active');
-    reportCardView.classList.remove('active');
+    explorePlacesView.classList.remove('active');
     aboutView.classList.remove('active');
     
     // Remove active from all tabs
     listViewTab.classList.remove('active');
     mapViewTab.classList.remove('active');
-    reportCardViewTab.classList.remove('active');
+    explorePlacesViewTab.classList.remove('active');
     aboutViewTab.classList.remove('active');
     
     // Show/hide results banner based on view
-    if (view === 'about' || view === 'reportCard') {
+    if (view === 'about' || view === 'explorePlaces') {
         if (resultsInfo) {
             resultsInfo.classList.add('container-hidden');
         }
@@ -31,12 +31,12 @@ function switchView(view) {
         mapView.classList.add('active');
         mapViewTab.classList.add('active');
         initializeMap();
-    } else if (view === 'reportCard') {
-        reportCardView.classList.add('active');
-        reportCardViewTab.classList.add('active');
-        // Initialize report card list view if not already loaded
-        if (typeof loadReportCardList === 'function') {
-            loadReportCardList();
+    } else if (view === 'explorePlaces') {
+        explorePlacesView.classList.add('active');
+        explorePlacesViewTab.classList.add('active');
+        // Initialize explore places list view if not already loaded
+        if (typeof loadExplorePlacesList === 'function') {
+            loadExplorePlacesList();
         }
     } else if (view === 'about') {
         aboutView.classList.add('active');
@@ -251,14 +251,14 @@ function showPlaceOverlay(placeId, reforms) {
         overlayCards.appendChild(card);
         
         // Add event listener for report card button
-        const reportCardBtn = card.querySelector('.view-report-card-btn');
+        const reportCardBtn = card.querySelector('.view-policy-profile-btn');
         if (reportCardBtn) {
             reportCardBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const placeId = reportCardBtn.getAttribute('data-place-id');
-                if (placeId && typeof loadReportCardDetail === 'function') {
-                    switchView('reportCard');
-                    loadReportCardDetail(parseInt(placeId));
+                if (placeId && typeof loadPolicyProfileDetail === 'function') {
+                    switchView('explorePlaces');
+                    loadPolicyProfileDetail(parseInt(placeId));
                 }
             });
         }
@@ -294,14 +294,14 @@ function showStateOverlay(stateName, stateCode, reforms) {
         overlayCards.appendChild(card);
         
         // Add event listener for report card button
-        const reportCardBtn = card.querySelector('.view-report-card-btn');
+        const reportCardBtn = card.querySelector('.view-policy-profile-btn');
         if (reportCardBtn) {
             reportCardBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const placeId = reportCardBtn.getAttribute('data-place-id');
-                if (placeId && typeof loadReportCardDetail === 'function') {
-                    switchView('reportCard');
-                    loadReportCardDetail(parseInt(placeId));
+                if (placeId && typeof loadPolicyProfileDetail === 'function') {
+                    switchView('explorePlaces');
+                    loadPolicyProfileDetail(parseInt(placeId));
                 }
             });
         }

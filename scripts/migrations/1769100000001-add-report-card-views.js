@@ -2,8 +2,10 @@
 
 exports.up = (pgm) => {
   // ============================================================================
-  // MIGRATION: Add Report Card Views
-  // Creates views for calculating grades and comparisons for jurisdictions
+  // MIGRATION: Add Place Grades Views
+  // Creates views for calculating grades and comparisons for jurisdictions.
+  // Note: These views are used internally; grades are no longer displayed in UI.
+  // The filename retains the original "report-card" name for migration tracking.
   // ============================================================================
 
   const sql = `

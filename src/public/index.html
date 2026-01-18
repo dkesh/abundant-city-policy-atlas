@@ -265,7 +265,7 @@
                                     </span>
                                     <span class="mdc-tab__ripple"></span>
                                 </button>
-                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="reportCardViewTab">
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="explorePlacesViewTab">
                                     <span class="mdc-tab__content">
                                         <span class="mdc-tab__icon material-icons" aria-hidden="true">explore</span>
                                         <span class="mdc-tab__text-label">Explore Places</span>
@@ -366,17 +366,17 @@
                 </div>
 
 
-                            <!-- REPORT CARD VIEW -->
-                <div id="reportCardView" class="view-container">
-                    <!-- Report Card List View -->
-                    <div id="reportCardListView" class="report-card-list-view">
+                            <!-- EXPLORE PLACES VIEW -->
+                <div id="explorePlacesView" class="view-container">
+                    <!-- Explore Places List View -->
+                    <div id="explorePlacesListView" class="explore-places-list-view">
                         <div class="container">
                             <h2 class="mdc-typography--headline4">Explore Places</h2>
                             
                             <!-- Search Bar -->
-                            <div class="report-card-search">
+                            <div class="explore-places-search">
                                 <div class="mdc-text-field mdc-text-field--outlined">
-                                    <input type="text" class="mdc-text-field__input" id="reportCardSearchInput" placeholder="Search for a city, county, or state...">
+                                    <input type="text" class="mdc-text-field__input" id="explorePlacesSearchInput" placeholder="Search for a city, county, or state...">
                                     <div class="mdc-notched-outline">
                                         <div class="mdc-notched-outline__leading"></div>
                                         <div class="mdc-notched-outline__notch">
@@ -384,7 +384,7 @@
                                         <div class="mdc-notched-outline__trailing"></div>
                                     </div>
                                 </div>
-                                <div id="reportCardSearchResults" class="report-card-search-results container-hidden"></div>
+                                <div id="explorePlacesSearchResults" class="explore-places-search-results container-hidden"></div>
                             </div>
 
                             <!-- Movers and Shakers -->
@@ -399,14 +399,14 @@
                         </div>
                     </div>
 
-                    <!-- Report Card Detail View -->
-                    <div id="reportCardDetailView" class="report-card-detail-view container-hidden">
+                    <!-- Policy Profile Detail View -->
+                    <div id="policyProfileDetailView" class="policy-profile-detail-view container-hidden">
                         <div class="container">
-                            <button class="mdc-button mdc-button--outlined" id="backToReportCardList">
+                            <button class="mdc-button mdc-button--outlined" id="backToExplorePlaces">
                                 <span class="mdc-button__ripple"></span>
                                 <span class="mdc-button__label">← Back to Explore Places</span>
                             </button>
-                            <div id="reportCardDetailContent"></div>
+                            <div id="policyProfileDetailContent"></div>
                         </div>
                     </div>
                 </div>
@@ -583,8 +583,8 @@
     <script src="/js/map.js"></script>
     <script src="/js/share.js"></script>
     <script src="/js/events.js"></script>
-    <script src="/js/report-cards.js"></script>
-    <script src="/js/report-card-detail.js"></script>
+    <script src="/js/explore-places.js"></script>
+    <script src="/js/policy-profile-detail.js"></script>
     <script src="/js/init.js"></script>
 
 

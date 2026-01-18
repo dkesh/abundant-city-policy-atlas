@@ -1,13 +1,13 @@
 // ============================================================================
-// REPORT CARD LIST VIEW
+// EXPLORE PLACES LIST VIEW
 // ============================================================================
 
 let explorePlacesListenersInstalled = false;
 
-// Initialize report card list view
-async function loadReportCardList() {
-    const listView = document.getElementById('reportCardListView');
-    const detailView = document.getElementById('reportCardDetailView');
+// Initialize explore places list view
+async function loadExplorePlacesList() {
+    const listView = document.getElementById('explorePlacesListView');
+    const detailView = document.getElementById('policyProfileDetailView');
     
     // Show list view, hide detail view
     if (listView) listView.classList.remove('container-hidden');
@@ -18,7 +18,7 @@ async function loadReportCardList() {
     await loadMoversAndShakers();
     
     // Initialize search
-    initializeReportCardSearch();
+    initializeExplorePlacesSearch();
 }
 
 function installExplorePlacesListeners() {
@@ -29,7 +29,7 @@ function installExplorePlacesListeners() {
     // This is intentionally independent of Apply Filters: Explore Places is a separate discovery surface.
     document.querySelectorAll('.placeTypeCheckbox').forEach(cb => {
         cb.addEventListener('change', () => {
-            if (typeof reportCardView !== 'undefined' && reportCardView?.classList?.contains('active')) {
+            if (typeof explorePlacesView !== 'undefined' && explorePlacesView?.classList?.contains('active')) {
                 loadMoversAndShakers();
             }
         });
@@ -68,7 +68,7 @@ async function loadMoversAndShakers() {
             if (placeType) params.append('type', placeType);
             if (sizeCategory) params.append('size', sizeCategory);
             if (limit) params.append('limit', String(limit));
-            const response = await fetch(`/.netlify/functions/get-report-cards-list?${params.toString()}`);
+            const response = await fetch(`/.netlify/functions/get-explore-places-list?${params.toString()}`);
             const data = await response.json();
             if (!data.success) {
                 throw new Error(data.error || 'Failed to load movers');
@@ -117,12 +117,12 @@ function renderMoversList(containerEl, movers) {
     }
 
     containerEl.innerHTML = `
-        <div class="report-card-list movers-list">
+        <div class="explore-places-list movers-list">
             ${movers.map((place) => `
-                <div class="mdc-card report-card-item movers-item" data-place-id="${place.id}">
+                <div class="mdc-card explore-places-item movers-item" data-place-id="${place.id}">
                     <div class="mdc-card__primary-action">
-                        <div class="report-card-item-content movers-item-content">
-                            <div class="report-card-info movers-info">
+                        <div class="explore-places-item-content movers-item-content">
+                            <div class="explore-places-info movers-info">
                                 ${place.type === 'state'
                                     ? `<h3 class="mdc-typography--headline6">${escapeHtml(place.name)}</h3>`
                                     : `<h3 class="mdc-typography--headline6">${escapeHtml(place.name)}${place.stateName ? ` <span class="place-sep">•</span> <span class="place-state">${escapeHtml(place.stateName)}</span>` : ''}</h3>`
@@ -145,18 +145,18 @@ function renderMoversList(containerEl, movers) {
     `;
 
     // Add click handlers
-    containerEl.querySelectorAll('.report-card-item').forEach(item => {
+    containerEl.querySelectorAll('.explore-places-item').forEach(item => {
         item.addEventListener('click', () => {
             const placeId = item.getAttribute('data-place-id');
-            showReportCardDetail(parseInt(placeId));
+            showPolicyProfileDetail(parseInt(placeId));
         });
     });
 }
 
-// Initialize report card search
-function initializeReportCardSearch() {
-    const searchInput = document.getElementById('reportCardSearchInput');
-    const searchResults = document.getElementById('reportCardSearchResults');
+// Initialize explore places search
+function initializeExplorePlacesSearch() {
+    const searchInput = document.getElementById('explorePlacesSearchInput');
+    const searchResults = document.getElementById('explorePlacesSearchResults');
     
     if (!searchInput || !searchResults) return;
     
@@ -174,7 +174,7 @@ function initializeReportCardSearch() {
         }
         
         searchTimeout = setTimeout(async () => {
-            await performReportCardSearch(query);
+            await performExplorePlacesSearch(query);
         }, 300);
     });
     
@@ -187,8 +187,8 @@ function initializeReportCardSearch() {
 }
 
 // Perform search
-async function performReportCardSearch(query) {
-    const searchResults = document.getElementById('reportCardSearchResults');
+async function performExplorePlacesSearch(query) {
+    const searchResults = document.getElementById('explorePlacesSearchResults');
     if (!searchResults) return;
     
     searchResults.innerHTML = '<p>Searching...</p>';
@@ -225,7 +225,7 @@ async function performReportCardSearch(query) {
         searchResults.querySelectorAll('.search-result-item').forEach(item => {
             item.addEventListener('click', () => {
                 const placeId = item.getAttribute('data-place-id');
-                showReportCardDetail(parseInt(placeId));
+                showPolicyProfileDetail(parseInt(placeId));
                 searchResults.classList.add('container-hidden');
             });
         });
@@ -236,21 +236,21 @@ async function performReportCardSearch(query) {
     }
 }
 
-// Show report card detail (called from report-card-detail.js)
-function showReportCardDetail(placeId) {
-    if (typeof loadReportCardDetail === 'function') {
-        loadReportCardDetail(placeId);
+// Show policy profile detail (called from policy-profile-detail.js)
+function showPolicyProfileDetail(placeId) {
+    if (typeof loadPolicyProfileDetail === 'function') {
+        loadPolicyProfileDetail(placeId);
     }
 }
 
-// Navigate to report card list view
-function navigateToReportCardList() {
-    const listView = document.getElementById('reportCardListView');
-    const detailView = document.getElementById('reportCardDetailView');
+// Navigate to explore places list view
+function navigateToExplorePlacesList() {
+    const listView = document.getElementById('explorePlacesListView');
+    const detailView = document.getElementById('policyProfileDetailView');
     
     if (listView) listView.classList.remove('container-hidden');
     if (detailView) detailView.classList.add('container-hidden');
     
     // Update URL
-    window.history.pushState({}, '', '/report-cards');
+    window.history.pushState({}, '', '/explore-places');
 }

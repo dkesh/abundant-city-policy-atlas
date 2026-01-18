@@ -1,6 +1,6 @@
 /**
  * Netlify Function: Get Movers and Shakers List (Explore Places)
- * Endpoint: /.netlify/functions/get-report-cards-list
+ * Endpoint: /.netlify/functions/get-explore-places-list
  * 
  * Returns a list of featured jurisdictions (no explicit ranks/grades), selected by
  * breadth of tracked reform activity (unique reform types recorded) and including

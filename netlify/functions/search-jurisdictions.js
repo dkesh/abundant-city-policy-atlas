@@ -2,8 +2,8 @@
  * Netlify Function: Search Jurisdictions
  * Endpoint: /.netlify/functions/search-jurisdictions?q={search_term}
  * 
- * Returns matching jurisdictions for the search bar in Report Card tab.
- * Searches by name, state, and returns basic info with grade.
+ * Returns matching jurisdictions for the search bar in Explore Places tab.
+ * Searches by name, state, and returns basic info with grade (for internal use).
  */
 
 const { Pool } = require('pg');

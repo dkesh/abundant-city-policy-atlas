@@ -102,7 +102,7 @@ function initializeMDCComponents() {
     if (tabBarEl) {
         mdcComponents.tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
         mdcComponents.tabBar.listen('MDCTabBar:activated', (e) => {
-            const views = ['list', 'map', 'reportCard', 'about'];
+            const views = ['list', 'map', 'explorePlaces', 'about'];
             const view = views[e.detail.index];
             switchView(view);
         });

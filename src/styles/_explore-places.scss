@@ -1,26 +1,26 @@
 /* ============================================================================
-   REPORT CARD STYLES
+   EXPLORE PLACES & POLICY PROFILE STYLES
    ============================================================================ */
 
-/* Report Card List View */
-.report-card-list-view {
+/* Explore Places List View */
+.explore-places-list-view {
     background: white;
     border-radius: 8px;
     padding: 32px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.report-card-search {
+.explore-places-search {
     margin: 24px 0;
     position: relative;
 }
 
-.report-card-search .mdc-text-field {
+.explore-places-search .mdc-text-field {
     width: 100%;
     max-width: 500px;
 }
 
-.report-card-search-results {
+.explore-places-search-results {
     position: absolute;
     top: 100%;
     left: 0;
@@ -157,22 +157,22 @@
     font-weight: 400;
 }
 
-.report-card-list {
+.explore-places-list {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.report-card-item {
+.explore-places-item {
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.report-card-item:hover {
+.explore-places-item:hover {
     box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
 }
 
-.report-card-item-content {
+.explore-places-item-content {
     display: flex;
     align-items: center;
     gap: 16px;
@@ -187,21 +187,21 @@
     text-align: center;
 }
 
-.report-card-info {
+.explore-places-info {
     flex: 1;
     min-width: 0;
 }
 
-.report-card-info h3 {
+.explore-places-info h3 {
     margin: 0 0 4px 0;
 }
 
-.report-card-info p {
+.explore-places-info p {
     margin: 0;
     color: #95a5a6;
 }
 
-.report-card-grade {
+.explore-places-grade {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -211,7 +211,7 @@
 /* Grade-related styles removed - no longer used */
 
 /* Policy Profile Detail View */
-.report-card-detail-view {
+.policy-profile-detail-view {
     background: white;
     border-radius: 8px;
     padding: 32px;
@@ -463,11 +463,11 @@
 }
 
 /* View Report Card Button in Reform Cards */
-.view-report-card-btn {
+.view-policy-profile-btn {
     margin-right: 12px;
 }
 
-.report-card .mdc-card__action-buttons {
+.explore-places .mdc-card__action-buttons {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -480,7 +480,7 @@
     .filters-panel,
     .mdc-tab-bar,
     #backToReportCardList,
-    .report-card-actions,
+    .policy-profile-actions,
     .mdc-button,
     .mdc-icon-button {
         display: none !important;
@@ -501,7 +501,7 @@
         padding: 0;
     }
     
-    .report-card-detail-view {
+    .policy-profile-detail-view {
         box-shadow: none;
         padding: 0;
     }
@@ -525,7 +525,7 @@
     }
     
     /* Logo in header */
-    .report-card-logo {
+    .policy-profile-logo {
         margin-bottom: 20px;
     }
     
