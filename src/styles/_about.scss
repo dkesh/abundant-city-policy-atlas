@@ -1,0 +1,124 @@
+/* ============================================================================
+   ABOUT VIEW
+   ============================================================================ */
+
+.about-content {
+    background: white;
+    border-radius: 8px;
+    padding: 32px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.about-content h2 {
+    margin-top: 32px;
+    margin-bottom: 16px;
+}
+
+.about-content h2:first-child {
+    margin-top: 0;
+}
+
+.about-content h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.biography {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-top: 24px;
+}
+
+.biography-headshot {
+    width: 200px;
+    height: 200px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.biography-content {
+    flex: 1;
+}
+
+.biography-content p {
+    margin-bottom: 16px;
+}
+
+.biography-content p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .biography {
+        flex-direction: column;
+        gap: 24px;
+    }
+    
+    .biography-headshot {
+        width: 150px;
+        height: 150px;
+        align-self: center;
+    }
+}
+
+.sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+}
+
+.source-card {
+    height: 100%;
+}
+
+.source-card .mdc-card__primary {
+    padding: 24px;
+}
+
+.source-logo-container {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    min-height: 60px;
+}
+
+.source-logo-container img {
+    max-height: 60px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.source-card h3 {
+    margin: 0 0 12px 0;
+    font-size: 20px;
+    font-weight: 500;
+}
+
+.source-card .mdc-typography--body2 {
+    color: rgba(0, 0, 0, 0.87);
+    line-height: 1.5;
+}
+
+.source-card .mdc-card__actions {
+    padding: 8px 16px 16px 16px;
+}
+
+#sourcesLoading {
+    text-align: center;
+    padding: 48px;
+}
+
+#sourcesError {
+    background-color: #ffebee;
+    color: #c62828;
+    padding: 16px;
+    border-radius: 4px;
+    margin-top: 24px;
+}
+

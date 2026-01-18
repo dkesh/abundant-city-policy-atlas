@@ -1,0 +1,327 @@
+/* ============================================================================
+   CONTENT AREA
+   ============================================================================ */
+
+.content-area {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Tabs */
+.mdc-tab-bar {
+    background: white;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Results info */
+/* Results banner styling - MDC banner handles most styling */
+#resultsInfo .mdc-banner__text strong {
+    color: var(--mdc-theme-primary);
+}
+
+/* Position share button at the right edge of the banner */
+#resultsInfo .mdc-banner__content {
+    justify-content: space-between;
+    max-width: none; /* Overrides MDC banner max-width */
+}
+
+#resultsInfo .mdc-banner__actions {
+    margin-left: auto;
+    padding-left: 16px;
+}
+
+.expand-reform-button {
+    padding-right: 0;
+}
+
+/* Loading spinner */
+.loading {
+    text-align: center;
+    padding: 40px;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.loading .mdc-circular-progress {
+    margin: 0 auto 16px;
+}
+
+/* View containers */
+.view-container {
+    display: none;
+}
+
+.view-container.active {
+    display: block;
+}
+
+/* ============================================================================
+   REFORM CARDS (MDC Cards)
+   ============================================================================ */
+
+.reforms-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.reform-card {
+    border-left: 4px solid var(--color-light);
+    transition: all 0.2s ease;
+}
+
+.reform-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+.reform-card .mdc-card__primary-action {
+    padding: 20px;
+}
+
+.reform-card .mdc-card__primary {
+    margin-bottom: 0;
+    container-type: inline-size;
+    container-name: reform-card-primary;
+}
+
+.reform-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 100%;
+}
+
+.reform-title {
+    margin: 0;
+    flex: 1;
+    min-width: 200px;
+}
+
+.jurisdiction-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.jurisdiction-link:hover {
+    color: var(--mdc-theme-primary, #6200ee);
+    text-decoration: underline;
+}
+
+/* Jurisdiction badges (top) - use default chip styling */
+.jurisdiction-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.jurisdiction-badges .mdc-chip {
+    height: 24px;
+    font-size: 12px;
+}
+
+/* Reform badges (bottom left) - use different accent color */
+.reform-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.reform-badges .mdc-chip {
+    height: 24px;
+    font-size: 12px;
+    background-color: rgba(98, 0, 238, 0.08); /* Light purple/primary tint */
+    color: rgba(98, 0, 238, 0.87); /* Primary color text */
+}
+
+.reform-badges .mdc-chip:hover {
+    background-color: rgba(98, 0, 238, 0.12);
+}
+
+.reform-meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.meta-item {
+    font-size: 14px;
+}
+
+.reform-summary {
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.reform-card-content {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    margin-top: 0;
+}
+
+.reform-main-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Limitations Section */
+.limitations-section {
+    flex-shrink: 0;
+    width: 240px;
+    background: #fff8e1;
+    border: 1px solid #ffcc02;
+    border-radius: 4px;
+    padding: 12px;
+    align-self: flex-start;
+}
+
+/* When the reform card primary container is narrow, stack vertically */
+/* Using named container query on .mdc-card__primary (parent of .reform-card-content) */
+/* Breakpoint increased to account for min-width constraints (200px title + 240px limitations + gap + padding) */
+@container reform-card-primary (max-width: 600px) {
+    .reform-card-content {
+        flex-direction: column;
+    }
+    
+    .limitations-section {
+        width: 100%;
+    }
+    
+    /* Remove min-width constraints when stacked to allow container to shrink */
+    .reform-title {
+        min-width: 0;
+    }
+    
+    .reform-meta {
+        grid-template-columns: 1fr;
+    }
+    
+    .reform-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+.limitations-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #e65100;
+}
+
+.limitations-help-button {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    font-size: 16px;
+}
+
+.limitations-help-button .material-icons {
+    font-size: 16px;
+    color: #f57c00;
+}
+
+.limitations-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    
+    .limitation-chip {
+        max-width: 100%;
+        overflow: hidden;
+    }
+}
+
+.limitation-chip {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+}
+
+.limitation-chip .mdc-chip__text {
+    color: #856404;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+    max-width: 100%;
+}
+
+/* MDC card actions (replaces reform-footer) */
+.reform-card .mdc-card__actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 16px;
+    border-top: none;
+    margin-top: 0;
+    padding-right: 0;
+}
+
+.reform-card .mdc-card__action-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.reform-card .mdc-card__action-icons {
+    display: flex;
+    align-items: center;
+}
+
+.reform-footer-text {
+    color: #95a5a6;
+}
+
+.sources-logos {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.source-logo {
+    height: 24px;
+    width: auto;
+    object-fit: contain;
+}
+
+.source-logo-link {
+    display: inline-block;
+    line-height: 0;
+}
+
+/* Reform type colors */
+.reform-card.rm_min,
+.reform-card.prn\:rm_min {
+    border-left-color: #D35400;
+}
+
+.reform-card.reduce_min,
+.reform-card.prn\:reduce_min {
+    border-left-color: #E67E22;
+}
+
+.reform-card.add_max,
+.reform-card.prn\:add_max {
+    border-left-color: #E74C3C;
+}
+
+/* No results */
+.no-results {
+    background: white;
+    padding: 40px;
+    border-radius: 6px;
+    text-align: center;
+    color: #95a5a6;
+}
+

@@ -1,0 +1,124 @@
+            <!-- MAIN CONTENT -->
+                <!-- Error Banner -->
+                <div id="errorMessage" class="mdc-banner mdc-banner--error container-hidden" role="banner">
+                    <div class="mdc-banner__content" role="status" aria-live="assertive">
+                        <div class="mdc-banner__text"></div>
+                        <div class="mdc-banner__actions">
+                            <button class="mdc-button mdc-banner__action" type="button" id="dismissError">
+                                <span class="mdc-button__ripple"></span>
+                                <span class="mdc-button__label">Dismiss</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Snackbar for toast notifications -->
+                <div id="snackbar" class="mdc-snackbar" aria-live="assertive" aria-atomic="true" aria-hidden="true">
+                    <div class="mdc-snackbar__surface">
+                        <div class="mdc-snackbar__label" role="status" aria-atomic="true"></div>
+                        <div class="mdc-snackbar__actions">
+                            <button class="mdc-icon-button mdc-snackbar__action" type="button" aria-label="Close">
+                                <i class="material-icons mdc-icon-button__icon">close</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- View Tabs -->
+                <div class="mdc-tab-bar" role="tablist">
+                    <div class="mdc-tab-scroller">
+                        <div class="mdc-tab-scroller__scroll-area">
+                            <div class="mdc-tab-scroller__scroll-content">
+                                <button class="mdc-tab mdc-tab--active" role="tab" aria-selected="true" tabindex="0" id="listViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">list</span>
+                                        <span class="mdc-tab__text-label">List</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator mdc-tab-indicator--active">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="mapViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">map</span>
+                                        <span class="mdc-tab__text-label">Map</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="reportCardViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">school</span>
+                                        <span class="mdc-tab__text-label">Report Cards</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="aboutViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">info</span>
+                                        <span class="mdc-tab__text-label">About</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Info Banner -->
+                <div id="resultsInfo" class="mdc-banner container-hidden" role="banner">
+                    <div class="mdc-banner__content" role="status" aria-live="polite">
+                        <div class="mdc-banner__text">
+                            Found <strong id="resultCount">0</strong> reforms matching your filters
+                        </div>
+                        <div class="mdc-banner__actions">
+                            <button class="mdc-icon-button mdc-banner__action" id="downloadBannerBtn" title="Download spreadsheet">
+                                <i class="material-icons mdc-icon-button__icon">download</i>
+                            </button>
+                            <button class="mdc-icon-button mdc-banner__action" id="shareBannerBtn" title="Share this search">
+                                <i class="material-icons mdc-icon-button__icon">link</i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="loading container-hidden">
+                    <div class="mdc-circular-progress" style="width:48px;height:48px;" role="progressbar" aria-label="Loading reforms" aria-valuemin="0" aria-valuemax="1">
+                        <div class="mdc-circular-progress__determinate-container">
+                            <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                                <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                            </svg>
+                        </div>
+                        <div class="mdc-circular-progress__indeterminate-container">
+                            <div class="mdc-circular-progress__spinner-layer">
+                                <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__gap-patch">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                    <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mdc-typography--body1">Loading reforms...</p>
+                </div>

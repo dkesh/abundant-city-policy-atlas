@@ -1,0 +1,389 @@
+/* ============================================================================
+   MAP
+   ============================================================================ */
+
+#mapView {
+    position: relative;
+}
+
+#map {
+    width: 100%;
+    height: 600px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.map-print-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 10;
+    color: var(--color-text, #333);
+}
+
+.map-print-button:hover {
+    background-color: var(--color-light, #f5f5f5);
+}
+
+.map-print-button:focus {
+    outline: 2px solid var(--mdc-theme-primary, #6200ee);
+    outline-offset: 2px;
+}
+
+.map-overlay {
+    position: absolute;
+    bottom: 40px;
+    right: 10px;
+    background: white;
+    padding: 15px 20px;
+    border-radius: 6px;
+    max-width: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+    display: none;
+}
+
+.map-overlay.active {
+    display: block;
+}
+
+.map-overlay-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #7f8c8d;
+    z-index: 1;
+}
+
+.map-overlay-header {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--color-light);
+}
+
+.map-overlay .reforms-list {
+    padding: 16px;
+}
+
+/* Force vertical stacking in map overlay (narrow context) */
+.map-overlay .reform-card-content {
+    flex-direction: column;
+}
+
+.map-overlay .limitations-section {
+    width: 100%;
+}
+
+/* ============================================================================
+   EXPANDED REFORM MODAL
+   ============================================================================ */
+
+.expanded-reform-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.expanded-reform-modal.active {
+    display: block;
+    opacity: 1;
+}
+
+.expanded-reform-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.expanded-reform-modal-content {
+    position: relative;
+    background: white;
+    max-width: 900px;
+    width: 90%;
+    max-height: 90vh;
+    margin: 5vh auto;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.expanded-reform-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 2px solid var(--color-light);
+    flex-shrink: 0;
+}
+
+.expanded-reform-modal-header h2 {
+    margin: 0;
+    color: var(--color-text);
+}
+
+.expanded-reform-modal-close {
+    position: static;
+    margin-left: 16px;
+}
+
+.expanded-reform-modal-body {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.expanded-section {
+    margin-bottom: 32px;
+}
+
+.expanded-section:last-child {
+    margin-bottom: 0;
+}
+
+.expanded-section h3 {
+    margin: 0 0 16px 0;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.expanded-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.expanded-field {
+    margin-bottom: 16px;
+}
+
+.expanded-field:last-child {
+    margin-bottom: 0;
+}
+
+.expanded-field strong {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--color-text);
+    font-weight: 500;
+}
+
+.expanded-field .field-value {
+    color: rgba(0, 0, 0, 0.87);
+    line-height: 1.6;
+    position: relative;
+}
+
+.expanded-list {
+    margin: 0;
+    padding-left: 24px;
+}
+
+.expanded-list li {
+    margin-bottom: 8px;
+}
+
+.expanded-list li:last-child {
+    margin-bottom: 0;
+}
+
+.sources-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.source-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--color-light);
+    border-radius: 4px;
+}
+
+.source-item .source-logo {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+}
+
+.source-item .source-name {
+    font-weight: 500;
+}
+
+.source-item .source-link {
+    color: var(--mdc-theme-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.source-item .source-link:hover {
+    text-decoration: underline;
+}
+
+.source-item .source-reporter {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.6);
+    margin-left: auto;
+}
+
+.source-item .source-reference-link {
+    color: var(--mdc-theme-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.source-item .source-reference-link:hover {
+    text-decoration: underline;
+}
+
+.external-link {
+    color: var(--mdc-theme-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 500;
+}
+
+.external-link:hover {
+    text-decoration: underline;
+}
+
+.policy-document-section {
+    background: var(--color-light);
+    padding: 20px;
+    border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+    .expanded-reform-modal-content {
+        width: 95%;
+        max-height: 95vh;
+        margin: 2.5vh auto;
+    }
+    
+    .expanded-reform-modal-header {
+        padding: 16px;
+    }
+    
+    .expanded-reform-modal-header h2 {
+        font-size: 20px;
+    }
+    
+    .expanded-reform-modal-body {
+        padding: 16px;
+    }
+    
+    .expanded-section {
+        margin-bottom: 24px;
+    }
+    
+    .source-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .source-item .source-reporter {
+        margin-left: 0;
+    }
+}
+
+/* Mapbox popup styling */
+.mapboxgl-popup-content {
+    padding: 0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.popup-text {
+    padding: 10px 15px;
+    font-size: 14px;
+    color: var(--color-text);
+    cursor: pointer;
+    background: white;
+}
+
+.popup-text:hover {
+    background: var(--color-light);
+}
+
+/* Map markers */
+.marker-base {
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.marker-cluster {
+    border-radius: 50%;
+    background-color: var(--mdc-theme-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 12px;
+}
+
+.marker-cluster-small {
+    width: 30px;
+    height: 30px;
+}
+
+.marker-cluster-medium {
+    width: 40px;
+    height: 40px;
+}
+
+.marker-cluster-large {
+    width: 50px;
+    height: 50px;
+}
+
+.marker-place {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+}
+

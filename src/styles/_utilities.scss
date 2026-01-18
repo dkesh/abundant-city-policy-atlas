@@ -1,0 +1,31 @@
+/* ============================================================================
+   UTILITY CLASSES
+   ============================================================================ */
+
+.container-hidden {
+    display: none !important;
+}
+
+/* Toast notifications */
+/* Toast notifications now use MDC snackbar - no custom CSS needed */
+
+/* Error banner styling */
+.mdc-banner--error {
+    background-color: var(--mdc-theme-error, #E74C3C);
+}
+
+.mdc-banner--error .mdc-banner__text {
+    color: white;
+}
+
+/* Ensure banners work with container-hidden class */
+.mdc-banner.container-hidden {
+    display: none;
+}
+
+.clipboard-textarea {
+    position: fixed;
+    left: -999999px;
+    top: 0;
+}
+

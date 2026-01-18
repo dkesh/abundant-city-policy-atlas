@@ -1,0 +1,162 @@
+/* ============================================================================
+   AI ENRICHMENT INDICATORS
+   ============================================================================ */
+
+.ai-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--mdc-theme-text-secondary);
+    cursor: pointer;
+    margin-left: 6px;
+    vertical-align: middle;
+    background: none;
+    border: none;
+    padding: 2px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    
+    .ai-icon {
+        width: 14px;
+        height: 14px;
+        opacity: 0.7;
+        filter: drop-shadow(0 0 2px rgba(102, 126, 234, 0.3));
+        transition: all 0.2s;
+    }
+    
+    &:hover {
+        opacity: 1;
+        background: rgba(102, 126, 234, 0.1);
+        
+        .ai-icon {
+            opacity: 1;
+            filter: drop-shadow(0 0 3px rgba(102, 126, 234, 0.5));
+        }
+    }
+    
+    &:active {
+        background: rgba(102, 126, 234, 0.2);
+    }
+}
+
+.ai-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+// Original value toggle button
+.field-source-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    padding: 4px 8px;
+    border: 1px solid var(--mdc-theme-primary);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--mdc-theme-primary);
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    vertical-align: middle;
+    
+    &:hover {
+        background: var(--mdc-theme-primary);
+        color: white;
+    }
+    
+    .toggle-icon {
+        width: 12px;
+        height: 12px;
+        display: inline-block;
+    }
+}
+
+// Field comparison view
+.field-comparison {
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--mdc-theme-surface);
+    border-left: 3px solid var(--mdc-theme-primary);
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    .comparison-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--mdc-theme-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .comparison-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        
+        @media (max-width: 600px) {
+            grid-template-columns: 1fr;
+        }
+        
+        .original-value, .ai-value {
+            padding: 10px;
+            border-radius: 4px;
+            
+            .value-label {
+                font-size: 0.7rem;
+                font-weight: 600;
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .value-content {
+                font-size: 0.875rem;
+                line-height: 1.5;
+            }
+        }
+        
+        .original-value {
+            background: rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            
+            .value-label {
+                color: var(--mdc-theme-text-secondary);
+            }
+        }
+        
+        .ai-value {
+            background: rgba(102, 126, 234, 0.05);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            
+            .value-label {
+                color: #667eea;
+            }
+            
+            .ai-reasoning {
+                font-size: 0.7rem;
+                color: var(--mdc-theme-text-secondary);
+                margin-top: 6px;
+                font-style: italic;
+                padding-top: 6px;
+                border-top: 1px solid rgba(102, 126, 234, 0.1);
+            }
+        }
+    }
+}
+
+// Show/hide comparison
+.field-comparison.hidden {
+    display: none;
+}

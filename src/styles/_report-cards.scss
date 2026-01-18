@@ -1,0 +1,531 @@
+/* ============================================================================
+   REPORT CARD STYLES
+   ============================================================================ */
+
+/* Report Card List View */
+.report-card-list-view {
+    background: white;
+    border-radius: 8px;
+    padding: 32px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.report-card-search {
+    margin: 24px 0;
+    position: relative;
+}
+
+.report-card-search .mdc-text-field {
+    width: 100%;
+    max-width: 500px;
+}
+
+.report-card-search-results {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-width: 500px;
+    background: white;
+    border: 1px solid var(--color-light);
+    border-radius: 4px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+    margin-top: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.search-results-list {
+    padding: 8px 0;
+}
+
+.search-result-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.search-result-item:hover {
+    background: #f5f5f5;
+}
+
+.search-result-item:last-child {
+    border-bottom: none;
+}
+
+.search-result-name {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.search-result-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.grade-badge {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 32px;
+    font-weight: 700;
+    font-size: 14px;
+    color: white;
+}
+
+.population {
+    font-size: 12px;
+    color: #95a5a6;
+}
+
+/* Top Ten Lists */
+.top-ten-lists {
+    margin-top: 32px;
+}
+
+.top-ten-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 16px 0 24px 0;
+}
+
+.top-ten-filters .mdc-button {
+    min-width: auto;
+}
+
+.top-ten-filters .mdc-button.active {
+    background-color: var(--mdc-theme-primary);
+    color: white;
+}
+
+.top-ten-list {
+    margin-top: 16px;
+}
+
+.report-card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.report-card-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.report-card-item:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+
+.report-card-item-content {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+}
+
+.report-card-rank {
+    font-size: 24px;
+    font-weight: 700;
+    color: #95a5a6;
+    min-width: 40px;
+    text-align: center;
+}
+
+.report-card-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.report-card-info h3 {
+    margin: 0 0 4px 0;
+}
+
+.report-card-info p {
+    margin: 0;
+    color: #95a5a6;
+}
+
+.report-card-grade {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.grade-letter {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 56px;
+    font-weight: 700;
+    font-size: 24px;
+    color: white;
+}
+
+.grade-letter-large {
+    font-size: 48px;
+    font-weight: 700;
+}
+
+.grade-score-large {
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.grade-score {
+    font-size: 12px;
+    color: #95a5a6;
+}
+
+/* Grade Colors */
+.grade-a {
+    background-color: #D35400;
+}
+
+.grade-b {
+    background-color: #E67E22;
+}
+
+.grade-c {
+    background-color: #F39C12;
+}
+
+.grade-d {
+    background-color: #E74C3C;
+}
+
+.grade-f {
+    background-color: #C0392B;
+}
+
+/* Report Card Detail View */
+.report-card-detail-view {
+    background: white;
+    border-radius: 8px;
+    padding: 32px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.report-card-detail {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.report-card-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--color-light);
+}
+
+.report-card-logo {
+    margin-bottom: 16px;
+}
+
+.acpa-logo {
+    height: 60px;
+    width: auto;
+}
+
+.report-card-header h1 {
+    margin: 0 0 8px 0;
+}
+
+.report-card-header p {
+    margin: 4px 0;
+    color: #95a5a6;
+}
+
+.report-card-overall-grade {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    padding: 32px;
+    background: #FFF4E6;
+    border-radius: 8px;
+    margin-bottom: 32px;
+}
+
+.overall-grade-circle {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.overall-grade-info {
+    flex: 1;
+}
+
+.overall-grade-info h2 {
+    margin: 0 0 8px 0;
+}
+
+.overall-grade-info p {
+    margin: 4px 0;
+    color: #95a5a6;
+}
+
+.report-card-comparisons {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: #FFF4E6;
+    border-radius: 8px;
+}
+
+.report-card-comparisons h3 {
+    margin: 0 0 16px 0;
+}
+
+.comparison-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comparison-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.comparison-label {
+    color: var(--color-text);
+}
+
+.comparison-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--mdc-theme-primary);
+}
+
+.report-card-categories {
+    margin-bottom: 32px;
+}
+
+.report-card-categories h3 {
+    margin: 0 0 24px 0;
+}
+
+.category-grades-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.category-grade-card {
+    padding: 20px;
+}
+
+.category-grade-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-light);
+}
+
+.category-grade-header h4 {
+    margin: 0;
+    flex: 1;
+}
+
+.category-grade-letter {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 48px;
+    font-weight: 700;
+    font-size: 20px;
+    color: white;
+    flex-shrink: 0;
+}
+
+.category-grade-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.grade-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+}
+
+.stat-label {
+    color: #95a5a6;
+}
+
+.stat-value {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.stat-value.penalty {
+    color: #e74c3c;
+}
+
+.report-card-todo {
+    margin-bottom: 32px;
+    padding: 24px;
+    background: #fff8e1;
+    border: 1px solid #ffcc02;
+    border-radius: 8px;
+}
+
+.report-card-todo h3 {
+    margin: 0 0 16px 0;
+    color: #e65100;
+}
+
+.todo-list {
+    margin: 0;
+    padding-left: 24px;
+    list-style-type: disc;
+}
+
+.todo-item {
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+.todo-category {
+    font-weight: 500;
+    color: var(--color-text);
+}
+
+.todo-text {
+    color: var(--color-text);
+}
+
+.todo-note {
+    color: #95a5a6;
+    font-size: 14px;
+    font-style: italic;
+}
+
+.report-card-actions {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 2px solid var(--color-light);
+    text-align: center;
+}
+
+/* View Report Card Button in Reform Cards */
+.view-report-card-btn {
+    margin-right: 12px;
+}
+
+.report-card .mdc-card__action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Print Styles */
+@media print {
+    /* Hide navigation and non-essential elements */
+    header,
+    .filters-panel,
+    .mdc-tab-bar,
+    #backToReportCardList,
+    .report-card-actions,
+    .mdc-button,
+    .mdc-icon-button {
+        display: none !important;
+    }
+    
+    /* Reset page margins */
+    @page {
+        margin: 1cm;
+    }
+    
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+    
+    .report-card-detail-view {
+        box-shadow: none;
+        padding: 0;
+    }
+    
+    .report-card-detail {
+        max-width: 100%;
+    }
+    
+    /* Ensure content fits on page */
+    .report-card-header,
+    .report-card-overall-grade,
+    .report-card-comparisons,
+    .report-card-categories,
+    .report-card-todo {
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+    }
+    
+    .category-grades-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    
+    /* Optimize colors for printing */
+    .grade-a { background-color: #D35400 !important; }
+    .grade-b { background-color: #E67E22 !important; }
+    .grade-c { background-color: #F39C12 !important; }
+    .grade-d { background-color: #E74C3C !important; }
+    .grade-f { background-color: #C0392B !important; }
+    
+    /* Logo in header */
+    .report-card-logo {
+        margin-bottom: 20px;
+    }
+    
+    .acpa-logo {
+        height: 60px;
+        width: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    #map {
+        height: 400px;
+    }
+    
+    .map-overlay {
+        bottom: 20px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .reforms-list {
+        gap: 12px;
+    }
+    
+    .reform-card .mdc-card__primary-action {
+        padding: 16px;
+    }
+}
+

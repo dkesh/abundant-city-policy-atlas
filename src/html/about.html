@@ -1,0 +1,152 @@
+                <!-- ABOUT VIEW -->
+                <div id="aboutView" class="view-container">
+                    <div class="about-content">
+                        <h2>Our Mission</h2>
+                        <p>
+                            In the last decade plus, a major new political force has emerged in North America, the English-speaking world, and beyond. 
+                            This loosely linked movement advocates for more housing, better cities, and related policies. It works at all levels of governement, from small town city halls to national governments. 
+                            Within this movement, there are tens of thousands of individuals and thousands of organizations working on related but distinct policies. 
+                            A matrix emerges of policy domains to reform and jurisdictions to target. This Atlas is a tool to track and display the spread of these policies across the country, giving
+                            placed-based advocates a method to identify future targets for action that have succeeded in comparable locations.  
+                        </p>
+                        <h2>Our Data Sources</h2>
+                        <p>
+                            <p>Each partner we source our reforms through specializes in either a poarticular policy domain or a particular level of government. We then unify the data they provide into a single format,
+                                match any duplicate policies tracked by multiple organizations, and enrich the data with additional details. We cannot thank our partners enough, as without them, this project could not exist.
+                                </p>                        
+                                </p>
+                        <p>
+                            These organizations are at the forefront of tracking how cities are changing their land use policies to enable 
+                            more housing, reduce parking requirements, and create more livable communities. Their work makes this atlas possible, 
+                            and we're proud to highlight their contributions to the movement for abundant, accessible cities.
+                        </p>
+
+                        <div id="sourcesLoading" class="loading">
+                            <div class="mdc-circular-progress" style="width:48px;height:48px;margin:0 auto;" role="progressbar" aria-label="Loading sources" aria-valuemin="0" aria-valuemax="1">
+                                <div class="mdc-circular-progress__determinate-container">
+                                    <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__indeterminate-container">
+                                    <div class="mdc-circular-progress__spinner-layer">
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__gap-patch">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mdc-typography--body1" style="margin-top: 16px;">Loading sources...</p>
+                        </div>
+
+                        <div id="sourcesError" class="error container-hidden" style="display: none;"></div>
+
+                        <div id="sourcesGrid" class="sources-grid container-hidden" style="display: none;"></div>
+
+
+                        <h2>Policy Domains</h2>
+                        <p>
+                            The atlas tracks a range of housing and zoning reforms across multiple policy domains. 
+                            Each reform type represents a specific policy change that enables more housing, reduces barriers to development, 
+                            or creates more livable communities. Over time, we hope to broaden the range of reforms tracked, and produce more fine-grained details 
+                            on the existing domains.
+                        </p>
+
+                        <div id="reformTypesLoading" class="loading">
+                            <div class="mdc-circular-progress" style="width:48px;height:48px;margin:0 auto;" role="progressbar" aria-label="Loading categories" aria-valuemin="0" aria-valuemax="1">
+                                <div class="mdc-circular-progress__determinate-container">
+                                    <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                    </svg>
+                                </div>
+                                <div class="mdc-circular-progress__indeterminate-container">
+                                    <div class="mdc-circular-progress__spinner-layer">
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__gap-patch">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                            </svg>
+                                        </div>
+                                        <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="mdc-typography--body1" style="margin-top: 16px;">Loading categories...</p>
+                        </div>
+
+                        <div id="reformTypesError" class="error container-hidden" style="display: none;"></div>
+
+                        <div id="reformTypesGrid" class="sources-grid container-hidden" style="display: none;"></div>
+
+                        <h2>How to Contribute</h2>
+                        
+                        <h3>Report a New Reform or change to an existing reform</h3>
+                        <p>The Atlas doesn't collect data itself, but through our partner organizations. If you know of a reform that's not on the map, identify
+                            which of the partners would be good places to track this reform, then view the data in that tracker and follow that tracker's submission policy:
+                        </p>
+                        <ol>
+                            <li><strong>For parking reforms:</strong> Submit to the <a href="https://parkingreform.org/" target="_blank">Parking Reform Network</a></li>
+                            <li><strong>For building code reforms:</strong> Submit to the <a href="https://centerforbuilding.org/" target="_blank">Center for Building in North America</a></li>
+                            <li><strong>For zoning reforms:</strong> Check if it's already tracked by <a href="https://belonging.berkeley.edu/zoning-reform-tracker" target="_blank">Berkeley's Zoning Reform Tracker</a></li>
+                        </ol>
+
+                        <h3>Improve the Atlas</h3>
+                        <p>The code for the tlas is open source. You can contribute bug reports, bug fixes, feature requests, or new features via <a href="https://github.com/dkesh/urbanist-reform-map/issues">GitHub issues</a>.
+
+                        <p>
+                            For more general questions reach out to the project's author at <a href="mailto:dan@austinonyourfeet.org">dan@austinonyourfeet.org</a>.
+                        </p>
+
+
+                        <h2>Our Team</h2>
+                        <div class="biography">
+                            <div class="biography-content">
+                                <p>
+                                    The Abundant City Policy Atlas was created by <strong>Dan Keshet</strong>, a longtime advocate for 
+                                    abundant cities and evidence-based housing policy. Dan has been at the forefront of 
+                                    the urbanist movement in Texas and beyond, working to make cities more livable, affordable, and 
+                                    sustainable through policy reform and data-driven advocacy.
+                                </p>
+                                <p>
+                                    Dan was a co-founder of <a href="http://aura-atx.org">AURA</a>, a grassroots organization that 
+                                    has been instrumental in promoting inclusive and sustainable urban development in Austin. 
+                                    AURA has helped guide significant reforms to Austin's land use policy.
+                                    Dan also founded <a href="http://texasforhousing.org">Texans for Housing</a>, an 
+                                    organization dedicated to advocating for legislative changes that eliminate obstacles to Texans living
+                                    in the places they want to live.
+                                </p>
+                            </div>
+                        </div>
+
+                        <h2>License & Terms</h2>
+                        <p>
+                            This map and its underlying data are provided for informational purposes only. While we strive for accuracy, we make no guarantees about the completeness or correctness of the information presented.
+                            Indeed, the atlas is a long way from comprehensive today, but we're working on it.
+                        </p>
+                        <p>
+                            Data from our sources remains subject to their respective licenses and terms of use. Please consult those organizations for authoritative information.
+                        </p>
+                    </div>
+                </div>

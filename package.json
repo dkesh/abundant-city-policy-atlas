@@ -4,8 +4,9 @@
   "scripts": {
     "postinstall": "node scripts/migrations/_helpers/patch-node-pg-migrate.js",
     "predev": "node scripts/migrations/_helpers/run-migrations.js",
-    "dev": "npm run build:css && netlify dev",
-    "build": "node scripts/migrations/_helpers/run-migrations.js && npm run build:css && echo \"Build complete\"",
+    "build:html": "posthtml src/html/_index-template.html -o src/public/index.html",
+    "dev": "npm run build:html && npm run build:css && netlify dev",
+    "build": "node scripts/migrations/_helpers/run-migrations.js && npm run build:html && npm run build:css && echo \"Build complete\"",
     "build:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --no-source-map --quiet-deps",
     "watch:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --watch --no-source-map --quiet-deps",
     "migrate:create": "node-pg-migrate create -m scripts/migrations",
@@ -28,6 +29,9 @@
     "netlify-cli": "^17.38.1",
     "node-pg-migrate": "^8.0.4",
     "nouislider": "^15.8.1",
+    "posthtml": "^0.16.7",
+    "posthtml-cli": "^0.10.0",
+    "posthtml-include": "^2.0.1",
     "sass": "^1.97.2"
   },
   "dependencies": {

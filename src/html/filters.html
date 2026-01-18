@@ -1,0 +1,173 @@
+            <!-- SIDEBAR FILTERS -->
+            <aside class="filters-panel">
+                <h2 class="mdc-typography--headline6">Filters</h2>
+
+                <!-- Policy Domain Filter (Multi-select Checkboxes) -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Policy Domain</div>
+                    <div class="checkbox-group" id="reformTypeCheckboxes">
+                        <!-- Populated by JavaScript from database -->
+                    </div>
+                </div>
+
+                <!-- Level of Government Filter -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Level of Government</div>
+                    <div class="checkbox-group">
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-state" value="state">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-state">State/Province/Territory</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-county" value="county">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-county">Counties</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-city" value="city" checked>
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="place-city">Cities</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Region/State Filter (Hierarchical) -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Location</div>
+                    <div class="checkbox-group" id="locationCheckboxes">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Date Range Filter -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Adoption Date Range</div>
+                    <div class="date-range-inputs">
+                        <label class="mdc-text-field mdc-text-field--outlined mdc-text-field--no-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                            <input type="number" class="mdc-text-field__input" id="fromYear" placeholder="From" min="1900" max="2100">
+                        </label>
+                        <span class="date-range-separator">to</span>
+                        <label class="mdc-text-field mdc-text-field--outlined mdc-text-field--no-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                            <input type="number" class="mdc-text-field__input" id="toYear" placeholder="To" min="1900" max="2100">
+                    </label>
+                    </div>
+                    <div class="mdc-form-field date-checkbox-wrapper">
+                        <div class="mdc-checkbox">
+                            <input type="checkbox" class="mdc-checkbox__native-control" id="includeUnknownDates" checked>
+                            <div class="mdc-checkbox__background">
+                                <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                </svg>
+                                <div class="mdc-checkbox__mixedmark"></div>
+                            </div>
+                            <div class="mdc-checkbox__ripple"></div>
+                        </div>
+                        <label for="includeUnknownDates">Include unknown dates</label>
+                    </div>
+                </div>
+
+                <!-- Status Filter -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Reform Status</div>
+                    <div class="checkbox-group">
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-adopted" value="adopted" checked>
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-adopted">Adopted</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-proposed" value="proposed">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-proposed">Proposed</label>
+                        </div>
+                        <div class="mdc-form-field">
+                            <div class="mdc-checkbox">
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-failed" value="failed">
+                                <div class="mdc-checkbox__background">
+                                    <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    </svg>
+                                    <div class="mdc-checkbox__mixedmark"></div>
+                                </div>
+                                <div class="mdc-checkbox__ripple"></div>
+                            </div>
+                            <label for="status-failed">Failed</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Population Filter (Range Slider) -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Population Range</div>
+                    <div id="populationSlider" class="population-slider"></div>
+                        <div class="slider-values">
+                        <span id="populationRangeLabel" class="mdc-typography--caption">0 to 20,000,000</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="filter-buttons">
+                    <button class="mdc-button mdc-button--raised" id="applyFilters">
+                        <span class="mdc-button__ripple"></span>
+                        <span class="mdc-button__label">Apply Filters</span>
+                    </button>
+                    <button class="mdc-button mdc-button--outlined" id="resetFilters">
+                        <span class="mdc-button__ripple"></span>
+                        <span class="mdc-button__label">Reset</span>
+                    </button>
+                    <button class="mdc-button mdc-button--outlined" id="shareSearch">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">link</i>
+                        <span class="mdc-button__label">Share</span>
+                    </button>
+                </div>
+            </aside>

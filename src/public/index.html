@@ -12,7 +12,7 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
     <!-- Mapbox -->
     <script src="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/dist/mapbox-gl.css" rel="stylesheet">
     <script src="https://unpkg.com/supercluster@7.1.5/dist/supercluster.min.js"></script>
     <!-- Material Components Web - Load before inline scripts -->
     <script src="https://unpkg.com/material-components-web@14.0.0/dist/material-components-web.min.js"></script>
@@ -20,10 +20,11 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.css">
     <!-- Custom styles (includes compiled Material Design with density) - Load after noUiSlider to override its defaults -->
     <link rel="stylesheet" href="/styles.css">
+
 </head>
 <body>
     <div class="container">
-        <header>
+                <header>
             <div class="header-icon-wrapper">
                 <img src="icon.svg" alt="" class="header-icon" aria-hidden="true">
             </div>
@@ -35,8 +36,9 @@
             </div>
         </header>
 
+
         <div class="main-content">
-            <!-- SIDEBAR FILTERS -->
+                        <!-- SIDEBAR FILTERS -->
             <aside class="filters-panel">
                 <h2 class="mdc-typography--headline6">Filters</h2>
 
@@ -57,7 +59,7 @@
                                 <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-state" value="state">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -70,7 +72,7 @@
                                 <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-county" value="county">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -80,10 +82,10 @@
                         </div>
                         <div class="mdc-form-field">
                             <div class="mdc-checkbox">
-                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-city" value="city" checked>
+                                <input type="checkbox" class="mdc-checkbox__native-control placeTypeCheckbox" id="place-city" value="city" checked="">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -124,10 +126,10 @@
                     </div>
                     <div class="mdc-form-field date-checkbox-wrapper">
                         <div class="mdc-checkbox">
-                            <input type="checkbox" class="mdc-checkbox__native-control" id="includeUnknownDates" checked>
+                            <input type="checkbox" class="mdc-checkbox__native-control" id="includeUnknownDates" checked="">
                             <div class="mdc-checkbox__background">
                                 <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                 </svg>
                                 <div class="mdc-checkbox__mixedmark"></div>
                             </div>
@@ -143,10 +145,10 @@
                     <div class="checkbox-group">
                         <div class="mdc-form-field">
                             <div class="mdc-checkbox">
-                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-adopted" value="adopted" checked>
+                                <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-adopted" value="adopted" checked="">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -159,7 +161,7 @@
                                 <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-proposed" value="proposed">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -172,7 +174,7 @@
                                 <input type="checkbox" class="mdc-checkbox__native-control statusCheckbox" id="status-failed" value="failed">
                                 <div class="mdc-checkbox__background">
                                     <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
-                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
                                     </svg>
                                     <div class="mdc-checkbox__mixedmark"></div>
                                 </div>
@@ -210,8 +212,9 @@
                 </div>
             </aside>
 
-            <!-- MAIN CONTENT -->
+
             <div class="content-area">
+                        <!-- MAIN CONTENT -->
                 <!-- Error Banner -->
                 <div id="errorMessage" class="mdc-banner mdc-banner--error container-hidden" role="banner">
                     <div class="mdc-banner__content" role="status" aria-live="assertive">
@@ -309,25 +312,25 @@
                     <div class="mdc-circular-progress" style="width:48px;height:48px;" role="progressbar" aria-label="Loading reforms" aria-valuemin="0" aria-valuemax="1">
                         <div class="mdc-circular-progress__determinate-container">
                             <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
-                                <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"></circle>
+                                <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"></circle>
                             </svg>
                         </div>
                         <div class="mdc-circular-progress__indeterminate-container">
                             <div class="mdc-circular-progress__spinner-layer">
                                 <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
                                     <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                     </svg>
                                 </div>
                                 <div class="mdc-circular-progress__gap-patch">
                                     <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"></circle>
                                     </svg>
                                 </div>
                                 <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
                                     <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                        <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                     </svg>
                                 </div>
                             </div>
@@ -336,7 +339,8 @@
                     <p class="mdc-typography--body1">Loading reforms...</p>
                 </div>
 
-                <!-- LIST VIEW -->
+
+                            <!-- LIST VIEW -->
                 <div id="listView" class="view-container active">
                     <div id="reformsList" class="reforms-list"></div>
                     <div id="noResultsList" class="no-results container-hidden">
@@ -345,7 +349,8 @@
                     </div>
                 </div>
 
-                <!-- MAP VIEW -->
+
+                            <!-- MAP VIEW -->
                 <div id="mapView" class="view-container">
                     <div id="map"></div>
                     <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
@@ -360,7 +365,8 @@
                     </div>
                 </div>
 
-                <!-- REPORT CARD VIEW -->
+
+                            <!-- REPORT CARD VIEW -->
                 <div id="reportCardView" class="view-container">
                     <!-- Report Card List View -->
                     <div id="reportCardListView" class="report-card-list-view">
@@ -419,7 +425,8 @@
                     </div>
                 </div>
 
-                <!-- ABOUT VIEW -->
+
+                            <!-- ABOUT VIEW -->
                 <div id="aboutView" class="view-container">
                     <div class="about-content">
                         <h2>Our Mission</h2>
@@ -432,10 +439,10 @@
                         </p>
                         <h2>Our Data Sources</h2>
                         <p>
-                            <p>Each partner we source our reforms through specializes in either a poarticular policy domain or a particular level of government. We then unify the data they provide into a single format,
+                            </p><p>Each partner we source our reforms through specializes in either a poarticular policy domain or a particular level of government. We then unify the data they provide into a single format,
                                 match any duplicate policies tracked by multiple organizations, and enrich the data with additional details. We cannot thank our partners enough, as without them, this project could not exist.
                                 </p>                        
-                                </p>
+                                <p></p>
                         <p>
                             These organizations are at the forefront of tracking how cities are changing their land use policies to enable 
                             more housing, reduce parking requirements, and create more livable communities. Their work makes this atlas possible, 
@@ -446,25 +453,25 @@
                             <div class="mdc-circular-progress" style="width:48px;height:48px;margin:0 auto;" role="progressbar" aria-label="Loading sources" aria-valuemin="0" aria-valuemax="1">
                                 <div class="mdc-circular-progress__determinate-container">
                                     <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
-                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"></circle>
+                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"></circle>
                                     </svg>
                                 </div>
                                 <div class="mdc-circular-progress__indeterminate-container">
                                     <div class="mdc-circular-progress__spinner-layer">
                                         <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                             </svg>
                                         </div>
                                         <div class="mdc-circular-progress__gap-patch">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"></circle>
                                             </svg>
                                         </div>
                                         <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                             </svg>
                                         </div>
                                     </div>
@@ -490,25 +497,25 @@
                             <div class="mdc-circular-progress" style="width:48px;height:48px;margin:0 auto;" role="progressbar" aria-label="Loading categories" aria-valuemin="0" aria-valuemax="1">
                                 <div class="mdc-circular-progress__determinate-container">
                                     <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
-                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"/>
+                                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"></circle>
+                                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="113.097" stroke-width="4"></circle>
                                     </svg>
                                 </div>
                                 <div class="mdc-circular-progress__indeterminate-container">
                                     <div class="mdc-circular-progress__spinner-layer">
                                         <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                             </svg>
                                         </div>
                                         <div class="mdc-circular-progress__gap-patch">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"></circle>
                                             </svg>
                                         </div>
                                         <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
                                             <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+                                                <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
                                             </svg>
                                         </div>
                                     </div>
@@ -536,7 +543,7 @@
                         <h3>Improve the Atlas</h3>
                         <p>The code for the tlas is open source. You can contribute bug reports, bug fixes, feature requests, or new features via <a href="https://github.com/dkesh/urbanist-reform-map/issues">GitHub issues</a>.
 
-                        <p>
+                        </p><p>
                             For more general questions reach out to the project's author at <a href="mailto:dan@austinonyourfeet.org">dan@austinonyourfeet.org</a>.
                         </p>
 
@@ -571,11 +578,12 @@
                         </p>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <!-- noUiSlider JS - must load before slider.js -->
+        <!-- noUiSlider JS - must load before slider.js -->
     <script src="https://cdn.jsdelivr.net/npm/nouislider@15.7.1/dist/nouislider.min.js"></script>
     <!-- JavaScript modules - loaded in dependency order -->
     <script src="/js/helpers.js"></script>
@@ -592,5 +600,7 @@
     <script src="/js/report-cards.js"></script>
     <script src="/js/report-card-detail.js"></script>
     <script src="/js/init.js"></script>
-</body>
-</html>
+
+
+
+</body></html>
