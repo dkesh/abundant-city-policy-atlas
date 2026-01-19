@@ -11,10 +11,6 @@ import argparse
 from datetime import datetime
 from typing import Dict, List, Set, Tuple
 
-
-# Load environment variables
-initialize_environment()
-
 # Ensure we can import from local modules
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from db_utils import (
@@ -27,13 +23,16 @@ from db_utils import (
     geocode_missing_places,
     get_db_connection,
     get_state_name,
+    initialize_environment,
     log_ingestion,
     normalize_reform_status,
     parse_flexible_date,
     place_key,
-    read_csv_file,
-    initialize_environment
+    read_csv_file
 )
+
+# Load environment variables
+initialize_environment()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

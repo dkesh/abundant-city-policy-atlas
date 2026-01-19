@@ -39,6 +39,7 @@ from db_utils import (
     download_file,
     geocode_missing_places,
     get_db_connection,
+    initialize_environment,
     load_reform_type_map,
     log_ingestion,
     normalize_reform_status,
