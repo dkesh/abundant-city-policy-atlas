@@ -12,21 +12,71 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 from time import sleep
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Callable, TypeVar
 
 import psycopg2
 import requests
 from psycopg2.extras import execute_values
+from psycopg2 import errorcodes
 
 PlaceKey = Tuple[str, str, str]  # (state_code, name_lower, place_type)
 
 # User-Agent string for HTTP requests
 USER_AGENT = 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
 
+# Type variable for retry decorator
+T = TypeVar('T')
+
 
 def place_key(name: str, state_code: str, place_type: str) -> PlaceKey:
     """Normalized key for place lookups and maps."""
     return (state_code or '', (name or '').strip().lower(), place_type)
+
+
+def retry_on_deadlock(func: Callable[..., T], max_retries: int = 3, base_delay: float = 0.1) -> T:
+    """
+    Retry a function call on PostgreSQL deadlock errors with exponential backoff.
+    
+    Args:
+        func: Function to retry (should be a callable that takes no args)
+        max_retries: Maximum number of retry attempts
+        base_delay: Base delay in seconds for exponential backoff
+    
+    Returns:
+        Result of the function call
+    
+    Raises:
+        The last exception if all retries fail
+    """
+    logger = logging.getLogger(__name__)
+    
+    # PostgreSQL deadlock error code: '40P01'
+    DEADLOCK_ERROR_CODE = '40P01'
+    
+    for attempt in range(max_retries + 1):
+        try:
+            return func()
+        except (psycopg2.OperationalError, psycopg2.DatabaseError) as e:
+            # Check if it's a deadlock error
+            # PostgreSQL deadlock error code is '40P01'
+            error_str = str(e).lower()
+            is_deadlock = (
+                (hasattr(e, 'pgcode') and e.pgcode == DEADLOCK_ERROR_CODE) or
+                'deadlock detected' in error_str
+            )
+            
+            if is_deadlock:
+                if attempt < max_retries:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(
+                        f"Deadlock detected (attempt {attempt + 1}/{max_retries + 1}), "
+                        f"retrying after {delay:.2f}s..."
+                    )
+                    sleep(delay)
+                    continue
+                else:
+                    logger.error(f"Deadlock detected after {max_retries + 1} attempts, giving up")
+            raise
 
 
 def geocode_place(place_name: str, state_code: Optional[str] = None, place_type: str = 'city') -> Tuple[Optional[float], Optional[float]]:
@@ -542,10 +592,20 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
     """
     Upsert places and return (created_count, updated_count, place_id_map).
     place_id_map uses place_key(name, state_code, place_type).
+    
+    This function includes deadlock retry logic to handle concurrent ingestion.
     """
     deduped = _dedupe_places(places)
     if not deduped:
         return 0, 0, {}
+
+    # Sort rows consistently to reduce deadlock probability
+    # Sort by (state_code, name, place_type) to ensure consistent ordering
+    sorted_places = sorted(deduped, key=lambda p: (
+        p.get('state_code') or '',
+        p.get('name') or '',
+        p.get('place_type') or ''
+    ))
 
     rows = [
         (
@@ -553,7 +613,7 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
             p.get('population'), p.get('latitude'), p.get('longitude'),
             p.get('encoded_name')
         )
-        for p in deduped
+        for p in sorted_places
     ]
 
     sql = """
@@ -571,8 +631,20 @@ def bulk_upsert_places(conn, cursor, places: List[Dict]) -> Tuple[int, int, Dict
         RETURNING id, name, state_code, place_type, (xmax = 0)::int AS is_insert
     """
 
-    results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
-    conn.commit()
+    def _execute_upsert():
+        # Execute the upsert - if deadlock occurs, PostgreSQL will rollback automatically
+        # but we explicitly rollback here to ensure clean state for retry
+        try:
+            results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+            conn.commit()
+            return results
+        except (psycopg2.OperationalError, psycopg2.DatabaseError):
+            # Rollback on any database error to ensure clean state for retry
+            conn.rollback()
+            raise
+
+    # Retry on deadlock with exponential backoff
+    results = retry_on_deadlock(_execute_upsert, max_retries=3, base_delay=0.1)
 
     created = sum(1 for _, _, _, _, is_insert in results if is_insert)
     updated = len(results) - created
@@ -588,6 +660,8 @@ def bulk_upsert_policy_documents(conn, cursor, documents: List[Dict]) -> Tuple[i
     """
     Upsert policy documents and return (created_count, updated_count, doc_id_map).
     doc_id_map uses (state_code, reference_number) as key -> id.
+    
+    This function includes deadlock retry logic to handle concurrent ingestion.
     """
     # Dedupe based on state_code + reference_number
     deduped = {}
@@ -599,13 +673,20 @@ def bulk_upsert_policy_documents(conn, cursor, documents: List[Dict]) -> Tuple[i
     if not deduped:
         return 0, 0, {}
 
+    # Sort rows consistently to reduce deadlock probability
+    # Sort by (state_code, reference_number) to ensure consistent ordering
+    sorted_docs = sorted(deduped.values(), key=lambda d: (
+        d.get('state_code') or '',
+        d.get('reference_number') or ''
+    ))
+
     rows = [
         (
             d.get('reference_number'), d.get('state_code'), d.get('place_id'),
             d.get('title'), d.get('key_points'), d.get('analysis'),
             d.get('document_url'), d.get('status'), d.get('last_action_date')
         )
-        for d in deduped.values()
+        for d in sorted_docs
     ]
 
     sql = """
@@ -626,8 +707,20 @@ def bulk_upsert_policy_documents(conn, cursor, documents: List[Dict]) -> Tuple[i
         RETURNING id, state_code, reference_number, (xmax = 0)::int AS is_insert
     """
 
-    results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
-    conn.commit()
+    def _execute_upsert():
+        # Execute the upsert - if deadlock occurs, PostgreSQL will rollback automatically
+        # but we explicitly rollback here to ensure clean state for retry
+        try:
+            results = execute_values(cursor, sql, rows, page_size=1000, fetch=True)
+            conn.commit()
+            return results
+        except (psycopg2.OperationalError, psycopg2.DatabaseError):
+            # Rollback on any database error to ensure clean state for retry
+            conn.rollback()
+            raise
+
+    # Retry on deadlock with exponential backoff
+    results = retry_on_deadlock(_execute_upsert, max_retries=3, base_delay=0.1)
 
     created = sum(1 for _, _, _, is_insert in results if is_insert)
     updated = len(results) - created
