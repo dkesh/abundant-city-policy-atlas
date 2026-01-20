@@ -14,6 +14,7 @@ async function applyFilters(skipUrlUpdate = false) {
     const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
     const toYearVal = toYear.value ? parseInt(toYear.value) : null;
     const includeUnknown = includeUnknownDates.checked;
+    const limitations = getLimitationsFilters();
 
     showLoading(true);
     hideError();
@@ -30,6 +31,11 @@ async function applyFilters(skipUrlUpdate = false) {
         if (fromYearVal) params.append('from_year', fromYearVal);
         if (toYearVal) params.append('to_year', toYearVal);
         if (includeUnknown) params.append('include_unknown_dates', 'true');
+        // Add limitations filters
+        if (limitations.scope !== 'all') params.append('scope_limitation', limitations.scope);
+        if (limitations.land_use !== 'all') params.append('land_use_limitation', limitations.land_use);
+        if (limitations.requirements !== 'all') params.append('requirements_limitation', limitations.requirements);
+        if (limitations.intensity !== 'all') params.append('intensity_limitation', limitations.intensity);
 
         const query = params.toString();
         const url = query ? `/.netlify/functions/get-reforms?${query}` : '/.netlify/functions/get-reforms';
@@ -91,6 +97,30 @@ async function applyFilters(skipUrlUpdate = false) {
     }
 }
 
+function resetLimitationsFilters() {
+    // Reset all limitation radio buttons to "all"
+    document.querySelectorAll('input[name="scope-limitation"]').forEach(radio => {
+        if (radio.value === 'all') radio.checked = true;
+    });
+    document.querySelectorAll('input[name="landuse-limitation"]').forEach(radio => {
+        if (radio.value === 'all') radio.checked = true;
+    });
+    document.querySelectorAll('input[name="requirements-limitation"]').forEach(radio => {
+        if (radio.value === 'all') radio.checked = true;
+    });
+    document.querySelectorAll('input[name="intensity-limitation"]').forEach(radio => {
+        if (radio.value === 'all') radio.checked = true;
+    });
+    
+    // Re-initialize MDC radio buttons to sync state
+    document.querySelectorAll('.mdc-radio').forEach(radio => {
+        const mdcRadio = mdc.radio.MDCRadio.attachTo(radio);
+        if (mdcRadio) {
+            mdcRadio.checked = radio.querySelector('input').checked;
+        }
+    });
+}
+
 function resetFilters() {
     // Reset checkboxes
     document.querySelectorAll('.reformTypeCheckbox').forEach(cb => cb.checked = true);
@@ -114,6 +144,9 @@ function resetFilters() {
     fromYear.value = '';
     toYear.value = '';
     includeUnknownDates.checked = true;
+
+    // Reset limitations filters
+    resetLimitationsFilters();
 
     // Clear URL params
     window.history.pushState({}, '', window.location.pathname);

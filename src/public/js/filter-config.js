@@ -13,6 +13,7 @@ function getFilterConfig() {
     const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
     const toYearVal = toYear.value ? parseInt(toYear.value) : null;
     const includeUnknown = includeUnknownDates.checked;
+    const limitations = getLimitationsFilters();
 
     return {
         reform_types: reformTypes,
@@ -23,7 +24,8 @@ function getFilterConfig() {
         states: states,
         from_year: fromYearVal,
         to_year: toYearVal,
-        include_unknown_dates: includeUnknown
+        include_unknown_dates: includeUnknown,
+        limitations: limitations
     };
 }
 
@@ -38,6 +40,13 @@ function filterConfigToUrlParams(config) {
     if (config.from_year) params.append('from_year', config.from_year);
     if (config.to_year) params.append('to_year', config.to_year);
     if (config.include_unknown_dates) params.append('include_unknown_dates', 'true');
+    // Add limitations filters
+    if (config.limitations) {
+        if (config.limitations.scope !== 'all') params.append('scope_limitation', config.limitations.scope);
+        if (config.limitations.land_use !== 'all') params.append('land_use_limitation', config.limitations.land_use);
+        if (config.limitations.requirements !== 'all') params.append('requirements_limitation', config.limitations.requirements);
+        if (config.limitations.intensity !== 'all') params.append('intensity_limitation', config.limitations.intensity);
+    }
     return params;
 }
 
@@ -71,7 +80,13 @@ function urlParamsToFilterConfig(urlSearchParams) {
         states: getMultiValue('state'),
         from_year: getValue('from_year') ? parseInt(getValue('from_year')) : null,
         to_year: getValue('to_year') ? parseInt(getValue('to_year')) : null,
-        include_unknown_dates: getValue('include_unknown_dates') === 'true'
+        include_unknown_dates: getValue('include_unknown_dates') === 'true',
+        limitations: {
+            scope: getValue('scope_limitation') || 'all',
+            land_use: getValue('land_use_limitation') || 'all',
+            requirements: getValue('requirements_limitation') || 'all',
+            intensity: getValue('intensity_limitation') || 'all'
+        }
     };
 }
 
@@ -143,4 +158,27 @@ function applyFilterConfig(config) {
     fromYear.value = config.from_year || '';
     toYear.value = config.to_year || '';
     includeUnknownDates.checked = config.include_unknown_dates !== false;
+
+    // Apply limitations filters
+    if (config.limitations) {
+        const scopeRadio = document.querySelector(`input[name="scope-limitation"][value="${config.limitations.scope || 'all'}"]`);
+        if (scopeRadio) scopeRadio.checked = true;
+        
+        const landUseRadio = document.querySelector(`input[name="landuse-limitation"][value="${config.limitations.land_use || 'all'}"]`);
+        if (landUseRadio) landUseRadio.checked = true;
+        
+        const requirementsRadio = document.querySelector(`input[name="requirements-limitation"][value="${config.limitations.requirements || 'all'}"]`);
+        if (requirementsRadio) requirementsRadio.checked = true;
+        
+        const intensityRadio = document.querySelector(`input[name="intensity-limitation"][value="${config.limitations.intensity || 'all'}"]`);
+        if (intensityRadio) intensityRadio.checked = true;
+        
+        // Re-initialize MDC radio buttons to sync state
+        document.querySelectorAll('.mdc-radio').forEach(radio => {
+            const mdcRadio = mdc.radio.MDCRadio.attachTo(radio);
+            if (mdcRadio) {
+                mdcRadio.checked = radio.querySelector('input').checked;
+            }
+        });
+    }
 }

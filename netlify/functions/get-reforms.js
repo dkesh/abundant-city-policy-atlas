@@ -75,6 +75,12 @@ exports.handler = async (event, context) => {
     const toYear = params.to_year ? parseInt(params.to_year) : null;
     const includeUnknownDates = params.include_unknown_dates === 'true';
     const limit = params.limit ? Math.min(parseInt(params.limit), 5000) : 1000;
+    
+    // Limitations filters
+    const scopeLimitation = params.scope_limitation || null;
+    const landUseLimitation = params.land_use_limitation || null;
+    const requirementsLimitation = params.requirements_limitation || null;
+    const intensityLimitation = params.intensity_limitation || null;
 
     // Build dynamic query with filters
     let whereClauses = ['1=1']; // Start with always-true condition
@@ -159,6 +165,84 @@ exports.handler = async (event, context) => {
     } else if (!includeUnknownDates) {
       // If no year range but excluding unknowns, filter out nulls
       whereClauses.push(`r.adoption_date IS NOT NULL`);
+    }
+
+    // Scope limitation filter
+    if (scopeLimitation === 'no_limits') {
+      // No scope limits = has 'citywide' in scope array
+      whereClauses.push(`(
+        r.scope IS NULL 
+        OR array_length(r.scope, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.scope) AS scope_item 
+          WHERE LOWER(scope_item) = 'citywide'
+        )
+      )`);
+    } else if (scopeLimitation === 'has_limits') {
+      // Has scope limits = scope exists and doesn't contain 'citywide'
+      whereClauses.push(`(
+        r.scope IS NOT NULL 
+        AND array_length(r.scope, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.scope) AS scope_item 
+          WHERE LOWER(scope_item) = 'citywide'
+        )
+      )`);
+    }
+
+    // Land use limitation filter
+    if (landUseLimitation === 'no_limits') {
+      // No land use limits = has 'all uses' in land_use array
+      whereClauses.push(`(
+        r.land_use IS NULL 
+        OR array_length(r.land_use, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.land_use) AS land_item 
+          WHERE LOWER(land_item) = 'all uses'
+        )
+      )`);
+    } else if (landUseLimitation === 'has_limits') {
+      // Has land use limits = land_use exists and doesn't contain 'all uses'
+      whereClauses.push(`(
+        r.land_use IS NOT NULL 
+        AND array_length(r.land_use, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.land_use) AS land_item 
+          WHERE LOWER(land_item) = 'all uses'
+        )
+      )`);
+    }
+
+    // Requirements limitation filter
+    if (requirementsLimitation === 'no_limits') {
+      // No requirements limits = has 'by right' in requirements array
+      whereClauses.push(`(
+        r.requirements IS NULL 
+        OR array_length(r.requirements, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.requirements) AS req_item 
+          WHERE LOWER(req_item) = 'by right'
+        )
+      )`);
+    } else if (requirementsLimitation === 'has_limits') {
+      // Has requirements limits = requirements exists and doesn't contain 'by right'
+      whereClauses.push(`(
+        r.requirements IS NOT NULL 
+        AND array_length(r.requirements, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.requirements) AS req_item 
+          WHERE LOWER(req_item) = 'by right'
+        )
+      )`);
+    }
+
+    // Intensity limitation filter
+    if (intensityLimitation === 'no_limits') {
+      // No intensity limits = intensity is 'complete' or NULL
+      whereClauses.push(`(r.intensity = 'complete' OR r.intensity IS NULL)`);
+    } else if (intensityLimitation === 'has_limits') {
+      // Has intensity limits = intensity is 'partial'
+      whereClauses.push(`r.intensity = 'partial'`);
     }
 
     // Build final WHERE clause

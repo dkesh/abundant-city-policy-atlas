@@ -181,6 +181,52 @@
     margin-top: 8px;
 }
 
+/* Limitations Filter */
+.limitations-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.limitation-filter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.limitation-filter-label {
+    font-weight: 500;
+    color: var(--color-dark);
+    margin-bottom: 4px;
+}
+
+.limitation-radio-group {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.limitation-radio-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+.limitation-radio-option label {
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-dark);
+    margin: 0;
+    padding: 0;
+}
+
+.limitation-radio-option .mdc-radio {
+    margin: 0;
+}
+
 /* Filter buttons */
 .filter-buttons {
     display: flex;

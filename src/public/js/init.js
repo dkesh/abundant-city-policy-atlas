@@ -104,6 +104,11 @@ function initializeMDCComponents() {
         mdcComponents.checkboxes.push(new mdc.checkbox.MDCCheckbox(checkbox));
     });
 
+    // Initialize all radio buttons
+    document.querySelectorAll('.mdc-radio').forEach(radio => {
+        new mdc.radio.MDCRadio(radio);
+    });
+
     // Initialize all form fields
     document.querySelectorAll('.mdc-form-field').forEach(formField => {
         new mdc.formField.MDCFormField(formField);

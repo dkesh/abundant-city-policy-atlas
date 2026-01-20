@@ -44,6 +44,20 @@ function getSelectedLocations() {
     return states;
 }
 
+function getLimitationsFilters() {
+    const scopeFilter = document.querySelector('input[name="scope-limitation"]:checked')?.value || 'all';
+    const landUseFilter = document.querySelector('input[name="landuse-limitation"]:checked')?.value || 'all';
+    const requirementsFilter = document.querySelector('input[name="requirements-limitation"]:checked')?.value || 'all';
+    const intensityFilter = document.querySelector('input[name="intensity-limitation"]:checked')?.value || 'all';
+    
+    return {
+        scope: scopeFilter,
+        land_use: landUseFilter,
+        requirements: requirementsFilter,
+        intensity: intensityFilter
+    };
+}
+
 function updateLocationHierarchy(regionCheckbox) {
     const region = regionCheckbox.dataset.region;
     const states = REGIONS[region];
