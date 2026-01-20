@@ -67,16 +67,31 @@ async function applyFilters(skipUrlUpdate = false) {
         renderReforms();
         showLoading(false);
 
+        // Update results banner with count
+        const resultsBanner = window.mdcComponents?.resultsBanner;
+        const bannerTextEl = resultsInfo?.querySelector('.mdc-banner__text');
+        const resultCountEl = document.getElementById('resultCount');
+        const downloadBtn = document.getElementById('downloadBannerBtn');
+        const shareBtn = document.getElementById('shareBannerBtn');
+        
         if (filteredReforms.length > 0) {
-            resultCount.textContent = filteredReforms.length;
+            // Update banner text with count
+            if (bannerTextEl && resultCountEl) {
+                resultCountEl.textContent = filteredReforms.length;
+            } else if (bannerTextEl) {
+                // Fallback if resultCount element doesn't exist
+                bannerTextEl.innerHTML = `Found <strong id="resultCount">${filteredReforms.length}</strong> reforms matching your filters`;
+            }
+            // Show action buttons
+            if (downloadBtn) downloadBtn.style.display = '';
+            if (shareBtn) shareBtn.style.display = '';
+            
             resultsInfo.classList.remove('container-hidden');
-            const resultsBanner = window.mdcComponents?.resultsBanner;
             if (resultsBanner) {
                 resultsBanner.open();
             }
             noResultsList.classList.add('container-hidden');
         } else {
-            const resultsBanner = window.mdcComponents?.resultsBanner;
             if (resultsBanner) {
                 resultsBanner.close();
             }
@@ -89,11 +104,18 @@ async function applyFilters(skipUrlUpdate = false) {
         showError(error.message);
         showLoading(false);
         const resultsBanner = window.mdcComponents?.resultsBanner;
+        const downloadBtn = document.getElementById('downloadBannerBtn');
+        const shareBtn = document.getElementById('shareBannerBtn');
+        
         if (resultsBanner) {
             resultsBanner.close();
         }
         resultsInfo.classList.add('container-hidden');
         noResultsList.classList.remove('container-hidden');
+        
+        // Restore action buttons visibility in case of error
+        if (downloadBtn) downloadBtn.style.display = '';
+        if (shareBtn) shareBtn.style.display = '';
     }
 }
 
