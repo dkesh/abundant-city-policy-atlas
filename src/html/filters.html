@@ -154,6 +154,172 @@
                     </div>
                 </div>
 
+                <!-- Limitations Filter -->
+                <div class="filter-group">
+                    <div class="mdc-typography--subtitle2 filter-label">Limitations</div>
+                    <div class="limitations-filter-group">
+                        <!-- Scope Limitations -->
+                        <div class="limitation-filter-item">
+                            <div class="mdc-typography--caption limitation-filter-label">Scope</div>
+                            <div class="limitation-radio-group">
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="scope-limitation" id="scope-all" value="all" checked>
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="scope-all">All</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="scope-limitation" id="scope-no-limits" value="no_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="scope-no-limits">No limits</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="scope-limitation" id="scope-has-limits" value="has_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="scope-has-limits">Has limits</label>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Land Use Limitations -->
+                        <div class="limitation-filter-item">
+                            <div class="mdc-typography--caption limitation-filter-label">Land Use</div>
+                            <div class="limitation-radio-group">
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="landuse-limitation" id="landuse-all" value="all" checked>
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="landuse-all">All</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="landuse-limitation" id="landuse-all-uses" value="no_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="landuse-all-uses">All uses</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="landuse-limitation" id="landuse-has-limits" value="has_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="landuse-has-limits">Has limits</label>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Requirements Limitations -->
+                        <div class="limitation-filter-item">
+                            <div class="mdc-typography--caption limitation-filter-label">Requirements</div>
+                            <div class="limitation-radio-group">
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="requirements-limitation" id="requirements-all" value="all" checked>
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="requirements-all">All</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="requirements-limitation" id="requirements-by-right" value="no_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="requirements-by-right">By right</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="requirements-limitation" id="requirements-discretionary" value="has_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="requirements-discretionary">Discretionary</label>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Intensity Limitations -->
+                        <div class="limitation-filter-item">
+                            <div class="mdc-typography--caption limitation-filter-label">Intensity</div>
+                            <div class="limitation-radio-group">
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="intensity-limitation" id="intensity-all" value="all" checked>
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="intensity-all">All</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="intensity-limitation" id="intensity-complete" value="no_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="intensity-complete">Complete</label>
+                                </label>
+                                <label class="mdc-form-field limitation-radio-option">
+                                    <div class="mdc-radio">
+                                        <input class="mdc-radio__native-control" type="radio" name="intensity-limitation" id="intensity-partial" value="has_limits">
+                                        <div class="mdc-radio__background">
+                                            <div class="mdc-radio__outer-circle"></div>
+                                            <div class="mdc-radio__inner-circle"></div>
+                                        </div>
+                                        <div class="mdc-radio__ripple"></div>
+                                    </div>
+                                    <label for="intensity-partial">Partial</label>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Action Buttons -->
                 <div class="filter-buttons">
                     <button class="mdc-button mdc-button--raised" id="applyFilters">
