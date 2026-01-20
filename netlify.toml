@@ -28,6 +28,12 @@
   to = "/index.html"
   status = 200
 
+# Place profile permalinks (client-side routing)
+[[redirects]]
+  from = "/place"
+  to = "/index.html"
+  status = 200
+
 # General pattern: map bare word paths to .html files (e.g., /about -> /about.html)
 [[redirects]]
   from = "/:word"

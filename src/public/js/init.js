@@ -12,6 +12,26 @@ async function loadFiltersFromUrl() {
     return false;
 }
 
+async function loadPlaceProfileFromUrl() {
+    const path = window.location.pathname;
+    if (path !== '/place') return false;
+
+    const placeId = new URLSearchParams(window.location.search).get('place_id');
+    if (!placeId) return false;
+
+    const id = parseInt(placeId, 10);
+    if (isNaN(id)) return false;
+
+    if (typeof switchView === 'function') {
+        switchView('explorePlaces');
+    }
+    if (typeof loadPolicyProfileDetail === 'function') {
+        await loadPolicyProfileDetail(id);
+        return true;
+    }
+    return false;
+}
+
 async function loadSavedSearch() {
     const path = window.location.pathname;
     const savedMatch = path.match(/^\/saved\/([a-zA-Z0-9]+)$/);
@@ -144,16 +164,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeLocationFilter();
     updatePopulationLabels();
     
-    // Try to load from saved search first, then URL params, then default
+    // Try to load from saved search first, then place profile, then URL params, then default
     const loadedSaved = await loadSavedSearch();
     if (!loadedSaved) {
-        const loadedFromUrl = await loadFiltersFromUrl();
-        if (!loadedFromUrl) {
-            // Apply default filters
-            applyFilters(true);
-        } else {
-            // Load from URL params
-            applyFilters(true);
+        const loadedPlaceProfile = await loadPlaceProfileFromUrl();
+        if (!loadedPlaceProfile) {
+            const loadedFromUrl = await loadFiltersFromUrl();
+            if (!loadedFromUrl) {
+                // Apply default filters
+                applyFilters(true);
+            } else {
+                // Load from URL params
+                applyFilters(true);
+            }
         }
     } else {
         // Loaded from saved search
@@ -163,9 +186,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Handle browser back/forward buttons
 window.addEventListener('popstate', async () => {
+    const loadedPlaceProfile = await loadPlaceProfileFromUrl();
+    if (loadedPlaceProfile) return;
+
+    const loadedSaved = await loadSavedSearch();
+    if (loadedSaved) {
+        applyFilters(true);
+        return;
+    }
+
     const loadedFromUrl = await loadFiltersFromUrl();
     if (loadedFromUrl) {
         applyFilters(true);
+        return;
+    }
+
+    // Navigated to /explore-places: show explore places list (hides place profile if it was showing)
+    if (window.location.pathname === '/explore-places' && typeof switchView === 'function') {
+        switchView('explorePlaces');
     }
 });
 
