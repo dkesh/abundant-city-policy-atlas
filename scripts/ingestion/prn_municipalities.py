@@ -69,8 +69,14 @@ if not DATABASE_URL:
 # Map JSON keys to Universal DB Codes
 # Note: add_max reforms are discarded and not recorded
 DB_TYPE_MAPPING = {
-    'rm_min': 'parking:eliminated',
-    'reduce_min': 'parking:reduced'
+    'rm_min': 'parking:off-street_mandates',
+    'reduce_min': 'parking:off-street_mandates'
+}
+
+# Intensity mapping for parking reforms
+PARKING_INTENSITY_MAPPING = {
+    'rm_min': 'complete',  # Eliminated = complete
+    'reduce_min': 'partial'  # Reduced = partial
 }
 
 BATCH_SIZE = 500  # Upsert in batches to reduce transaction size
@@ -251,6 +257,11 @@ def _build_reform_records(
                 logger.warning(f"Unknown reform type: {reform['reform_type']} -> {universal_code}")
                 continue
 
+            # Set intensity for parking reforms
+            intensity = None
+            if universal_code == 'parking:off-street_mandates':
+                intensity = PARKING_INTENSITY_MAPPING.get(reform['reform_type'])
+            
             reform_records.append({
                 'place_id': place_id,
                 'reform_type_ids': [reform_type_id],  # Convert to list for new schema
@@ -266,6 +277,7 @@ def _build_reform_records(
                 'reform_phase': None,
                 'legislative_number': None,
                 'link_url': reform.get('link_url'),  # Set from place's source_url
+                'intensity': intensity,  # Set intensity for parking reforms
                 # Source-specific fields (for reform_sources table)
                 'reporter': reform['reporter'],
                 'source_url': reform['source_url'],

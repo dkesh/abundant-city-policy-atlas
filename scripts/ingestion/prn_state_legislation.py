@@ -86,17 +86,17 @@ def infer_parking_reform_type(summary: str, title: str) -> str:
     
     text = f"{summary or ''} {title or ''}".lower()
     
-    # Keywords for elimination
+    # Keywords for elimination (complete)
     if any(word in text for word in ['eliminate', 'elimination', 'repeal', 'remove', 'no parking required', 
                                       'zero parking', 'no minimum', 'eliminated']):
-        return 'parking:eliminated'
+        return ('parking:off-street_mandates', 'complete')
     
-    # Keywords for reduction
+    # Keywords for reduction (partial)
     if any(word in text for word in ['reduce', 'reduction', 'lower', 'decrease', 'reduced', 'lowered']):
-        return 'parking:reduced'
+        return ('parking:off-street_mandates', 'partial')
     
     # Default to unspecified
-    return 'parking:unspecified'
+    return ('parking:unspecified', None)
 
 
 def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[Dict, Dict, Dict]]:
@@ -157,8 +157,8 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
             'last_action_date': None,  # Could parse from status notes if available
         }
         
-        # Determine parking reform type
-        reform_code = infer_parking_reform_type(bill_summary, bill_title)
+        # Determine parking reform type and intensity
+        reform_code, intensity = infer_parking_reform_type(bill_summary, bill_title)
         reform_type_id = reform_type_map.get(reform_code)
         
         if not reform_type_id:
@@ -204,6 +204,7 @@ def parse_csv_row(row: Dict, reform_type_map: Dict[str, int]) -> Optional[Tuple[
             'reform_phase': session if session else None,
             'legislative_number': bill_ref,
             'link_url': 'https://parkingreform.org/resources/state-legislation-map/',
+            'intensity': intensity,  # Set intensity for parking reforms
             'citations': citations,
             # Source-specific fields (for reform_sources table)
             'reporter': None,

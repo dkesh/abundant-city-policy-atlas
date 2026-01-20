@@ -115,6 +115,8 @@ CREATE TABLE IF NOT EXISTS reforms (
   reform_mechanism VARCHAR(100),
   reform_phase VARCHAR(50),
   legislative_number VARCHAR(255),
+  -- intensity: 'complete' for full implementation, 'partial' for partial implementation, NULL for not applicable
+  intensity VARCHAR(20) CHECK (intensity IN ('complete', 'partial') OR intensity IS NULL),
   -- metadata
   notes TEXT,
   link_url TEXT,
@@ -127,6 +129,7 @@ CREATE TABLE IF NOT EXISTS reforms (
 CREATE INDEX IF NOT EXISTS reforms_place_idx ON reforms(place_id);
 CREATE INDEX IF NOT EXISTS reforms_adoption_idx ON reforms(adoption_date);
 CREATE INDEX IF NOT EXISTS reforms_policy_doc_idx ON reforms(policy_document_id);
+CREATE INDEX IF NOT EXISTS reforms_intensity_idx ON reforms(intensity);
 
 -- Junction table for many-to-many relationship between reforms and reform_types
 CREATE TABLE IF NOT EXISTS reform_reform_types (

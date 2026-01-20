@@ -697,7 +697,7 @@ def normalize_reform_type(cbna_type: str) -> Optional[str]:
         'missing middle': 'housing:plex',
         'parking': 'parking:unspecified',
         'parking minimum': 'parking:unspecified',
-        'parking elimination': 'parking:eliminated',
+        'parking elimination': 'parking:off-street_mandates',
         'tod': 'zoning:tod',
         'transit-oriented': 'zoning:tod',
         'lot size': 'physical:lot_size',

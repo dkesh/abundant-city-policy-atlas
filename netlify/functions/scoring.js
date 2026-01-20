@@ -46,22 +46,22 @@ function calculateReformLimitationsPenalty(reform) {
 
 /**
  * Custom scoring for Parking category
- * Full credit for parking:eliminated, partial credit for parking:reduced
+ * Full credit for parking:off-street_mandates with intensity='complete', partial credit for intensity='partial'
  */
 function calculateParkingScore(reforms, categoryReformTypes) {
-  const reformCodes = new Set(reforms.map(r => r.reform_code));
+  // Filter reforms to parking:off-street_mandates
+  const parkingReforms = reforms.filter(r => r.reform_code === 'parking:off-street_mandates');
   
-  // Check for eliminated (full credit)
-  const hasEliminated = reformCodes.has('parking:eliminated');
+  // Check for complete (full credit)
+  const hasComplete = parkingReforms.some(r => r.intensity === 'complete');
   
-  // Check for reduced (partial credit)
-  const hasReduced = reformCodes.has('parking:reduced') || 
-                     reformCodes.has('parking:reduced_minimum');
+  // Check for partial (partial credit)
+  const hasPartial = parkingReforms.some(r => r.intensity === 'partial');
   
-  if (hasEliminated) {
+  if (hasComplete) {
     // Full credit if eliminated
     return 100;
-  } else if (hasReduced) {
+  } else if (hasPartial) {
     // Partial credit (e.g., 50%) if only reduced
     return 50;
   }

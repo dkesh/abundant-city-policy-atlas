@@ -323,6 +323,11 @@ function createReformCard(reform, showDistance = false) {
     requirementsItems.forEach(r => {
         limitationChips.push({ type: 'Requirements', value: r });
     });
+    
+    // Add intensity limitation if partial
+    if (reform.reform.intensity === 'partial') {
+        limitationChips.push({ type: 'Intensity', value: 'Partial reform' });
+    }
 
     // Helper function to create limitation chip with embedded header
     const createLimitationChip = (type, value) => {
@@ -782,6 +787,14 @@ function showExpandedReformView(reform) {
                             <ul class="expanded-list">${requirementsHtml}</ul>
                         </div>
                     </div>
+                    ${reform.reform.intensity === 'partial' ? `
+                    <div class="expanded-field">
+                        <strong>Intensity:</strong>
+                        <div class="field-value">
+                            <ul class="expanded-list"><li>Partial reform</li></ul>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
                 
                 ${reform.reform.notes ? `

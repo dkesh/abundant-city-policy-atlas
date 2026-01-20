@@ -282,6 +282,9 @@ function renderTimelineItem(reform, isUnknownDate = false, place = null) {
             limitationTags.push(`<span class="limitation-chip">Discretionary</span>`);
         }
     }
+    if (reform.intensity === 'partial') {
+        limitationTags.push(`<span class="limitation-chip">Partial reform</span>`);
+    }
 
     return `
         <div class="timeline-item">

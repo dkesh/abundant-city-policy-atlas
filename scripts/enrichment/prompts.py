@@ -65,7 +65,7 @@ A paragraph providing deeper context about the bill's impact.
 Return valid JSON with this structure:
 {{
   "reform_type_suggestion": {{
-    "value": "parking:eliminated",
+    "value": "parking:off-street_mandates",
     "confidence": "HIGH|MEDIUM|LOW",
     "reasoning": "Brief explanation"
   }},

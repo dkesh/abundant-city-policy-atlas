@@ -942,14 +942,15 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
             r.get('reform_mechanism'),
             r.get('reform_phase'),
             r.get('legislative_number'),
-            r.get('link_url')
+            r.get('link_url'),
+            r.get('intensity')  # Add intensity field
         ) for r in new_reforms]
 
         sql = """
             INSERT INTO reforms (
                 place_id, policy_document_id, status, scope, land_use,
                 adoption_date, summary, requirements, notes,
-                reform_mechanism, reform_phase, legislative_number, link_url
+                reform_mechanism, reform_phase, legislative_number, link_url, intensity
             )
             VALUES %s
             RETURNING id, (xmax = 0)::int AS is_insert
@@ -1002,6 +1003,7 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
                     link_url = COALESCE(%s, reforms.link_url),
                     adoption_date = COALESCE(%s, reforms.adoption_date),
                     status = COALESCE(%s, reforms.status),
+                    intensity = COALESCE(%s, reforms.intensity),
                     updated_at = CURRENT_TIMESTAMP
                     -- Note: ai_enriched_fields, ai_enrichment_version, ai_enriched_at are preserved
                     -- (not in UPDATE SET clause, so they remain unchanged)
@@ -1021,6 +1023,7 @@ def bulk_upsert_reforms(conn, cursor, reforms: List[Dict]) -> Tuple[int, int, Li
                 r.get('link_url'),
                 r.get('adoption_date'),
                 r.get('status'),
+                r.get('intensity'),  # Add intensity field
                 existing_id
             ))
             result = cursor.fetchone()

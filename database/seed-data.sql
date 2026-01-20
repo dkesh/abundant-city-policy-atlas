@@ -27,8 +27,7 @@ ON CONFLICT (name) DO UPDATE SET
 
 INSERT INTO reform_types (code, category_id, name, description, color_hex, icon_name, sort_order) VALUES
   -- PARKING
-  ('parking:eliminated', (SELECT id FROM categories WHERE name = 'Parking'), 'Mandates Eliminated', 'Completely eliminated parking minimum requirements', '#27ae60', 'ban', 10),
-  ('parking:reduced', (SELECT id FROM categories WHERE name = 'Parking'), 'Mandates Reduced', 'Reduced parking minimum requirements', '#2ecc71', 'minus-circle', 11),
+  ('parking:off-street_mandates', (SELECT id FROM categories WHERE name = 'Parking'), 'Off-Street Parking Mandates', 'Reforms to off-street parking minimum requirements', '#27ae60', 'local_parking', 10),
   ('parking:unspecified', (SELECT id FROM categories WHERE name = 'Parking'), 'Parking: unspecified', 'Parking policy changes', '#27ae60', 'car', 12),
   -- HOUSING TYPOLOGY
   ('housing:adu', (SELECT id FROM categories WHERE name = 'Housing Typology'), 'ADU', 'Accessory Dwelling Unit reforms', '#3498db', 'home', 20),

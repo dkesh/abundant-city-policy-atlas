@@ -212,6 +212,7 @@ exports.handler = async (event, context) => {
         r.summary,
         r.requirements,
         r.notes,
+        r.intensity,
         r.created_at,
         r.ai_enriched_fields,
         r.ai_enrichment_version,
@@ -255,7 +256,7 @@ exports.handler = async (event, context) => {
       WHERE ${whereClause}
       GROUP BY r.id, p.id, p.name, p.place_type, p.population, tld.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
                tld.state_code, tld.state_name, tld.country, tld.region,
-               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.created_at,
+               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.intensity, r.created_at,
                r.ai_enriched_fields, r.ai_enrichment_version,
                pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
       ORDER BY tld.state_name, p.name, r.adoption_date DESC
@@ -313,6 +314,7 @@ exports.handler = async (event, context) => {
           adoption_date: row.adoption_date ? row.adoption_date.toISOString().split('T')[0] : null,
           summary: mergedSummary || '',
           requirements: mergedRequirements,
+          intensity: row.intensity,
           notes: row.notes || '',
           link_url: row.link_url,
           sources: row.sources || [],
