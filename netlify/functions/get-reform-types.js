@@ -28,15 +28,16 @@ exports.handler = async (event, context) => {
 
     const query = `
       SELECT 
-        id,
-        code,
-        category,
-        name,
-        description,
-        color_hex,
-        sort_order
-      FROM reform_types
-      ORDER BY sort_order, name
+        rt.id,
+        rt.code,
+        c.name as category,
+        rt.name,
+        rt.description,
+        rt.color_hex,
+        rt.sort_order
+      FROM reform_types rt
+      LEFT JOIN categories c ON rt.category_id = c.id
+      ORDER BY rt.sort_order, rt.name
     `;
 
     const result = await client.query(query);

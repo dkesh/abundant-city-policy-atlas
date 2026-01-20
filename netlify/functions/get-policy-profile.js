@@ -104,7 +104,7 @@ exports.handler = async (event, context) => {
         r.link_url,
         r.ai_enriched_fields,
         rt.code as reform_code,
-        rt.category,
+        c.name as category,
         rt.name as reform_name,
         COALESCE(
           (
@@ -130,12 +130,13 @@ exports.handler = async (event, context) => {
       FROM reforms r
       LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
       LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
+      LEFT JOIN categories c ON rt.category_id = c.id
       WHERE r.place_id = $1
       ORDER BY 
         CASE WHEN r.adoption_date IS NULL THEN 1 ELSE 0 END,
         r.adoption_date DESC NULLS LAST,
-        CASE WHEN rt.category IS NULL THEN 1 ELSE 0 END,
-        rt.category,
+        CASE WHEN c.name IS NULL THEN 1 ELSE 0 END,
+        c.name,
         rt.name
     `;
 
@@ -145,13 +146,14 @@ exports.handler = async (event, context) => {
     // Get all reform types by category for domain overview
     const reformTypesQuery = `
       SELECT 
-        id,
-        code,
-        category,
-        name
-      FROM reform_types
-      WHERE category IS NOT NULL
-      ORDER BY category, name
+        rt.id,
+        rt.code,
+        c.name as category,
+        rt.name
+      FROM reform_types rt
+      LEFT JOIN categories c ON rt.category_id = c.id
+      WHERE rt.category_id IS NOT NULL
+      ORDER BY c.name, rt.name
     `;
 
     const reformTypesResult = await client.query(reformTypesQuery);
@@ -181,13 +183,14 @@ exports.handler = async (event, context) => {
           rt.id as reform_type_id,
           rt.code as reform_code,
           rt.name as reform_name,
-          rt.category,
+          c.name as category,
           COUNT(DISTINCT r.place_id) as adoption_count
         FROM reforms r
         JOIN reform_reform_types rrt ON r.id = rrt.reform_id
         JOIN reform_types rt ON rrt.reform_type_id = rt.id
+        LEFT JOIN categories c ON rt.category_id = c.id
         WHERE r.place_id IN (SELECT id FROM similar_places)
-        GROUP BY rt.id, rt.code, rt.name, rt.category
+        GROUP BY rt.id, rt.code, rt.name, c.name
         HAVING COUNT(DISTINCT r.place_id) >= 3
       ),
       missing_reforms AS (
@@ -225,16 +228,17 @@ exports.handler = async (event, context) => {
     // Get reform summary by category for domain overview
     const reformSummaryQuery = `
       SELECT 
-        rt.category,
+        c.name as category,
         rt.code as reform_code,
         rt.name as reform_name,
         COUNT(DISTINCT r.id) as reform_count
       FROM reforms r
       JOIN reform_reform_types rrt ON r.id = rrt.reform_id
       JOIN reform_types rt ON rrt.reform_type_id = rt.id
+      LEFT JOIN categories c ON rt.category_id = c.id
       WHERE r.place_id = $1
-      GROUP BY rt.category, rt.code, rt.name
-      ORDER BY rt.category, rt.name
+      GROUP BY c.name, rt.code, rt.name
+      ORDER BY c.name, rt.name
     `;
 
     const reformSummaryResult = await client.query(reformSummaryQuery, [placeId]);
