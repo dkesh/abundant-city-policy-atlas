@@ -86,6 +86,9 @@ exports.handler = async (event, context) => {
     const place = placeResult.rows[0];
 
     // Get all reforms for this place with reform type info, sorted by adoption date for timeline
+    // Note: This query returns one row per reform-reform_type combination
+    // We use LEFT JOIN to include reforms even if they have no reform types
+    // We'll group by reform_id to combine reform types and sources
     const reformsQuery = `
       SELECT 
         r.id,
@@ -96,17 +99,42 @@ exports.handler = async (event, context) => {
         r.requirements,
         r.status,
         r.adoption_date,
+        r.summary,
+        r.notes,
+        r.link_url,
+        r.ai_enriched_fields,
         rt.code as reform_code,
         rt.category,
-        rt.name as reform_name
+        rt.name as reform_name,
+        COALESCE(
+          (
+            SELECT json_agg(
+              json_build_object(
+                'id', s.id,
+                'name', s.name,
+                'short_name', s.short_name,
+                'logo', s.logo_filename,
+                'website_url', s.website_url,
+                'reporter', rs.reporter,
+                'source_url', rs.source_url,
+                'notes', rs.notes,
+                'is_primary', rs.is_primary
+              ) ORDER BY rs.is_primary DESC, s.name
+            )
+            FROM reform_sources rs
+            JOIN sources s ON rs.source_id = s.id
+            WHERE rs.reform_id = r.id
+          ),
+          '[]'::json
+        ) as sources
       FROM reforms r
-      JOIN reform_reform_types rrt ON r.id = rrt.reform_id
-      JOIN reform_types rt ON rrt.reform_type_id = rt.id
+      LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+      LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
       WHERE r.place_id = $1
-        AND rt.category IS NOT NULL
       ORDER BY 
         CASE WHEN r.adoption_date IS NULL THEN 1 ELSE 0 END,
         r.adoption_date DESC NULLS LAST,
+        CASE WHEN rt.category IS NULL THEN 1 ELSE 0 END,
         rt.category,
         rt.name
     `;
@@ -290,12 +318,17 @@ exports.handler = async (event, context) => {
         id: r.id,
         adoption_date: r.adoption_date,
         status: r.status,
-        reform_name: r.reform_name,
-        reform_code: r.reform_code,
-        category: r.category,
+        reform_name: r.reform_name || 'Unclassified Reform',
+        reform_code: r.reform_code || null,
+        category: r.category || 'Uncategorized',
         scope: r.scope,
         land_use: r.land_use,
-        requirements: r.requirements
+        requirements: r.requirements,
+        summary: r.summary,
+        notes: r.notes,
+        link_url: r.link_url,
+        ai_enriched_fields: r.ai_enriched_fields,
+        sources: Array.isArray(r.sources) ? r.sources : []
       })),
       domains: domainSummaries,
       todoItems: todoResult.rows.map(r => ({

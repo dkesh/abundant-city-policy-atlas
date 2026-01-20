@@ -136,6 +136,18 @@ function renderPlaceProfile(data) {
 
 // Transform timeline reform data to format expected by showExpandedReformView
 function transformTimelineReformForExpandedView(timelineReform, place) {
+    // Transform AI enrichment fields if present
+    let aiEnrichment = null;
+    if (timelineReform.ai_enriched_fields) {
+        aiEnrichment = {
+            version: timelineReform.ai_enriched_fields.version,
+            enriched_at: timelineReform.ai_enriched_fields.enriched_at,
+            model: timelineReform.ai_enriched_fields.model,
+            provider: timelineReform.ai_enriched_fields.provider,
+            fields: timelineReform.ai_enriched_fields.fields || {}
+        };
+    }
+    
     return {
         id: timelineReform.id,
         reform: {
@@ -147,12 +159,18 @@ function transformTimelineReformForExpandedView(timelineReform, place) {
             requirements: timelineReform.requirements || [],
             types: [{ name: timelineReform.reform_name }],
             type_name: timelineReform.reform_name,
-            summary: null,
-            link_url: null,
-            notes: null,
+            summary: timelineReform.summary || null,
+            link_url: timelineReform.link_url || null,
+            notes: timelineReform.notes || null,
             policy_document: null,
-            sources: [],
-            ai_enrichment: null
+            sources: Array.isArray(timelineReform.sources) ? timelineReform.sources : [],
+            ai_enrichment: aiEnrichment,
+            original: {
+                summary: timelineReform.summary || '',
+                scope: timelineReform.scope || [],
+                land_use: timelineReform.land_use || [],
+                requirements: timelineReform.requirements || []
+            }
         },
         place: {
             id: place.id,
