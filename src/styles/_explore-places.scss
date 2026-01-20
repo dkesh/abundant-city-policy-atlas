@@ -416,6 +416,66 @@
 }
 
 /* Priority Areas (formerly report-card-todo) */
+/* Advocacy Organizations */
+.advocacy-organizations-section {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--color-light);
+}
+
+.advocacy-organizations-section h3 {
+    margin: 0 0 16px 0;
+}
+
+.advocacy-organizations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.advocacy-organization-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.advocacy-org-logo {
+    width: 64px;
+    height: 64px;
+    object-fit: contain;
+    margin-bottom: 8px;
+}
+
+.advocacy-org-content {
+    flex: 1;
+}
+
+.advocacy-org-name {
+    margin: 0;
+    font-weight: 500;
+}
+
+.advocacy-org-link {
+    color: var(--mdc-theme-primary);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: opacity 0.2s;
+}
+
+.advocacy-org-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.advocacy-org-link .material-icons {
+    font-size: 16px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
 .priority-areas {
     margin-bottom: 32px;
     padding: 24px;
@@ -512,11 +572,17 @@
     
     /* Ensure content fits on page */
     .policy-profile-header,
+    .advocacy-organizations-section,
     .reform-timeline,
     .domain-overview,
     .priority-areas {
         page-break-inside: avoid;
         margin-bottom: 20px;
+    }
+    
+    .advocacy-organizations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
     }
     
     .domain-summaries {

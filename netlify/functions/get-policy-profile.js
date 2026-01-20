@@ -7,6 +7,7 @@
  * - Reforms timeline (chronological)
  * - Domain summaries
  * - Priority areas for improvement (peer-based suggestions)
+ * - Advocacy organizations active in this jurisdiction
  */
 
 const { Pool } = require('pg');
@@ -210,6 +211,33 @@ exports.handler = async (event, context) => {
 
     const reformSummaryResult = await client.query(reformSummaryQuery, [placeId]);
 
+    // Get advocacy organizations for this place
+    // Includes direct matches and hierarchical matches (state-level orgs shown for cities/counties)
+    const advocacyOrgsQuery = `
+      SELECT DISTINCT
+        ao.id,
+        ao.name,
+        ao.website_url,
+        ao.logo_url,
+        ao.description
+      FROM advocacy_organizations ao
+      JOIN advocacy_organization_places aop ON ao.id = aop.advocacy_organization_id
+      JOIN places p_org ON aop.place_id = p_org.id
+      JOIN places p_target ON p_target.id = $1
+      WHERE 
+        -- Direct place match
+        aop.place_id = $1
+        OR
+        -- State-level match: show state-level orgs for cities/counties in that state
+        (p_org.place_type = 'state' 
+         AND p_org.state_code = p_target.state_code
+         AND p_target.place_type IN ('city', 'county'))
+      ORDER BY ao.name
+    `;
+
+    const advocacyOrgsResult = await client.query(advocacyOrgsQuery, [placeId]);
+    const advocacyOrganizations = advocacyOrgsResult.rows;
+
     client.release();
 
     // Build domain summaries: count reform types per category
@@ -286,7 +314,14 @@ exports.handler = async (event, context) => {
           count: r.reform_count
         });
         return acc;
-      }, {})
+      }, {}),
+      advocacyOrganizations: advocacyOrganizations.map(org => ({
+        id: org.id,
+        name: org.name,
+        websiteUrl: org.website_url,
+        logoUrl: org.logo_url,
+        description: org.description
+      }))
     };
 
     return {

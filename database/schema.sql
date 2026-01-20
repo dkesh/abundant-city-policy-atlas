@@ -362,6 +362,68 @@ CREATE INDEX IF NOT EXISTS idx_saved_searches_created ON saved_searches(created_
 CREATE INDEX IF NOT EXISTS idx_saved_searches_filter_config ON saved_searches USING GIN(filter_config);
 
 -- ============================================================================
+-- ADVOCACY ORGANIZATIONS
+-- ============================================================================
+
+-- Advocacy organizations table - Stores pro-housing advocacy organizations
+CREATE TABLE IF NOT EXISTS advocacy_organizations (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  website_url TEXT,
+  logo_url TEXT,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(name)
+);
+
+CREATE INDEX IF NOT EXISTS advocacy_organizations_name_idx ON advocacy_organizations(name);
+
+-- Advocacy organization places junction table - Many-to-many relationship
+-- between advocacy organizations and places/jurisdictions
+CREATE TABLE IF NOT EXISTS advocacy_organization_places (
+  advocacy_organization_id INTEGER NOT NULL REFERENCES advocacy_organizations(id) ON DELETE CASCADE,
+  place_id INTEGER NOT NULL REFERENCES places(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (advocacy_organization_id, place_id)
+);
+
+CREATE INDEX IF NOT EXISTS advocacy_organization_places_org_idx ON advocacy_organization_places(advocacy_organization_id);
+CREATE INDEX IF NOT EXISTS advocacy_organization_places_place_idx ON advocacy_organization_places(place_id);
+
+-- Advocate communications table - Links advocacy organizations to specific reforms
+-- with communication details (URL, title, full text, date)
+CREATE TABLE IF NOT EXISTS advocate_communications (
+  id SERIAL PRIMARY KEY,
+  reform_id INTEGER NOT NULL REFERENCES reforms(id) ON DELETE CASCADE,
+  advocacy_organization_id INTEGER NOT NULL REFERENCES advocacy_organizations(id) ON DELETE CASCADE,
+  url TEXT NOT NULL,
+  title VARCHAR(500),
+  full_text TEXT,
+  communication_date DATE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS advocate_communications_reform_idx ON advocate_communications(reform_id);
+CREATE INDEX IF NOT EXISTS advocate_communications_org_idx ON advocate_communications(advocacy_organization_id);
+CREATE INDEX IF NOT EXISTS advocate_communications_date_idx ON advocate_communications(communication_date);
+
+-- Update timestamp trigger for advocacy_organizations
+DROP TRIGGER IF EXISTS advocacy_organizations_update_timestamp ON advocacy_organizations;
+CREATE TRIGGER advocacy_organizations_update_timestamp
+BEFORE UPDATE ON advocacy_organizations
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+-- Update timestamp trigger for advocate_communications
+DROP TRIGGER IF EXISTS advocate_communications_update_timestamp ON advocate_communications;
+CREATE TRIGGER advocate_communications_update_timestamp
+BEFORE UPDATE ON advocate_communications
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+-- ============================================================================
 -- PERMISSIONS (uncomment and adjust for your setup)
 -- ============================================================================
 -- GRANT SELECT ON ALL TABLES IN SCHEMA public TO read_only_user;

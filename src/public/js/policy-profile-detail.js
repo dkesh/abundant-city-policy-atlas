@@ -40,7 +40,7 @@ function renderPlaceProfile(data) {
     const container = document.getElementById('policyProfileDetailContent');
     if (!container) return;
     
-    const { place, reforms, domains, todoItems, reformSummary } = data;
+    const { place, reforms, domains, todoItems, reformSummary, advocacyOrganizations } = data;
     
     container.innerHTML = `
         <div class="policy-profile-detail" id="policyProfilePrintContent">
@@ -62,6 +62,9 @@ function renderPlaceProfile(data) {
                     Based on tracked reforms in the Atlas. This is not a complete audit; gaps may reflect missing data.
                 </p>
             </div>
+            
+            <!-- Advocacy Organizations -->
+            ${renderAdvocacyOrganizations(advocacyOrganizations)}
             
             <!-- Reform Timeline -->
             ${renderReformTimeline(reforms, place)}
@@ -336,6 +339,46 @@ function renderDomainOverview(domains, reformSummary) {
                         </div>
                     `;
                 }).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// Render advocacy organizations section
+function renderAdvocacyOrganizations(organizations) {
+    if (!organizations || organizations.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="advocacy-organizations-section">
+            <h3 class="mdc-typography--headline6">Advocacy Organizations</h3>
+            <p class="mdc-typography--body2" style="color: #666; margin-bottom: 16px;">
+                Pro-housing advocacy organizations active in this jurisdiction.
+            </p>
+            <div class="advocacy-organizations-grid">
+                ${organizations.map(org => `
+                    <div class="mdc-card advocacy-organization-card">
+                        ${org.logoUrl ? `
+                            <img src="${escapeHtml(org.logoUrl)}" alt="${escapeHtml(org.name)}" class="advocacy-org-logo" />
+                        ` : ''}
+                        <div class="advocacy-org-content">
+                            <h4 class="mdc-typography--subtitle1 advocacy-org-name">
+                                ${org.websiteUrl ? `
+                                    <a href="${escapeHtml(org.websiteUrl)}" target="_blank" rel="noopener" class="advocacy-org-link">
+                                        ${escapeHtml(org.name)}
+                                        <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-left: 4px;">open_in_new</i>
+                                    </a>
+                                ` : escapeHtml(org.name)}
+                            </h4>
+                            ${org.description ? `
+                                <p class="mdc-typography--body2" style="color: #666; margin-top: 8px;">
+                                    ${escapeHtml(org.description)}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
             </div>
         </div>
     `;
