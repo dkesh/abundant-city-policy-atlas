@@ -561,7 +561,8 @@ function attachReformCardListeners(card, reform) {
             if (placeId && typeof loadPolicyProfileDetail === 'function') {
                 // Switch to explore places view first
                 switchView('explorePlaces');
-                loadPolicyProfileDetail(parseInt(placeId));
+                // Pass 'list' as the previous view context so breadcrumb shows "Back to Reforms List"
+                loadPolicyProfileDetail(parseInt(placeId), 'list');
             }
         });
     }

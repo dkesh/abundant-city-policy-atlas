@@ -258,7 +258,7 @@ function showPlaceOverlay(placeId, reforms) {
                 const placeId = reportCardBtn.getAttribute('data-place-id');
                 if (placeId && typeof loadPolicyProfileDetail === 'function') {
                     switchView('explorePlaces');
-                    loadPolicyProfileDetail(parseInt(placeId));
+                    loadPolicyProfileDetail(parseInt(placeId), 'map');
                 }
             });
         }
@@ -301,7 +301,7 @@ function showStateOverlay(stateName, stateCode, reforms) {
                 const placeId = reportCardBtn.getAttribute('data-place-id');
                 if (placeId && typeof loadPolicyProfileDetail === 'function') {
                     switchView('explorePlaces');
-                    loadPolicyProfileDetail(parseInt(placeId));
+                    loadPolicyProfileDetail(parseInt(placeId), 'map');
                 }
             });
         }

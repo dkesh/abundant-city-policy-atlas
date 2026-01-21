@@ -41,12 +41,27 @@ function setupEventListeners() {
         dismissErrorBtn.addEventListener('click', hideError);
     }
     
-    // Back to explore places list button
+    // Back to explore places list button (or back to reforms list or map)
     const backToExplorePlacesBtn = document.getElementById('backToExplorePlaces');
     if (backToExplorePlacesBtn) {
         backToExplorePlacesBtn.addEventListener('click', () => {
-            if (typeof navigateToExplorePlacesList === 'function') {
-                navigateToExplorePlacesList();
+            const previousView = backToExplorePlacesBtn.getAttribute('data-previous-view') || 'explorePlaces';
+            
+            if (previousView === 'list') {
+                // Navigate back to reforms list view
+                if (typeof switchView === 'function') {
+                    switchView('list');
+                }
+            } else if (previousView === 'map') {
+                // Navigate back to map view
+                if (typeof switchView === 'function') {
+                    switchView('map');
+                }
+            } else {
+                // Navigate back to explore places list view
+                if (typeof navigateToExplorePlacesList === 'function') {
+                    navigateToExplorePlacesList();
+                }
             }
         });
     }

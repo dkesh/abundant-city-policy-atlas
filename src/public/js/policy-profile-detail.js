@@ -2,13 +2,22 @@
 // POLICY PROFILE DETAIL VIEW
 // ============================================================================
 
+// Track the previous view context for breadcrumb navigation
+let previousViewContext = 'explorePlaces'; // Default to explorePlaces for backwards compatibility
+
 // Load and display policy profile detail
-async function loadPolicyProfileDetail(placeId) {
+async function loadPolicyProfileDetail(placeId, fromView = 'explorePlaces') {
     const listView = document.getElementById('explorePlacesListView');
     const detailView = document.getElementById('policyProfileDetailView');
     const detailContent = document.getElementById('policyProfileDetailContent');
     
     if (!detailContent) return;
+    
+    // Store the previous view context
+    previousViewContext = fromView;
+    
+    // Update breadcrumb button based on context
+    updateBreadcrumbButton(fromView);
     
     // Show detail view, hide list view
     if (listView) listView.classList.add('container-hidden');
@@ -58,6 +67,26 @@ async function loadPolicyProfileDetail(placeId) {
     } catch (error) {
         console.error('Error loading policy profile:', error);
         detailContent.innerHTML = '<p class="error">Failed to load policy profile. Please try again.</p>';
+    }
+}
+
+// Update breadcrumb button text and behavior based on previous view
+function updateBreadcrumbButton(fromView) {
+    const backButton = document.getElementById('backToExplorePlaces');
+    if (!backButton) return;
+    
+    const buttonLabel = backButton.querySelector('.mdc-button__label');
+    if (!buttonLabel) return;
+    
+    if (fromView === 'list') {
+        buttonLabel.textContent = '← Back to Reforms List';
+        backButton.setAttribute('data-previous-view', 'list');
+    } else if (fromView === 'map') {
+        buttonLabel.textContent = '← Back to Map';
+        backButton.setAttribute('data-previous-view', 'map');
+    } else {
+        buttonLabel.textContent = '← Back to Explore Places';
+        backButton.setAttribute('data-previous-view', 'explorePlaces');
     }
 }
 
