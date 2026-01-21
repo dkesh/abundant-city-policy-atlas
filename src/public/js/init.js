@@ -169,6 +169,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     initializeLocationFilter();
     updatePopulationLabels();
     
+    const path = window.location.pathname;
+    
+    // Handle direct URL access to view routes
+    if (path === '/list' && typeof switchView === 'function') {
+        switchView('list', true);
+        const loadedFromUrl = await loadFiltersFromUrl();
+        applyFilters(true);
+        return;
+    } else if (path === '/map' && typeof switchView === 'function') {
+        switchView('map', true);
+        const loadedFromUrl = await loadFiltersFromUrl();
+        applyFilters(true);
+        return;
+    } else if (path === '/about' && typeof switchView === 'function') {
+        switchView('about', true);
+        return;
+    } else if (path === '/explore-places' && typeof switchView === 'function') {
+        switchView('explorePlaces', true);
+        return;
+    }
+    
     // Try to load from saved search first, then place profile, then URL params, then default
     const loadedSaved = await loadSavedSearch();
     if (!loadedSaved) {
@@ -191,24 +212,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Handle browser back/forward buttons
 window.addEventListener('popstate', async () => {
+    const path = window.location.pathname;
+    
+    // Handle place profile URLs
     const loadedPlaceProfile = await loadPlaceProfileFromUrl();
     if (loadedPlaceProfile) return;
 
+    // Handle saved search URLs
     const loadedSaved = await loadSavedSearch();
     if (loadedSaved) {
         applyFilters(true);
         return;
     }
 
+    // Handle view routes (list, map, about, explore-places)
+    if (path === '/list' && typeof switchView === 'function') {
+        switchView('list', true);
+        return;
+    } else if (path === '/map' && typeof switchView === 'function') {
+        switchView('map', true);
+        return;
+    } else if (path === '/about' && typeof switchView === 'function') {
+        switchView('about', true);
+        return;
+    } else if (path === '/explore-places' && typeof switchView === 'function') {
+        switchView('explorePlaces', true);
+        return;
+    }
+
+    // Handle filter URLs (with query params)
     const loadedFromUrl = await loadFiltersFromUrl();
     if (loadedFromUrl) {
         applyFilters(true);
         return;
     }
 
-    // Navigated to /explore-places: show explore places list (hides place profile if it was showing)
-    if (window.location.pathname === '/explore-places' && typeof switchView === 'function') {
-        switchView('explorePlaces');
+    // Default: show list view if at root
+    if (path === '/' && typeof switchView === 'function') {
+        switchView('list', true);
     }
 });
 

@@ -269,6 +269,8 @@ function navigateToExplorePlacesList() {
     if (listView) listView.classList.remove('container-hidden');
     if (detailView) detailView.classList.add('container-hidden');
     
-    // Update URL
-    window.history.pushState({}, '', '/explore-places');
+    // Update URL (handled by switchView, but we need to ensure URL is correct if called directly)
+    if (window.location.pathname !== '/explore-places') {
+        window.history.pushState({}, '', '/explore-places');
+    }
 }

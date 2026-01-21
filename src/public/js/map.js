@@ -2,7 +2,7 @@
 // MAP FUNCTIONALITY
 // ============================================================================
 
-function switchView(view) {
+function switchView(view, skipUrlUpdate = false) {
     // Hide all views
     listView.classList.remove('active');
     mapView.classList.remove('active');
@@ -24,19 +24,36 @@ function switchView(view) {
         // Results banner visibility is managed elsewhere for list/map views
     }
     
+    // Map view names to URLs
+    const urlMap = {
+        'list': '/list',
+        'map': '/map',
+        'explorePlaces': '/explore-places',
+        'about': '/about'
+    };
+    
     if (view === 'list') {
         listView.classList.add('active');
         listViewTab.classList.add('active');
+        if (!skipUrlUpdate) {
+            window.history.pushState({}, '', '/list');
+        }
     } else if (view === 'map') {
         mapView.classList.add('active');
         mapViewTab.classList.add('active');
         initializeMap();
+        if (!skipUrlUpdate) {
+            window.history.pushState({}, '', '/map');
+        }
     } else if (view === 'explorePlaces') {
         explorePlacesView.classList.add('active');
         explorePlacesViewTab.classList.add('active');
         // Initialize explore places list view if not already loaded
         if (typeof loadExplorePlacesList === 'function') {
             loadExplorePlacesList();
+        }
+        if (!skipUrlUpdate) {
+            window.history.pushState({}, '', '/explore-places');
         }
     } else if (view === 'about') {
         aboutView.classList.add('active');
@@ -48,6 +65,9 @@ function switchView(view) {
         // Load reform types when About tab is opened
         if (typeof loadReformTypes === 'function') {
             loadReformTypes();
+        }
+        if (!skipUrlUpdate) {
+            window.history.pushState({}, '', '/about');
         }
     }
 }
