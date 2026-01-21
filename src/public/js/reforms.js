@@ -16,6 +16,37 @@ async function applyFilters(skipUrlUpdate = false) {
     const includeUnknown = includeUnknownDates.checked;
     const limitations = getLimitationsFilters();
 
+    // Reset pagination state when filters change
+    currentOffset = 0;
+    hasMoreReforms = false;
+    isLoadingMore = false;
+    
+    // Clean up infinite scroll and observer
+    if (infiniteScrollInstance) {
+        infiniteScrollInstance.destroy();
+        infiniteScrollInstance = null;
+    }
+    if (window.infiniteScrollObserver) {
+        window.infiniteScrollObserver.disconnect();
+        window.infiniteScrollObserver = null;
+    }
+    
+    // Remove sentinel element if it exists
+    const sentinel = document.getElementById('infiniteScrollSentinel');
+    if (sentinel) {
+        sentinel.remove();
+    }
+    
+    // Remove loading indicator and "no more" message if they exist (will be recreated in renderReforms)
+    const loader = document.getElementById('infiniteScrollLoader');
+    const noMore = document.getElementById('noMoreReforms');
+    if (loader && loader.parentNode === reformsList) {
+        loader.remove();
+    }
+    if (noMore && noMore.parentNode === reformsList) {
+        noMore.remove();
+    }
+
     showLoading(true);
     hideError();
 
@@ -36,6 +67,13 @@ async function applyFilters(skipUrlUpdate = false) {
         if (limitations.land_use !== 'all') params.append('land_use_limitation', limitations.land_use);
         if (limitations.requirements !== 'all') params.append('requirements_limitation', limitations.requirements);
         if (limitations.intensity !== 'all') params.append('intensity_limitation', limitations.intensity);
+        
+        // Add pagination parameters for initial load
+        params.append('limit', '30');
+        params.append('offset', '0');
+        
+        // Store current filter params for pagination
+        currentFilterParams = params.toString();
 
         const query = params.toString();
         const url = query ? `/.netlify/functions/get-reforms?${query}` : '/.netlify/functions/get-reforms';
@@ -43,7 +81,7 @@ async function applyFilters(skipUrlUpdate = false) {
         // Update URL without reloading page
         if (!skipUrlUpdate) {
             const newUrl = query 
-                ? `${window.location.pathname}?${query}` 
+                ? `${window.location.pathname}?${query.replace(/&limit=\d+&offset=\d+/, '')}` 
                 : window.location.pathname;
             window.history.pushState({}, '', newUrl);
         }
@@ -63,9 +101,18 @@ async function applyFilters(skipUrlUpdate = false) {
 
         allReforms = data.reforms;
         filteredReforms = allReforms;
+        
+        // Update pagination state
+        if (data.pagination) {
+            hasMoreReforms = data.pagination.has_more;
+            currentOffset = data.reforms.length;
+        }
 
         renderReforms();
         showLoading(false);
+        
+        // Initialize infinite scroll after initial render
+        initializeInfiniteScroll();
 
         // Reload explore places if that view is active
         if (typeof explorePlacesView !== 'undefined' && explorePlacesView?.classList?.contains('active')) {
@@ -82,12 +129,13 @@ async function applyFilters(skipUrlUpdate = false) {
         const shareBtn = document.getElementById('shareBannerBtn');
         
         if (filteredReforms.length > 0) {
-            // Update banner text with count
+            // Update banner text with count (use total_count from pagination if available)
+            const totalCount = data.pagination?.total_count || filteredReforms.length;
             if (bannerTextEl && resultCountEl) {
-                resultCountEl.textContent = filteredReforms.length;
+                resultCountEl.textContent = totalCount;
             } else if (bannerTextEl) {
                 // Fallback if resultCount element doesn't exist
-                bannerTextEl.innerHTML = `Found <strong id="resultCount">${filteredReforms.length}</strong> reforms matching your filters`;
+                bannerTextEl.innerHTML = `Found <strong id="resultCount">${totalCount}</strong> reforms matching your filters`;
             }
             // Show action buttons
             if (downloadBtn) downloadBtn.style.display = '';
@@ -103,7 +151,16 @@ async function applyFilters(skipUrlUpdate = false) {
                 resultsBanner.close();
             }
             resultsInfo.classList.add('container-hidden');
-            noResultsList.classList.remove('container-hidden');
+            // Only show "No Reforms Found" on initial filter application (offset === 0)
+            // During infinite scroll (offset > 0), we should show "no more reforms" message instead
+            if (currentOffset === 0) {
+                noResultsList.classList.remove('container-hidden');
+            } else {
+                // During infinite scroll, hide noResultsList and show "no more" message instead
+                noResultsList.classList.add('container-hidden');
+                const noMore = getOrCreateNoMoreMessage();
+                noMore.classList.remove('container-hidden');
+            }
         }
 
     } catch (error) {
@@ -150,6 +207,182 @@ function resetLimitationsFilters() {
     });
 }
 
+async function loadMoreReforms() {
+    if (isLoadingMore || !hasMoreReforms || !currentFilterParams) {
+        return;
+    }
+
+    isLoadingMore = true;
+    
+    // CRITICAL: Ensure noResultsList is hidden during infinite scroll
+    // This prevents "No Reforms Found" from showing when loading more
+    noResultsList.classList.add('container-hidden');
+    
+    // Show loading indicator - it's now inside reformsList so it will be visible
+    const loader = getOrCreateLoadingIndicator();
+    const noMore = getOrCreateNoMoreMessage();
+    
+    loader.classList.remove('container-hidden');
+    noMore.classList.add('container-hidden');
+
+    try {
+        // Build URL with current filters and new offset
+        const params = new URLSearchParams(currentFilterParams);
+        params.set('offset', currentOffset.toString());
+        params.set('limit', '30');
+        
+        const url = `/.netlify/functions/get-reforms?${params.toString()}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch reforms');
+        }
+
+        const newReforms = data.reforms || [];
+        
+        if (newReforms.length > 0) {
+            // Append new reforms to existing arrays
+            allReforms = allReforms.concat(newReforms);
+            filteredReforms = filteredReforms.concat(newReforms);
+            
+            // Append to DOM
+            appendReforms(newReforms);
+            
+            // Update pagination state
+            if (data.pagination) {
+                hasMoreReforms = data.pagination.has_more;
+                currentOffset = allReforms.length;
+            } else {
+                hasMoreReforms = false;
+            }
+        } else {
+            hasMoreReforms = false;
+        }
+        
+        // Hide loading indicator
+        loader.classList.add('container-hidden');
+        
+        // Show "no more" message if we've reached the end
+        if (!hasMoreReforms) {
+            noMore.classList.remove('container-hidden');
+        } else {
+            noMore.classList.add('container-hidden');
+        }
+        
+        // Ensure noResultsList stays hidden during infinite scroll
+        noResultsList.classList.add('container-hidden');
+        
+        // Re-setup observer to ensure it's watching the sentinel after new content is added
+        if (hasMoreReforms) {
+            setupIntersectionObserver();
+        } else {
+            // Disconnect observer if no more reforms
+            if (window.infiniteScrollObserver) {
+                window.infiniteScrollObserver.disconnect();
+                window.infiniteScrollObserver = null;
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error loading more reforms:', error);
+        const loader = getOrCreateLoadingIndicator();
+        loader.classList.add('container-hidden');
+        showError(error.message);
+    } finally {
+        isLoadingMore = false;
+    }
+}
+
+function initializeInfiniteScroll() {
+    // Destroy existing instance if it exists
+    if (infiniteScrollInstance) {
+        infiniteScrollInstance.destroy();
+        infiniteScrollInstance = null;
+    }
+    
+    // Only initialize if we have reforms and more to load
+    if (!hasMoreReforms || filteredReforms.length === 0) {
+        const noMore = document.getElementById('noMoreReforms');
+        if (!hasMoreReforms && noMore && filteredReforms.length > 0) {
+            noMore.classList.remove('container-hidden');
+        }
+        return;
+    }
+    
+    // Use Intersection Observer API (standard browser API) for infinite scroll
+    // This is the recommended approach for dynamic content loading
+    setupIntersectionObserver();
+}
+
+function setupIntersectionObserver() {
+    // Only set up if we have more reforms to load
+    if (!hasMoreReforms) {
+        return;
+    }
+    
+    // Remove existing observer if any
+    if (window.infiniteScrollObserver) {
+        window.infiniteScrollObserver.disconnect();
+        window.infiniteScrollObserver = null;
+    }
+    
+    // Get loading indicator and "no more" message to ensure correct order
+    const loader = getOrCreateLoadingIndicator();
+    const noMore = getOrCreateNoMoreMessage();
+    
+    // Create sentinel element if it doesn't exist
+    let sentinel = document.getElementById('infiniteScrollSentinel');
+    if (!sentinel) {
+        sentinel = document.createElement('div');
+        sentinel.id = 'infiniteScrollSentinel';
+        sentinel.className = 'infinite-scroll-sentinel';
+        sentinel.style.height = '20px';
+        sentinel.style.width = '100%';
+        sentinel.style.minHeight = '20px';
+        sentinel.style.visibility = 'visible';
+    }
+    
+    // Ensure correct order: sentinel, then loader, then noMore
+    // Remove all from their current positions
+    if (sentinel.parentNode === reformsList) {
+        reformsList.removeChild(sentinel);
+    }
+    if (loader.parentNode === reformsList) {
+        reformsList.removeChild(loader);
+    }
+    if (noMore.parentNode === reformsList) {
+        reformsList.removeChild(noMore);
+    }
+    
+    // Append in correct order
+    reformsList.appendChild(sentinel);
+    reformsList.appendChild(loader);
+    reformsList.appendChild(noMore);
+    
+    // Create Intersection Observer with proper root
+    window.infiniteScrollObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting && hasMoreReforms && !isLoadingMore) {
+                loadMoreReforms();
+            }
+        });
+    }, {
+        root: null, // Use viewport as root
+        rootMargin: '200px', // Start loading 200px before reaching the sentinel
+        threshold: 0.01 // Trigger when any part of sentinel is visible
+    });
+    
+    // Observe the sentinel
+    window.infiniteScrollObserver.observe(sentinel);
+}
+
 function resetFilters() {
     // Reset checkboxes
     document.querySelectorAll('.reformTypeCheckbox').forEach(cb => cb.checked = true);
@@ -182,51 +415,170 @@ function resetFilters() {
     applyFilters(true);
 }
 
+function getOrCreateLoadingIndicator() {
+    let loader = document.getElementById('infiniteScrollLoader');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'infiniteScrollLoader';
+        loader.className = 'infinite-scroll-loader container-hidden';
+        loader.style.textAlign = 'center';
+        loader.style.padding = '20px';
+        loader.innerHTML = `
+            <div class="mdc-circular-progress" style="width: 48px; height: 48px; margin: 0 auto;" role="progressbar" aria-label="Loading more reforms" aria-valuemin="0" aria-valuemax="1">
+                <div class="mdc-circular-progress__determinate-container">
+                    <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48">
+                        <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"></circle>
+                        <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"></circle>
+                    </svg>
+                </div>
+            </div>
+            <p class="mdc-typography--body2" style="margin-top: 12px;">Loading more reforms...</p>
+        `;
+        reformsList.appendChild(loader);
+    }
+    return loader;
+}
+
+function getOrCreateNoMoreMessage() {
+    let noMore = document.getElementById('noMoreReforms');
+    if (!noMore) {
+        noMore = document.createElement('div');
+        noMore.id = 'noMoreReforms';
+        noMore.className = 'no-more-reforms container-hidden';
+        noMore.style.textAlign = 'center';
+        noMore.style.padding = '20px';
+        noMore.innerHTML = '<p class="mdc-typography--body2">No more reforms to load</p>';
+        reformsList.appendChild(noMore);
+    }
+    return noMore;
+}
+
 function renderReforms() {
-    reformsList.innerHTML = '';
+    // Clear only reform cards, not the loading indicators
+    // Remove all child nodes that are reform cards (have class 'reform-card')
+    const cards = reformsList.querySelectorAll('.reform-card');
+    cards.forEach(card => card.remove());
+    
+    // Also remove sentinel if it exists (will be recreated by setupIntersectionObserver)
+    const sentinel = document.getElementById('infiniteScrollSentinel');
+    if (sentinel) {
+        sentinel.remove();
+    }
 
     if (filteredReforms.length === 0) {
+        // Ensure loading indicators are hidden
+        const loader = getOrCreateLoadingIndicator();
+        const noMore = getOrCreateNoMoreMessage();
+        loader.classList.add('container-hidden');
+        noMore.classList.add('container-hidden');
+        // CRITICAL: Only show noResultsList on initial load (offset === 0), not during infinite scroll
+        if (currentOffset === 0) {
+            // Let applyFilters() handle showing noResultsList on initial empty result
+        } else {
+            // During infinite scroll, never show noResultsList
+            noResultsList.classList.add('container-hidden');
+        }
         return;
     }
+
+    // Ensure noResultsList is hidden when we have reforms (important for infinite scroll)
+    noResultsList.classList.add('container-hidden');
 
     filteredReforms.forEach(reform => {
         const card = createReformCard(reform);
         reformsList.appendChild(card);
-        
-        // Add event listener for jurisdiction link
-        const jurisdictionLink = card.querySelector('.jurisdiction-link');
-        if (jurisdictionLink) {
-            jurisdictionLink.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation(); // Prevent card click
-                const placeId = jurisdictionLink.getAttribute('data-place-id');
-                if (placeId && typeof loadPolicyProfileDetail === 'function') {
-                    // Switch to explore places view first
-                    switchView('explorePlaces');
-                    loadPolicyProfileDetail(parseInt(placeId));
-                }
-            });
-        }
-        
-        // Add event listener for expand button
-        const expandButton = card.querySelector('.expand-reform-button');
-        if (expandButton) {
-            // Initialize MDC ripple for the button
-            if (window.mdc && window.mdc.ripple) {
-                const ripple = new mdc.ripple.MDCRipple(expandButton);
-                ripple.unbounded = true;
-            }
-            expandButton.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                showExpandedReformView(reform);
-            });
-        }
+        attachReformCardListeners(card, reform);
     });
+    
+    // Create and hide loading indicators (they'll be shown when needed)
+    const loader = getOrCreateLoadingIndicator();
+    const noMore = getOrCreateNoMoreMessage();
+    loader.classList.add('container-hidden');
+    noMore.classList.add('container-hidden');
 
     // Also render map if in map view
     if (mapView.classList.contains('active')) {
         renderMap();
+    }
+}
+
+function appendReforms(newReforms) {
+    if (!newReforms || newReforms.length === 0) {
+        return;
+    }
+
+    // Get loading indicator, "no more" message, and sentinel elements
+    const loader = getOrCreateLoadingIndicator();
+    const noMore = getOrCreateNoMoreMessage();
+    const sentinel = document.getElementById('infiniteScrollSentinel');
+    
+    // Remove loader and noMore from their current position
+    if (loader.parentNode === reformsList) {
+        reformsList.removeChild(loader);
+    }
+    if (noMore.parentNode === reformsList) {
+        reformsList.removeChild(noMore);
+    }
+    
+    newReforms.forEach(reform => {
+        const card = createReformCard(reform);
+        // Insert before sentinel if it exists, otherwise just append
+        if (sentinel && sentinel.parentNode === reformsList) {
+            reformsList.insertBefore(card, sentinel);
+        } else {
+            reformsList.appendChild(card);
+        }
+        attachReformCardListeners(card, reform);
+    });
+    
+    // Re-append sentinel, loader, and noMore at the bottom in correct order
+    // Order: sentinel (triggers loading), loader (shows when loading), noMore (shows when done)
+    if (sentinel && sentinel.parentNode === reformsList) {
+        reformsList.removeChild(sentinel);
+    }
+    if (sentinel) {
+        reformsList.appendChild(sentinel);
+    }
+    
+    // Re-append loader and noMore at the very end
+    reformsList.appendChild(loader);
+    reformsList.appendChild(noMore);
+
+    // Also render map if in map view
+    if (mapView.classList.contains('active')) {
+        renderMap();
+    }
+}
+
+function attachReformCardListeners(card, reform) {
+    // Add event listener for jurisdiction link
+    const jurisdictionLink = card.querySelector('.jurisdiction-link');
+    if (jurisdictionLink) {
+        jurisdictionLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent card click
+            const placeId = jurisdictionLink.getAttribute('data-place-id');
+            if (placeId && typeof loadPolicyProfileDetail === 'function') {
+                // Switch to explore places view first
+                switchView('explorePlaces');
+                loadPolicyProfileDetail(parseInt(placeId));
+            }
+        });
+    }
+    
+    // Add event listener for expand button
+    const expandButton = card.querySelector('.expand-reform-button');
+    if (expandButton) {
+        // Initialize MDC ripple for the button
+        if (window.mdc && window.mdc.ripple) {
+            const ripple = new mdc.ripple.MDCRipple(expandButton);
+            ripple.unbounded = true;
+        }
+        expandButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showExpandedReformView(reform);
+        });
     }
 }
 

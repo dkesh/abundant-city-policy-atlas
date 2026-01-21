@@ -12,6 +12,13 @@ let stateBoundariesGeoJSON = null;
 let stateReformsByState = {}; // Maps state_code to array of state-level reforms
 let stateBoundariesSourceAdded = false;
 
+// Pagination state for infinite scroll
+let currentOffset = 0;
+let hasMoreReforms = false;
+let isLoadingMore = false;
+let infiniteScrollInstance = null;
+let currentFilterParams = null; // Store current filter params for pagination
+
 const REGIONS = {
     'Northeast': ['Connecticut', 'Maine', 'Massachusetts', 'New Hampshire', 'Rhode Island', 'Vermont', 'New Jersey', 'New York', 'Pennsylvania'],
     'Midwest': ['Illinois', 'Indiana', 'Michigan', 'Ohio', 'Wisconsin', 'Iowa', 'Kansas', 'Minnesota', 'Missouri', 'Nebraska', 'North Dakota', 'South Dakota'],

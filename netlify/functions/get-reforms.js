@@ -16,7 +16,8 @@
 * ?max_population=500000 - Filter by maximum population
 * ?region=West - Filter by census region
 * ?state=California&state=Texas - Multiple states (uses ANY)
-* ?limit=100 - Limit results (default 1000)
+* ?limit=100 - Limit results (default 30 for pagination)
+* ?offset=0 - Offset for pagination (default 0)
 */
 
 const { Pool } = require('pg');
@@ -74,7 +75,8 @@ exports.handler = async (event, context) => {
     const fromYear = params.from_year ? parseInt(params.from_year) : null;
     const toYear = params.to_year ? parseInt(params.to_year) : null;
     const includeUnknownDates = params.include_unknown_dates === 'true';
-    const limit = params.limit ? Math.min(parseInt(params.limit), 5000) : 1000;
+    const offset = params.offset ? Math.max(0, parseInt(params.offset)) : 0;
+    const limit = params.limit ? Math.min(parseInt(params.limit), 5000) : 30;
     
     // Limitations filters
     const scopeLimitation = params.scope_limitation || null;
@@ -344,12 +346,28 @@ exports.handler = async (event, context) => {
                r.ai_enriched_fields, r.ai_enrichment_version,
                pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
       ORDER BY tld.state_name, p.name, r.adoption_date DESC
-      LIMIT $${paramCount}
+      LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
     queryParams.push(limit);
+    queryParams.push(offset);
 
     const result = await client.query(query, queryParams);
+    
+    // Get total count for pagination metadata (using same WHERE clause)
+    const countQuery = `
+      SELECT COUNT(DISTINCT r.id) as total
+      FROM reforms r
+      JOIN places p ON r.place_id = p.id
+      JOIN top_level_division tld ON p.state_code = tld.state_code
+      WHERE ${whereClause}
+    `;
+    
+    // Rebuild queryParams for count query (without limit/offset)
+    const countParams = queryParams.slice(0, -2);
+    const countResult = await client.query(countQuery, countParams);
+    const totalCount = parseInt(countResult.rows[0].total);
+    
     client.release();
 
     // Helper function to get merged value (AI if available, otherwise original)
@@ -433,12 +451,20 @@ exports.handler = async (event, context) => {
       };
     });
 
+    const hasMore = (offset + result.rows.length) < totalCount;
+    
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
         count: result.rows.length,
+        pagination: {
+          offset: offset,
+          limit: limit,
+          total_count: totalCount,
+          has_more: hasMore
+        },
         filters: {
           reform_types: reformTypes.length > 0 ? reformTypes : undefined,
           place_types: placeTypes.length > 0 ? placeTypes : undefined,
