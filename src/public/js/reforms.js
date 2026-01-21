@@ -497,7 +497,11 @@ function renderReforms() {
     noMore.classList.add('container-hidden');
 
     // Also render map if in map view
-    if (mapView.classList.contains('active')) {
+    // Use loadMapData() to fetch lightweight data for map rendering
+    if (mapView.classList.contains('active') && typeof loadMapData === 'function') {
+        loadMapData();
+    } else if (mapView.classList.contains('active') && typeof renderMap === 'function') {
+        // Fallback to old renderMap if loadMapData not available
         renderMap();
     }
 }
@@ -545,7 +549,11 @@ function appendReforms(newReforms) {
     reformsList.appendChild(noMore);
 
     // Also render map if in map view
-    if (mapView.classList.contains('active')) {
+    // Use loadMapData() to fetch lightweight data for map rendering
+    if (mapView.classList.contains('active') && typeof loadMapData === 'function') {
+        loadMapData();
+    } else if (mapView.classList.contains('active') && typeof renderMap === 'function') {
+        // Fallback to old renderMap if loadMapData not available
         renderMap();
     }
 }

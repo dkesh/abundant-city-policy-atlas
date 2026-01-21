@@ -41,7 +41,13 @@ function switchView(view, skipUrlUpdate = false) {
     } else if (view === 'map') {
         mapView.classList.add('active');
         mapViewTab.classList.add('active');
+        // Show loading indicator when switching to map view
+        showMapLoading(true);
         initializeMap();
+        // If map is already initialized, reload data
+        if (map && map.isStyleLoaded() && typeof loadMapData === 'function') {
+            loadMapData();
+        }
         if (!skipUrlUpdate) {
             window.history.pushState({}, '', '/map');
         }
@@ -72,8 +78,44 @@ function switchView(view, skipUrlUpdate = false) {
     }
 }
 
+function showMapLoading(show) {
+    const loadingOverlay = document.getElementById('mapLoadingOverlay');
+    if (loadingOverlay) {
+        if (show) {
+            loadingOverlay.classList.remove('container-hidden');
+        } else {
+            loadingOverlay.classList.add('container-hidden');
+        }
+    }
+}
+
+function closeMapOverlay() {
+    if (typeof mapOverlay !== 'undefined' && mapOverlay) {
+        mapOverlay.classList.remove('active');
+    }
+}
+
+async function loadFullReformDataForPlace(placeId, lightweightReforms) {
+    // First, check if we have full data in filteredReforms
+    if (typeof filteredReforms !== 'undefined' && filteredReforms.length > 0) {
+        const fullReformsForPlace = filteredReforms.filter(r => r.place.id === placeId);
+        if (fullReformsForPlace.length > 0) {
+            showPlaceOverlay(placeId, fullReformsForPlace);
+            return;
+        }
+    }
+    
+    // If not, try to fetch full data for these specific reforms
+    // For now, use lightweight data - the overlay will work with minimal info
+    // In the future, we could add a parameter to get-reforms to fetch by IDs
+    showPlaceOverlay(placeId, lightweightReforms);
+}
+
 function initializeMap() {
     if (map) return; // Already initialized
+
+    // Show loading indicator immediately
+    showMapLoading(true);
 
     // Note: Requires Mapbox GL token
     try {
@@ -87,7 +129,8 @@ function initializeMap() {
 
         map.on('load', () => {
             console.log('Map loaded successfully');
-            renderMap();
+            // Load map data (will call renderMap when ready)
+            loadMapData();
         });
 
         // Update markers when map is moved or zoomed
@@ -97,17 +140,110 @@ function initializeMap() {
     } catch (e) {
         console.log('Mapbox GL not available. Showing list-only mode.');
         mapView.innerHTML = '<div class="map-error-message">Map view requires Mapbox GL. Please configure your Mapbox token in the code to enable this feature.</div>';
+        showMapLoading(false);
     }
 }
 
-async function renderMap() {
+async function loadMapData() {
+    if (!map || !map.isStyleLoaded()) {
+        // Wait for map to be ready
+        map.once('style.load', () => loadMapData());
+        return;
+    }
+
+    // Close any open overlays when reloading
+    closeMapOverlay();
+
+    // Show loading indicator
+    showMapLoading(true);
+
+    try {
+        // Build query string from current filters
+        const reformTypes = getSelectedReformTypes();
+        const placeTypes = getSelectedPlaceTypes();
+        const statuses = getSelectedStatuses();
+        const sliderValues = getSliderValues();
+        const minPopulation = sliderValues.min;
+        const maxPopulation = sliderValues.max;
+        const states = getSelectedLocations();
+        const fromYearVal = fromYear.value ? parseInt(fromYear.value) : null;
+        const toYearVal = toYear.value ? parseInt(toYear.value) : null;
+        const includeUnknown = includeUnknownDates.checked;
+        const limitations = getLimitationsFilters();
+
+        const params = new URLSearchParams();
+        reformTypes.forEach(t => params.append('reform_type', t));
+        placeTypes.forEach(t => params.append('place_type', t));
+        statuses.forEach(s => params.append('status', s));
+        if (minPopulation > 0) params.append('min_population', minPopulation);
+        if (maxPopulation < MAX_POPULATION) params.append('max_population', maxPopulation);
+        states.forEach(s => params.append('state', s));
+        if (fromYearVal) params.append('from_year', fromYearVal);
+        if (toYearVal) params.append('to_year', toYearVal);
+        if (includeUnknown) params.append('include_unknown_dates', 'true');
+        if (limitations.scope !== 'all') params.append('scope_limitation', limitations.scope);
+        if (limitations.land_use !== 'all') params.append('land_use_limitation', limitations.land_use);
+        if (limitations.requirements !== 'all') params.append('requirements_limitation', limitations.requirements);
+        if (limitations.intensity !== 'all') params.append('intensity_limitation', limitations.intensity);
+
+        const query = params.toString();
+        const url = query ? `/.netlify/functions/get-reforms-map?${query}` : '/.netlify/functions/get-reforms-map';
+
+        // Fetch lightweight reform data for map
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to fetch reforms for map');
+        }
+
+        // Store lightweight data for map rendering
+        // Note: This is separate from filteredReforms which has full data for list view
+        const mapReforms = data.reforms || [];
+        
+        // Render map with the lightweight data
+        await renderMap(mapReforms);
+        
+        // Hide loading indicator
+        showMapLoading(false);
+    } catch (error) {
+        console.error('Error loading map data:', error);
+        showMapLoading(false);
+        // Optionally show error message to user
+    }
+}
+
+async function renderMap(mapReforms = null) {
     if (!map || !map.isStyleLoaded()) return;
 
+    // Use provided mapReforms or fall back to filteredReforms (for backwards compatibility)
+    const reformsToRender = mapReforms || filteredReforms;
+    
+    if (!reformsToRender || reformsToRender.length === 0) {
+        // No reforms to render, but hide loading indicator
+        showMapLoading(false);
+        return;
+    }
+
     // Check if there are any state-level reforms
-    const hasStateLevelReforms = filteredReforms.some(reform => reform.place.type === 'state');
+    const hasStateLevelReforms = reformsToRender.some(reform => reform.place.type === 'state');
     
     // Group state-level reforms by state
-    stateReformsByState = groupStateLevelReforms();
+    stateReformsByState = {};
+    reformsToRender.forEach(reform => {
+        if (reform.place.type === 'state') {
+            const stateCode = reform.place.state_code || reform.place.state;
+            if (!stateReformsByState[stateCode]) {
+                stateReformsByState[stateCode] = [];
+            }
+            stateReformsByState[stateCode].push(reform);
+        }
+    });
     
     // If state-level reforms exist, load and render state boundaries
     if (hasStateLevelReforms) {
@@ -121,7 +257,7 @@ async function renderMap() {
     const placeReforms = {};
     reformsGeoJSON = [];
     
-    filteredReforms.forEach(reform => {
+    reformsToRender.forEach(reform => {
         // Only include city/county reforms for markers (state-level reforms are shown as polygons)
         if (reform.place.type !== 'state') {
             const placeKey = reform.place.id;
@@ -218,8 +354,14 @@ function updateMarkersInViewport() {
             el.classList.add('marker-place');
             el.style.backgroundColor = props.color;
 
-            el.addEventListener('click', () => {
-                showPlaceOverlay(props.placeId, props.reforms);
+            el.addEventListener('click', async () => {
+                // If we only have lightweight data, fetch full data for the overlay
+                if (props.reforms && props.reforms.length > 0 && !props.reforms[0].reform.summary) {
+                    // Load full reform data for this place
+                    await loadFullReformDataForPlace(props.placeId, props.reforms);
+                } else {
+                    showPlaceOverlay(props.placeId, props.reforms);
+                }
             });
         }
 
@@ -346,9 +488,12 @@ function showStateOverlay(stateName, stateCode, reforms) {
 }
 
 function groupStateLevelReforms() {
+    // This function is now handled inline in renderMap
+    // Keeping for backwards compatibility if needed elsewhere
     const stateReforms = {};
     
-    filteredReforms.forEach(reform => {
+    const reformsToCheck = filteredReforms.length > 0 ? filteredReforms : [];
+    reformsToCheck.forEach(reform => {
         if (reform.place.type === 'state') {
             const stateCode = reform.place.state_code || reform.place.state;
             if (!stateReforms[stateCode]) {
