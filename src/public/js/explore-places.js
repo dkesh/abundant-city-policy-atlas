@@ -24,16 +24,8 @@ async function loadExplorePlacesList() {
 function installExplorePlacesListeners() {
     if (explorePlacesListenersInstalled) return;
     explorePlacesListenersInstalled = true;
-
-    // Re-render Movers & Shakers when the level-of-government filter changes.
-    // This is intentionally independent of Apply Filters: Explore Places is a separate discovery surface.
-    document.querySelectorAll('.placeTypeCheckbox').forEach(cb => {
-        cb.addEventListener('change', () => {
-            if (typeof explorePlacesView !== 'undefined' && explorePlacesView?.classList?.contains('active')) {
-                loadMoversAndShakers();
-            }
-        });
-    });
+    // No immediate listeners - explore places will update when "Apply Filters" is clicked
+    // (handled in reforms.js applyFilters function)
 }
 
 async function loadMoversAndShakers() {
@@ -63,11 +55,37 @@ async function loadMoversAndShakers() {
     `).join('');
 
     try {
+        // Get current filter configuration
+        const filterConfig = (typeof getFilterConfig === 'function')
+            ? getFilterConfig()
+            : {};
+
         const fetchGroup = async ({ placeType, sizeCategory, limit }) => {
             const params = new URLSearchParams();
             if (placeType) params.append('type', placeType);
             if (sizeCategory) params.append('size', sizeCategory);
             if (limit) params.append('limit', String(limit));
+            
+            // Add filter parameters
+            if (filterConfig.reform_types && filterConfig.reform_types.length > 0) {
+                filterConfig.reform_types.forEach(t => params.append('reform_type', t));
+            }
+            if (filterConfig.states && filterConfig.states.length > 0) {
+                filterConfig.states.forEach(s => params.append('state', s));
+            }
+            if (filterConfig.statuses && filterConfig.statuses.length > 0) {
+                filterConfig.statuses.forEach(s => params.append('status', s));
+            }
+            if (filterConfig.from_year) params.append('from_year', filterConfig.from_year);
+            if (filterConfig.to_year) params.append('to_year', filterConfig.to_year);
+            if (filterConfig.include_unknown_dates) params.append('include_unknown_dates', 'true');
+            if (filterConfig.limitations) {
+                if (filterConfig.limitations.scope !== 'all') params.append('scope_limitation', filterConfig.limitations.scope);
+                if (filterConfig.limitations.land_use !== 'all') params.append('land_use_limitation', filterConfig.limitations.land_use);
+                if (filterConfig.limitations.requirements !== 'all') params.append('requirements_limitation', filterConfig.limitations.requirements);
+                if (filterConfig.limitations.intensity !== 'all') params.append('intensity_limitation', filterConfig.limitations.intensity);
+            }
+            
             const response = await fetch(`/.netlify/functions/get-explore-places-list?${params.toString()}`);
             const data = await response.json();
             if (!data.success) {

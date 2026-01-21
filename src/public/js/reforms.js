@@ -67,6 +67,13 @@ async function applyFilters(skipUrlUpdate = false) {
         renderReforms();
         showLoading(false);
 
+        // Reload explore places if that view is active
+        if (typeof explorePlacesView !== 'undefined' && explorePlacesView?.classList?.contains('active')) {
+            if (typeof loadMoversAndShakers === 'function') {
+                loadMoversAndShakers();
+            }
+        }
+
         // Update results banner with count
         const resultsBanner = window.mdcComponents?.resultsBanner;
         const bannerTextEl = resultsInfo?.querySelector('.mdc-banner__text');

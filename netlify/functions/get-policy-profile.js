@@ -50,6 +50,23 @@ exports.handler = async (event, context) => {
       };
     }
 
+    // Parse filter parameters (optional)
+    const parseMultiValue = (val) => {
+      if (!val) return [];
+      if (Array.isArray(val)) return val.filter(Boolean);
+      return val.split(',').map(v => v.trim()).filter(Boolean);
+    };
+
+    const reformTypes = parseMultiValue(params.reform_type);
+    const statuses = parseMultiValue(params.status);
+    const fromYear = params.from_year ? parseInt(params.from_year) : null;
+    const toYear = params.to_year ? parseInt(params.to_year) : null;
+    const includeUnknownDates = params.include_unknown_dates === 'true';
+    const scopeLimitation = params.scope_limitation || null;
+    const landUseLimitation = params.land_use_limitation || null;
+    const requirementsLimitation = params.requirements_limitation || null;
+    const intensityLimitation = params.intensity_limitation || null;
+
     const client = await pool.connect();
 
     // Get place metadata
@@ -84,6 +101,125 @@ exports.handler = async (event, context) => {
     }
 
     const place = placeResult.rows[0];
+
+    // Build reform filter WHERE clauses
+    let reformWhereClauses = ['r.place_id = $1'];
+    let reformQueryParams = [placeId];
+    let reformParamCount = 2;
+
+    // Reform type filter
+    if (reformTypes.length > 0) {
+      reformWhereClauses.push(`EXISTS (
+        SELECT 1 FROM reform_reform_types rrt_filter
+        JOIN reform_types rt_filter ON rrt_filter.reform_type_id = rt_filter.id
+        WHERE rrt_filter.reform_id = r.id
+          AND rt_filter.code = ANY($${reformParamCount})
+      )`);
+      reformQueryParams.push(reformTypes);
+      reformParamCount++;
+    }
+
+    // Status filter
+    if (statuses.length > 0) {
+      reformWhereClauses.push(`LOWER(r.status) = ANY($${reformParamCount})`);
+      reformQueryParams.push(statuses.map(s => s.toLowerCase()));
+      reformParamCount++;
+    }
+
+    // Date range filters
+    if (fromYear !== null || toYear !== null) {
+      const dateConditions = [];
+      
+      if (fromYear !== null) {
+        dateConditions.push(`EXTRACT(YEAR FROM r.adoption_date) >= $${reformParamCount}`);
+        reformQueryParams.push(fromYear);
+        reformParamCount++;
+      }
+      
+      if (toYear !== null) {
+        dateConditions.push(`EXTRACT(YEAR FROM r.adoption_date) <= $${reformParamCount}`);
+        reformQueryParams.push(toYear);
+        reformParamCount++;
+      }
+      
+      if (includeUnknownDates) {
+        reformWhereClauses.push(`(${dateConditions.join(' AND ')} OR r.adoption_date IS NULL)`);
+      } else {
+        reformWhereClauses.push(`(${dateConditions.join(' AND ')})`);
+      }
+    } else if (!includeUnknownDates) {
+      reformWhereClauses.push(`r.adoption_date IS NOT NULL`);
+    }
+
+    // Scope limitation filter
+    if (scopeLimitation === 'no_limits') {
+      reformWhereClauses.push(`(
+        r.scope IS NULL 
+        OR array_length(r.scope, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.scope) AS scope_item 
+          WHERE LOWER(scope_item) = 'citywide'
+        )
+      )`);
+    } else if (scopeLimitation === 'has_limits') {
+      reformWhereClauses.push(`(
+        r.scope IS NOT NULL 
+        AND array_length(r.scope, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.scope) AS scope_item 
+          WHERE LOWER(scope_item) = 'citywide'
+        )
+      )`);
+    }
+
+    // Land use limitation filter
+    if (landUseLimitation === 'no_limits') {
+      reformWhereClauses.push(`(
+        r.land_use IS NULL 
+        OR array_length(r.land_use, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.land_use) AS land_item 
+          WHERE LOWER(land_item) = 'all uses'
+        )
+      )`);
+    } else if (landUseLimitation === 'has_limits') {
+      reformWhereClauses.push(`(
+        r.land_use IS NOT NULL 
+        AND array_length(r.land_use, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.land_use) AS land_item 
+          WHERE LOWER(land_item) = 'all uses'
+        )
+      )`);
+    }
+
+    // Requirements limitation filter
+    if (requirementsLimitation === 'no_limits') {
+      reformWhereClauses.push(`(
+        r.requirements IS NULL 
+        OR array_length(r.requirements, 1) IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(r.requirements) AS req_item 
+          WHERE LOWER(req_item) = 'by right'
+        )
+      )`);
+    } else if (requirementsLimitation === 'has_limits') {
+      reformWhereClauses.push(`(
+        r.requirements IS NOT NULL 
+        AND array_length(r.requirements, 1) > 0
+        AND NOT EXISTS (
+          SELECT 1 FROM unnest(r.requirements) AS req_item 
+          WHERE LOWER(req_item) = 'by right'
+        )
+      )`);
+    }
+
+    // Intensity limitation filter
+    if (intensityLimitation === 'no_limits') {
+      reformWhereClauses.push(`(r.intensity = 'complete' OR r.intensity IS NULL)`);
+    } else if (intensityLimitation === 'has_limits') {
+      reformWhereClauses.push(`r.intensity = 'partial'`);
+    }
 
     // Get all reforms for this place with reform type info, sorted by adoption date for timeline
     // Note: This query returns one row per reform-reform_type combination
@@ -132,7 +268,7 @@ exports.handler = async (event, context) => {
       LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
       LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
       LEFT JOIN categories c ON rt.category_id = c.id
-      WHERE r.place_id = $1
+      WHERE ${reformWhereClauses.join(' AND ')}
       ORDER BY 
         CASE WHEN r.adoption_date IS NULL THEN 1 ELSE 0 END,
         r.adoption_date DESC NULLS LAST,
@@ -141,7 +277,7 @@ exports.handler = async (event, context) => {
         rt.name
     `;
 
-    const reformsResult = await client.query(reformsQuery, [placeId]);
+    const reformsResult = await client.query(reformsQuery, reformQueryParams);
     const reforms = reformsResult.rows;
 
     // Get all reform types by category for domain overview
@@ -158,11 +294,44 @@ exports.handler = async (event, context) => {
     `;
 
     const reformTypesResult = await client.query(reformTypesQuery);
-    const reformTypes = reformTypesResult.rows;
+    const allReformTypes = reformTypesResult.rows;
 
     // Get TODO items: reform types that are common in similar jurisdictions but missing here
     // Strategy: Find reform types that are common in similar-sized jurisdictions in the same state/region
     // but not adopted by this jurisdiction
+    // If reform types are filtered, only suggest reforms from those categories
+    let todoQueryParams = [
+      place.place_type,
+      place.state_code || '',
+      place.region || '',
+      place.population || null,
+      placeId
+    ];
+    let todoParamCount = 6;
+
+    // Build filter clause for suggested reforms
+    let todoFilterClause = '';
+    if (reformTypes.length > 0) {
+      // Get categories for the filtered reform types
+      const categoryQuery = `
+        SELECT DISTINCT c.id, c.name
+        FROM reform_types rt
+        JOIN categories c ON rt.category_id = c.id
+        WHERE rt.code = ANY($1)
+      `;
+      const categoryResult = await client.query(categoryQuery, [reformTypes]);
+      const filteredCategories = categoryResult.rows.map(r => r.name);
+      
+      if (filteredCategories.length > 0) {
+        todoFilterClause = `AND c.name = ANY($${todoParamCount})`;
+        todoQueryParams.push(filteredCategories);
+        todoParamCount++;
+      } else {
+        // If no categories found, return empty result
+        todoFilterClause = 'AND 1=0';
+      }
+    }
+
     const todoQuery = `
       WITH similar_places AS (
         SELECT DISTINCT p2.id
@@ -191,6 +360,7 @@ exports.handler = async (event, context) => {
         JOIN reform_types rt ON rrt.reform_type_id = rt.id
         LEFT JOIN categories c ON rt.category_id = c.id
         WHERE r.place_id IN (SELECT id FROM similar_places)
+          ${todoFilterClause}
         GROUP BY rt.id, rt.code, rt.name, c.name
         HAVING COUNT(DISTINCT r.place_id) >= 3
       ),
@@ -218,15 +388,10 @@ exports.handler = async (event, context) => {
     `;
 
     // Ensure parameters are always strings (not null) so PostgreSQL can infer types
-    const todoResult = await client.query(todoQuery, [
-      place.place_type,
-      place.state_code || '',
-      place.region || '',
-      place.population || null,
-      placeId
-    ]);
+    const todoResult = await client.query(todoQuery, todoQueryParams);
 
-    // Get reform summary by category for domain overview
+    // Get reform summary by category for domain overview (only filtered reforms)
+    // Use the same filter clauses as the reforms query
     const reformSummaryQuery = `
       SELECT 
         c.name as category,
@@ -237,12 +402,12 @@ exports.handler = async (event, context) => {
       JOIN reform_reform_types rrt ON r.id = rrt.reform_id
       JOIN reform_types rt ON rrt.reform_type_id = rt.id
       LEFT JOIN categories c ON rt.category_id = c.id
-      WHERE r.place_id = $1
+      WHERE ${reformWhereClauses.join(' AND ')}
       GROUP BY c.name, rt.code, rt.name
       ORDER BY c.name, rt.name
     `;
 
-    const reformSummaryResult = await client.query(reformSummaryQuery, [placeId]);
+    const reformSummaryResult = await client.query(reformSummaryQuery, reformQueryParams);
 
     // Get advocacy organizations for this place
     // Includes direct matches and hierarchical matches (state-level orgs shown for cities/counties)
@@ -278,7 +443,7 @@ exports.handler = async (event, context) => {
     const reformTypesByCategory = {};
     
     // Group reform types by category
-    reformTypes.forEach(rt => {
+    allReformTypes.forEach(rt => {
       if (!reformTypesByCategory[rt.category]) {
         reformTypesByCategory[rt.category] = [];
       }

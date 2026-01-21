@@ -17,7 +17,33 @@ async function loadPolicyProfileDetail(placeId) {
     detailContent.innerHTML = '<p>Loading policy profile...</p>';
     
     try {
-        const response = await fetch(`/.netlify/functions/get-policy-profile?place_id=${placeId}`);
+        // Get current filter configuration
+        const filterConfig = (typeof getFilterConfig === 'function')
+            ? getFilterConfig()
+            : {};
+        
+        // Build query parameters
+        const params = new URLSearchParams();
+        params.append('place_id', placeId);
+        
+        // Add filter parameters
+        if (filterConfig.reform_types && filterConfig.reform_types.length > 0) {
+            filterConfig.reform_types.forEach(t => params.append('reform_type', t));
+        }
+        if (filterConfig.statuses && filterConfig.statuses.length > 0) {
+            filterConfig.statuses.forEach(s => params.append('status', s));
+        }
+        if (filterConfig.from_year) params.append('from_year', filterConfig.from_year);
+        if (filterConfig.to_year) params.append('to_year', filterConfig.to_year);
+        if (filterConfig.include_unknown_dates) params.append('include_unknown_dates', 'true');
+        if (filterConfig.limitations) {
+            if (filterConfig.limitations.scope !== 'all') params.append('scope_limitation', filterConfig.limitations.scope);
+            if (filterConfig.limitations.land_use !== 'all') params.append('land_use_limitation', filterConfig.limitations.land_use);
+            if (filterConfig.limitations.requirements !== 'all') params.append('requirements_limitation', filterConfig.limitations.requirements);
+            if (filterConfig.limitations.intensity !== 'all') params.append('intensity_limitation', filterConfig.limitations.intensity);
+        }
+        
+        const response = await fetch(`/.netlify/functions/get-policy-profile?${params.toString()}`);
         const data = await response.json();
         
         if (!data.success) {
