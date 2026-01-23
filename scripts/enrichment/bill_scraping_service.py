@@ -51,11 +51,23 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
         # Fetch bill info (text + HTML)
-        logger.info(f"Scraping bill data from {document_url} for policy_doc {policy_doc_id}")
+        from scripts.enrichment.utils import get_domain
+        domain = get_domain(document_url)
+        logger.info(f"Scraping bill data from {document_url} for policy_doc {policy_doc_id} (domain: {domain})")
         bill_info = get_bill_info(document_url, fetch_html=True)
         
         if not bill_info.get('text') and not bill_info.get('html'):
-            return False, "Could not fetch bill text or HTML"
+            # Categorize the failure type for better logging
+            error_type = "fetch_failed"
+            if '403' in str(bill_info.get('html', '')) or '403' in str(bill_info.get('text', '')):
+                error_type = "403_forbidden"
+            elif '404' in str(bill_info.get('html', '')) or '404' in str(bill_info.get('text', '')):
+                error_type = "404_not_found"
+            elif '523' in str(bill_info.get('html', '')) or '523' in str(bill_info.get('text', '')):
+                error_type = "523_cloudflare"
+            
+            logger.warning(f"Failed to scrape policy_doc {policy_doc_id} ({domain}): {error_type}")
+            return False, f"Could not fetch bill text or HTML ({error_type})"
         
         bill_text = bill_info.get('text') or ''
         html_content = bill_info.get('html') or ''
@@ -188,8 +200,11 @@ def scrape_pending_policy_documents(limit: int = 100, use_ai_fallback: bool = Tr
         use_ai_fallback: Whether to use AI fallback
     
     Returns:
-        Dict with counts: processed, succeeded, failed
+        Dict with counts: processed, succeeded, failed, and error breakdown
     """
+    from scripts.enrichment.utils import get_domain
+    from collections import defaultdict
+    
     conn = cursor = None
     
     try:
@@ -214,8 +229,14 @@ def scrape_pending_policy_documents(limit: int = 100, use_ai_fallback: bool = Tr
         succeeded = 0
         failed = 0
         
+        # Track failures by domain and error type
+        failures_by_domain = defaultdict(int)
+        failures_by_error_type = defaultdict(int)
+        
         for doc in docs:
             processed += 1
+            domain = get_domain(doc['document_url'])
+            
             success, error = scrape_and_store_bill_data(
                 doc['id'], doc['document_url'], use_ai_fallback=use_ai_fallback
             )
@@ -224,12 +245,42 @@ def scrape_pending_policy_documents(limit: int = 100, use_ai_fallback: bool = Tr
                 succeeded += 1
             else:
                 failed += 1
-                logger.warning(f"Failed to scrape policy_doc {doc['id']}: {error}")
+                failures_by_domain[domain] += 1
+                
+                # Categorize error type
+                if error:
+                    if '403' in error or 'forbidden' in error.lower():
+                        failures_by_error_type['403_forbidden'] += 1
+                    elif '404' in error or 'not_found' in error.lower():
+                        failures_by_error_type['404_not_found'] += 1
+                    elif '523' in error or 'cloudflare' in error.lower():
+                        failures_by_error_type['523_cloudflare'] += 1
+                    else:
+                        failures_by_error_type['other'] += 1
+                
+                logger.warning(f"Failed to scrape policy_doc {doc['id']} ({domain}): {error}")
+        
+        # Log failure summary
+        if failures_by_domain:
+            logger.info("="*60)
+            logger.info("Failure Summary by Domain:")
+            for domain, count in sorted(failures_by_domain.items(), key=lambda x: x[1], reverse=True):
+                logger.info(f"  {domain}: {count} failures")
+            logger.info("="*60)
+        
+        if failures_by_error_type:
+            logger.info("="*60)
+            logger.info("Failure Summary by Error Type:")
+            for error_type, count in sorted(failures_by_error_type.items(), key=lambda x: x[1], reverse=True):
+                logger.info(f"  {error_type}: {count} failures")
+            logger.info("="*60)
         
         return {
             'processed': processed,
             'succeeded': succeeded,
-            'failed': failed
+            'failed': failed,
+            'failures_by_domain': dict(failures_by_domain),
+            'failures_by_error_type': dict(failures_by_error_type)
         }
         
     except Exception as e:

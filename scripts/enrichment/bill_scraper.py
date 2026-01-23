@@ -14,7 +14,21 @@ from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
 
-from scripts.enrichment.utils import get_domain, BROWSER_USER_AGENT
+from scripts.enrichment.utils import get_domain, BROWSER_USER_AGENT, get_browser_headers
+
+# Try to import JavaScript renderer (optional)
+try:
+    from scripts.enrichment.bill_scraper_js import (
+        fetch_bill_text_js,
+        get_bill_info_js,
+        PLAYWRIGHT_AVAILABLE,
+        init_browser,
+        close_browser
+    )
+    JS_RENDERER_AVAILABLE = True
+except ImportError:
+    JS_RENDERER_AVAILABLE = False
+    logger.warning("JavaScript renderer not available - SPA sites will use fallback")
 
 # Disable SSL warnings when verification is disabled
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -87,16 +101,19 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Hawaii (35 URLs)
+    # Hawaii (35 URLs) - Note: Has strict bot detection, requires long delays
     'www.capitol.hawaii.gov': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
             'pre',
-            '.measure-text'
+            '.measure-text',
+            '.measure-content',
+            '#ctl00_ContentPlaceHolder1_lblMeasureText'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .measure-title',
+        'timeout': 60,  # Longer timeout for Hawaii
+        'requires_js': False,  # Not an SPA, but has bot detection
     },
     # Rhode Island (33 URLs)
     'status.rilegislature.gov': {
@@ -203,15 +220,20 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Montana (20 URLs)
+    # Montana (20 URLs) - SPA site, requires JavaScript rendering
     'bills.legmt.gov': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '[data-testid="bill-text"]',
+            '.bill-content',
+            'main',
+            'article'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,
+        'requires_js': True,  # SPA site
     },
     # North Carolina (17 URLs)
     'www.ncleg.gov': {
@@ -325,15 +347,19 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Georgia (7 URLs)
+    # Georgia (7 URLs) - SPA site, requires JavaScript rendering
     'www.legis.ga.gov': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '.bill-content',
+            'main',
+            '[role="main"]'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,
+        'requires_js': True,  # SPA site
     },
     # West Virginia (6 URLs)
     'www.wvlegislature.gov': {
@@ -395,15 +421,20 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Wyoming (4 URLs)
+    # Wyoming (4 URLs) - SPA site, requires JavaScript rendering
     'legisweb.state.wy.us': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '.bill-content',
+            'main',
+            'article',
+            '.legislation-content'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,
+        'requires_js': True,  # SPA site
     },
     # Arkansas (4 URLs)
     'www.arkleg.state.ar.us': {
@@ -455,15 +486,19 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # DC (3 URLs)
+    # DC (3 URLs) - Has Cloudflare protection, requires conservative approach
     'lims.dccouncil.gov': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '.legislation-text',
+            '.bill-content',
+            'main'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,  # Longer timeout for Cloudflare-protected site
+        'requires_js': False,
     },
     # Kansas (2 URLs)
     'www.kslegislature.org': {
@@ -485,15 +520,19 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Indiana (2 URLs)
+    # Indiana (2 URLs) - SPA site, requires JavaScript rendering
     'iga.in.gov': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '.bill-content',
+            'main',
+            'article'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,
+        'requires_js': True,  # SPA site
     },
     # Colorado (2 URLs)
     'leg.colorado.gov': {
@@ -535,15 +574,20 @@ SCRAPER_CONFIGS = {
         'title_selector': 'h1',
         'timeout': 30,
     },
-    # Alabama (1 URL)
+    # Alabama (1 URL) - SPA site, requires JavaScript rendering
     'alison.legislature.state.al.us': {
         'bill_text_selectors': [
             '.bill-text',
             '#billText',
-            'pre'
+            'pre',
+            '.bill-content',
+            'main',
+            'article',
+            '.bill-details'
         ],
-        'title_selector': 'h1',
-        'timeout': 30,
+        'title_selector': 'h1, .bill-title',
+        'timeout': 60,
+        'requires_js': True,  # SPA site
     },
 }
 
@@ -559,6 +603,32 @@ MUNICIPAL_PATTERNS = [
 # Rate limiting
 _last_request_time = {}
 _min_request_interval = 1.0  # seconds between requests to same domain
+
+# Domain-specific rate limiting (seconds between requests)
+# Higher values = more conservative (data quality over speed)
+DOMAIN_RATE_LIMITS = {
+    'www.capitol.hawaii.gov': 10.0,  # Very long delay for Hawaii (user requested)
+    'capitol.hawaii.gov': 10.0,
+    'lims.dccouncil.gov': 5.0,  # DC site has issues, be conservative
+    'bills.legmt.gov': 3.0,  # Montana SPA site
+    'www.legis.ga.gov': 3.0,  # Georgia site
+    'iga.in.gov': 3.0,  # Indiana site
+    'lis.virginia.gov': 2.0,  # Virginia site
+    'legisweb.state.wy.us': 3.0,  # Wyoming site
+    'alison.legislature.state.al.us': 3.0,  # Alabama site
+}
+
+# Known SPA (Single Page Application) sites that require JavaScript rendering
+SPA_DOMAINS = {
+    'bills.legmt.gov',  # Montana - uses # fragments in URLs
+    'www.legis.ga.gov',  # Georgia - minimal content without JS
+    'iga.in.gov',  # Indiana - minimal content
+    'legisweb.state.wy.us',  # Wyoming - minimal content
+    'alison.legislature.state.al.us',  # Alabama - minimal content
+}
+
+# Sites that should be skipped after 404 (page doesn't exist)
+_404_skipped_domains = set()
 
 
 # get_domain is now imported from scripts.enrichment.utils
@@ -599,23 +669,64 @@ def should_rate_limit(domain: str) -> bool:
     if domain not in _last_request_time:
         return False
     
+    # Get domain-specific rate limit or use default
+    rate_limit = DOMAIN_RATE_LIMITS.get(domain, _min_request_interval)
     elapsed = time.time() - _last_request_time[domain]
-    return elapsed < _min_request_interval
+    return elapsed < rate_limit
 
 
 def wait_for_rate_limit(domain: str):
     """Wait if rate limiting is needed."""
-    if should_rate_limit(domain):
-        sleep_time = _min_request_interval - (time.time() - _last_request_time[domain])
-        if sleep_time > 0:
-            time.sleep(sleep_time)
+    global _last_request_time
+    
+    # Get domain-specific rate limit or use default
+    rate_limit = DOMAIN_RATE_LIMITS.get(domain, _min_request_interval)
+    
+    if domain in _last_request_time:
+        elapsed = time.time() - _last_request_time[domain]
+        if elapsed < rate_limit:
+            sleep_time = rate_limit - elapsed
+            if sleep_time > 0:
+                logger.debug(f"Rate limiting {domain}: waiting {sleep_time:.1f}s")
+                time.sleep(sleep_time)
     
     _last_request_time[domain] = time.time()
+
+
+def is_spa_site(url: str) -> bool:
+    """Check if URL is from a known SPA site that requires JavaScript rendering."""
+    domain = get_domain(url)
+    
+    # Check if domain is in known SPA list
+    if domain in SPA_DOMAINS:
+        return True
+    
+    # Check scraper config for requires_js flag
+    config = SCRAPER_CONFIGS.get(domain, {})
+    if config.get('requires_js', False):
+        return True
+    
+    # Also check for # fragments in URL (common SPA pattern)
+    if '#' in url and url.split('#')[1]:
+        return True
+    
+    return False
+
+
+def should_skip_404(domain: str) -> bool:
+    """Check if we should skip this domain after 404 errors."""
+    return domain in _404_skipped_domains
+
+
+def mark_404_skipped(domain: str):
+    """Mark a domain to skip after 404 errors."""
+    _404_skipped_domains.add(domain)
 
 
 def fetch_bill_text(url: str, timeout: int = 30, max_retries: int = 3) -> Optional[str]:
     """
     Fetch and extract bill text from URL.
+    Automatically uses JavaScript rendering for SPA sites if available.
     
     Args:
         url: URL to the bill text
@@ -630,6 +741,19 @@ def fetch_bill_text(url: str, timeout: int = 30, max_retries: int = 3) -> Option
         return None
     
     domain = get_domain(url)
+    
+    # Check if this is an SPA site that needs JavaScript rendering
+    if is_spa_site(url) and JS_RENDERER_AVAILABLE:
+        logger.info(f"Detected SPA site {domain}, using JavaScript renderer")
+        try:
+            text = fetch_bill_text_js(url, timeout=timeout, max_retries=max_retries)
+            if text and len(text) > 100:
+                return text
+            else:
+                logger.warning(f"JavaScript renderer returned insufficient content, falling back to regular scraper")
+        except Exception as e:
+            logger.warning(f"JavaScript renderer failed for {url}: {e}, falling back to regular scraper")
+    
     wait_for_rate_limit(domain)
     
     config = SCRAPER_CONFIGS.get(domain, {})
@@ -643,11 +767,13 @@ def fetch_bill_text(url: str, timeout: int = 30, max_retries: int = 3) -> Option
     timeout = config.get('timeout', timeout)
     selectors = config.get('bill_text_selectors', ['pre', '.bill-text', 'body'])
     
-    headers = {
-        'User-Agent': USER_AGENT,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-    }
+    # Use improved browser headers
+    headers = get_browser_headers(referer=url if domain else None)
+    
+    # Check if this is a 404-skipped domain
+    if should_skip_404(domain):
+        logger.info(f"Skipping {url} - domain marked as 404 (page doesn't exist)")
+        return None
     
     for attempt in range(max_retries):
         try:
@@ -657,6 +783,36 @@ def fetch_bill_text(url: str, timeout: int = 30, max_retries: int = 3) -> Option
             except requests.exceptions.SSLError:
                 logger.warning(f"SSL verification failed for {url}, retrying without verification")
                 response = requests.get(url, headers=headers, timeout=timeout, verify=False)
+            
+            # Handle specific HTTP status codes
+            if response.status_code == 404:
+                logger.warning(f"404 Not Found for {url} - marking domain to skip")
+                mark_404_skipped(domain)
+                return None
+            elif response.status_code == 403:
+                # 403 Forbidden - likely bot detection, wait longer before retry
+                logger.warning(f"403 Forbidden for {url} (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    # Longer wait for 403 errors, especially for Hawaii
+                    wait_time = (2 ** attempt) * (10 if 'hawaii' in domain.lower() else 3)
+                    logger.info(f"Waiting {wait_time}s before retry (403 error)")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Failed to fetch {url} after {max_retries} attempts (403 Forbidden)")
+                    return None
+            elif response.status_code == 523:
+                # 523 Cloudflare error - wait longer
+                logger.warning(f"523 Server Error (Cloudflare) for {url} (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 5  # Longer wait for Cloudflare errors
+                    logger.info(f"Waiting {wait_time}s before retry (523 error)")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Failed to fetch {url} after {max_retries} attempts (523 Server Error)")
+                    return None
+            
             response.raise_for_status()
             
             # Parse HTML
@@ -686,10 +842,46 @@ def fetch_bill_text(url: str, timeout: int = 30, max_retries: int = 3) -> Option
                 logger.warning(f"Bill text too short from {url} ({len(text_content) if text_content else 0} chars)")
                 return None
                 
+        except requests.exceptions.HTTPError as e:
+            # Handle HTTP errors with specific status codes
+            status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
+            if status_code == 404:
+                logger.warning(f"404 Not Found for {url} - marking domain to skip")
+                mark_404_skipped(domain)
+                return None
+            elif status_code == 403:
+                logger.warning(f"403 Forbidden for {url} (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * (10 if 'hawaii' in domain.lower() else 3)
+                    logger.info(f"Waiting {wait_time}s before retry (403 error)")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Failed to fetch bill text from {url} after {max_retries} attempts (403 Forbidden)")
+                    return None
+            elif status_code == 523:
+                logger.warning(f"523 Server Error (Cloudflare) for {url} (attempt {attempt + 1}/{max_retries})")
+                if attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) * 5
+                    logger.info(f"Waiting {wait_time}s before retry (523 error)")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"Failed to fetch bill text from {url} after {max_retries} attempts (523 Server Error)")
+                    return None
+            else:
+                logger.warning(f"HTTP error {status_code} for {url} (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)  # Exponential backoff
+                else:
+                    logger.error(f"Failed to fetch bill text from {url} after {max_retries} attempts")
+                    return None
         except requests.exceptions.RequestException as e:
             logger.warning(f"Request failed for {url} (attempt {attempt + 1}/{max_retries}): {e}")
             if attempt < max_retries - 1:
-                time.sleep(2 ** attempt)  # Exponential backoff
+                # Longer backoff for problematic domains
+                backoff_multiplier = 10 if 'hawaii' in domain.lower() else 1
+                time.sleep((2 ** attempt) * backoff_multiplier)
             else:
                 logger.error(f"Failed to fetch bill text from {url} after {max_retries} attempts")
                 return None
@@ -727,6 +919,7 @@ def extract_bill_title(url: str, html_content: Optional[str] = None) -> Optional
 def get_bill_info(url: str, fetch_html: bool = False) -> Dict[str, Optional[str]]:
     """
     Get comprehensive bill information from URL.
+    Automatically uses JavaScript rendering for SPA sites if available.
     
     Args:
         url: URL to the bill
@@ -735,6 +928,20 @@ def get_bill_info(url: str, fetch_html: bool = False) -> Dict[str, Optional[str]
     Returns:
         Dict with 'text', 'title', 'url', and optionally 'html' keys
     """
+    domain = get_domain(url)
+    
+    # Check if this is an SPA site that needs JavaScript rendering
+    if is_spa_site(url) and JS_RENDERER_AVAILABLE:
+        logger.info(f"Detected SPA site {domain}, using JavaScript renderer for full content")
+        try:
+            result = get_bill_info_js(url, fetch_html=fetch_html)
+            if result.get('text') and len(result.get('text', '')) > 100:
+                return result
+            else:
+                logger.warning(f"JavaScript renderer returned insufficient content, falling back to regular scraper")
+        except Exception as e:
+            logger.warning(f"JavaScript renderer failed for {url}: {e}, falling back to regular scraper")
+    
     text = fetch_bill_text(url)
     title = extract_bill_title(url)
     
@@ -749,18 +956,46 @@ def get_bill_info(url: str, fetch_html: bool = False) -> Dict[str, Optional[str]
         try:
             domain = get_domain(url)
             wait_for_rate_limit(domain)
-            headers = {
-                'User-Agent': USER_AGENT,
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            }
+            
+            # Check if this is a 404-skipped domain
+            if should_skip_404(domain):
+                logger.info(f"Skipping HTML fetch for {url} - domain marked as 404")
+                result['html'] = None
+                return result
+            
+            # Use improved browser headers
+            headers = get_browser_headers(referer=url if domain else None)
+            
             # Try with SSL verification first, fall back to unverified if needed
             try:
                 response = requests.get(url, headers=headers, timeout=30, verify=True)
             except requests.exceptions.SSLError:
                 logger.warning(f"SSL verification failed for {url}, retrying without verification")
                 response = requests.get(url, headers=headers, timeout=30, verify=False)
+            
+            # Handle specific status codes
+            if response.status_code == 404:
+                logger.warning(f"404 Not Found for {url} - marking domain to skip")
+                mark_404_skipped(domain)
+                result['html'] = None
+                return result
+            elif response.status_code == 403:
+                logger.warning(f"403 Forbidden for {url} - cannot fetch HTML")
+                result['html'] = None
+                return result
+            elif response.status_code == 523:
+                logger.warning(f"523 Server Error (Cloudflare) for {url} - cannot fetch HTML")
+                result['html'] = None
+                return result
+            
             response.raise_for_status()
             result['html'] = response.text
+        except requests.exceptions.HTTPError as e:
+            status_code = e.response.status_code if hasattr(e, 'response') and e.response else None
+            if status_code == 404:
+                mark_404_skipped(domain)
+            logger.warning(f"Failed to fetch HTML for {url}: {e}")
+            result['html'] = None
         except Exception as e:
             logger.warning(f"Failed to fetch HTML for {url}: {e}")
             result['html'] = None

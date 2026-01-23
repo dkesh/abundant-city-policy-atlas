@@ -14,7 +14,38 @@ from dateutil import parser as date_parser
 logger = logging.getLogger(__name__)
 
 # Browser user agent for web scraping (mimics real browser)
-BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+# Updated to current Chrome version to avoid bot detection
+BROWSER_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+
+
+def get_browser_headers(referer: Optional[str] = None) -> dict:
+    """
+    Get realistic browser headers for web scraping.
+    
+    Args:
+        referer: Optional referer URL to include in headers
+    
+    Returns:
+        Dictionary of HTTP headers
+    """
+    headers = {
+        'User-Agent': BROWSER_USER_AGENT,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none' if not referer else 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0',
+    }
+    
+    if referer:
+        headers['Referer'] = referer
+    
+    return headers
 
 
 def parse_flexible_date(date_str: Optional[str]) -> Optional[datetime]:
