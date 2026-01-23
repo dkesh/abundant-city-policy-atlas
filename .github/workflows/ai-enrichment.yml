@@ -34,3 +34,4 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ENRICHMENT_VERSION: ${{ secrets.ENRICHMENT_VERSION }}
       run: python scripts/enrichment/ai_enrichment.py --all
+      continue-on-error: false

@@ -55,7 +55,7 @@ def find_unenriched_reforms(cursor, version: int, limit: int = 100, reform_id: O
     """
     if reform_id:
         cursor.execute("""
-            SELECT r.id, r.link_url, r.legislative_number, r.summary,
+            SELECT DISTINCT ON (r.id) r.id, r.link_url, r.legislative_number, r.summary,
                    r.scope, r.land_use, r.requirements,
                    p.name as place_name, tld.state_name,
                    rt.code as reform_type_code,
@@ -65,31 +65,41 @@ def find_unenriched_reforms(cursor, version: int, limit: int = 100, reform_id: O
             FROM reforms r
             JOIN places p ON r.place_id = p.id
             JOIN top_level_division tld ON p.state_code = tld.state_code
-            JOIN reform_types rt ON r.reform_type_id = rt.id
+            LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+            LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
             LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
             WHERE r.id = %s
               AND pd.bill_text IS NOT NULL
               AND pd.bill_text != ''
+            ORDER BY r.id, rt.id NULLS LAST
         """, (reform_id,))
     else:
         cursor.execute("""
-            SELECT r.id, r.link_url, r.legislative_number, r.summary,
+            WITH ranked_reforms AS (
+                SELECT r.id
+                FROM reforms r
+                LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
+                WHERE (r.ai_enrichment_version IS NULL OR r.ai_enrichment_version < %s)
+                  AND pd.bill_text IS NOT NULL
+                  AND pd.bill_text != ''
+                ORDER BY r.created_at DESC
+                LIMIT %s
+            )
+            SELECT DISTINCT ON (r.id) r.id, r.link_url, r.legislative_number, r.summary,
                    r.scope, r.land_use, r.requirements,
                    p.name as place_name, tld.state_name,
                    rt.code as reform_type_code,
                    pd.id as policy_doc_id,
                    pd.document_url, pd.reference_number, pd.title as policy_doc_title,
                    pd.bill_text
-            FROM reforms r
+            FROM ranked_reforms rf
+            JOIN reforms r ON rf.id = r.id
             JOIN places p ON r.place_id = p.id
             JOIN top_level_division tld ON p.state_code = tld.state_code
-            JOIN reform_types rt ON r.reform_type_id = rt.id
+            LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+            LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
             LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
-            WHERE (r.ai_enrichment_version IS NULL OR r.ai_enrichment_version < %s)
-              AND pd.bill_text IS NOT NULL
-              AND pd.bill_text != ''
-            ORDER BY r.created_at DESC
-            LIMIT %s
+            ORDER BY r.id, rt.id NULLS LAST
         """, (version, limit))
     
     return cursor.fetchall()
@@ -377,7 +387,46 @@ def merge_duplicate_reforms(cursor, duplicate_reform_id: int, target_reform_id: 
                     ))
                     logger.info(f"  Merged citation from reform {duplicate_reform_id} to {target_reform_id}")
         
-        # Delete the duplicate reform (CASCADE will handle reform_sources and reform_citations)
+        # Merge reform types: get reform types from duplicate reform and link them to target
+        cursor.execute("""
+            SELECT reform_type_id
+            FROM reform_reform_types
+            WHERE reform_id = %s
+        """, (duplicate_reform_id,))
+        duplicate_reform_types = cursor.fetchall()
+        
+        if duplicate_reform_types:
+            # Get existing reform types for target reform
+            cursor.execute("""
+                SELECT reform_type_id FROM reform_reform_types WHERE reform_id = %s
+            """, (target_reform_id,))
+            existing_reform_type_ids = {row['reform_type_id'] for row in cursor.fetchall()}
+            
+            # Insert reform types from duplicate that don't already exist in target
+            for reform_type in duplicate_reform_types:
+                if reform_type['reform_type_id'] not in existing_reform_type_ids:
+                    cursor.execute("""
+                        INSERT INTO reform_reform_types (reform_id, reform_type_id)
+                        VALUES (%s, %s)
+                        ON CONFLICT (reform_id, reform_type_id) DO NOTHING
+                    """, (target_reform_id, reform_type['reform_type_id']))
+                    logger.info(f"  Merged reform_type {reform_type['reform_type_id']} from reform {duplicate_reform_id} to {target_reform_id}")
+        
+        # Also add the reform_type_id parameter if provided and not already present
+        if reform_type_id:
+            cursor.execute("""
+                SELECT 1 FROM reform_reform_types
+                WHERE reform_id = %s AND reform_type_id = %s
+            """, (target_reform_id, reform_type_id))
+            if not cursor.fetchone():
+                cursor.execute("""
+                    INSERT INTO reform_reform_types (reform_id, reform_type_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT (reform_id, reform_type_id) DO NOTHING
+                """, (target_reform_id, reform_type_id))
+                logger.info(f"  Added reform_type {reform_type_id} to target reform {target_reform_id}")
+        
+        # Delete the duplicate reform (CASCADE will handle reform_sources, reform_citations, and reform_reform_types)
         cursor.execute("DELETE FROM reforms WHERE id = %s", (duplicate_reform_id,))
         logger.info(f"  Deleted duplicate reform {duplicate_reform_id}")
         
@@ -412,48 +461,22 @@ def update_reform_enrichment(cursor, reform_id: int, enrichment_data: Dict, refo
         """, (json.dumps(enrichment_data), ENRICHMENT_VERSION, reform_id))
         
         # Update reform_type_id if suggestion was provided
-        # First check if updating would create a duplicate constraint violation
+        # Add the reform type via the junction table if it doesn't already exist
         if reform_type_id:
-            # Check if this change would create a duplicate
+            # Check if this reform already has this reform type
             cursor.execute("""
-                SELECT place_id, adoption_date, status
-                FROM reforms
-                WHERE id = %s
-            """, (reform_id,))
-            current_reform = cursor.fetchone()
+                SELECT 1 FROM reform_reform_types
+                WHERE reform_id = %s AND reform_type_id = %s
+            """, (reform_id, reform_type_id))
             
-            if current_reform:
-                # Check if a reform with this combination already exists (excluding current reform)
+            if not cursor.fetchone():
+                # Add the reform type via junction table
                 cursor.execute("""
-                    SELECT id FROM reforms
-                    WHERE place_id = %s
-                      AND reform_type_id = %s
-                      AND adoption_date = %s
-                      AND status = %s
-                      AND id != %s
-                """, (current_reform['place_id'], reform_type_id, 
-                      current_reform['adoption_date'], current_reform['status'], reform_id))
-                
-                existing_reform = cursor.fetchone()
-                if existing_reform:
-                    # Found a duplicate - merge instead of updating
-                    existing_reform_id = existing_reform['id']
-                    logger.info(
-                        f"Reform {reform_id}: Found duplicate reform {existing_reform_id} with same "
-                        f"(place_id, reform_type_id, adoption_date, status). Merging..."
-                    )
-                    
-                    if merge_duplicate_reforms(cursor, reform_id, existing_reform_id, enrichment_data, reform_type_id):
-                        return True, existing_reform_id, None
-                    else:
-                        return False, None, "Failed to merge duplicate reforms"
-                
-                # Safe to update
-                cursor.execute("""
-                    UPDATE reforms
-                    SET reform_type_id = %s
-                    WHERE id = %s
-                """, (reform_type_id, reform_id))
+                    INSERT INTO reform_reform_types (reform_id, reform_type_id)
+                    VALUES (%s, %s)
+                    ON CONFLICT (reform_id, reform_type_id) DO NOTHING
+                """, (reform_id, reform_type_id))
+                logger.info(f"Added reform_type_id {reform_type_id} to reform {reform_id}")
         
         return True, None, None
     except psycopg2_errors.UniqueViolation as e:
@@ -586,48 +609,13 @@ def run_enrichment(limit: int = 100, reform_id: Optional[int] = None, force: boo
                 # Update reform (may return merged_reform_id if a merge occurred)
                 success, merged_reform_id, error_msg = update_reform_enrichment(cursor, reform['id'], enrichment_data, reform_type_id)
                 if not success:
-                    # Check if this is a merge-needed error
+                    # Check if this is a merge-needed error (legacy - may not be needed anymore)
                     if error_msg and error_msg.startswith("MERGE_NEEDED:"):
-                        # Rollback to clear the transaction error state
+                        logger.warning(f"Merge needed for reform {reform['id']}, but merge logic has been simplified")
+                        # Rollback and continue - merge logic removed as reform_type_id is now in junction table
                         conn.rollback()
-                        
-                        # Find the existing reform with the conflicting combination
-                        cursor.execute("""
-                            SELECT place_id, adoption_date, status
-                            FROM reforms
-                            WHERE id = %s
-                        """, (reform['id'],))
-                        current_reform = cursor.fetchone()
-                        
-                        if current_reform and reform_type_id:
-                            # Find the existing reform with the conflicting combination
-                            cursor.execute("""
-                                SELECT id FROM reforms
-                                WHERE place_id = %s
-                                  AND reform_type_id = %s
-                                  AND adoption_date = %s
-                                  AND status = %s
-                                  AND id != %s
-                            """, (current_reform['place_id'], reform_type_id,
-                                  current_reform['adoption_date'], current_reform['status'], reform['id']))
-                            
-                            existing_reform = cursor.fetchone()
-                            if existing_reform:
-                                existing_reform_id = existing_reform['id']
-                                logger.info(
-                                    f"Reform {reform['id']}: Duplicate key violation - merging into existing reform {existing_reform_id}"
-                                )
-                                
-                                if merge_duplicate_reforms(cursor, reform['id'], existing_reform_id, enrichment_data, reform_type_id):
-                                    logger.info(f"Reform {reform['id']} was merged into reform {existing_reform_id}")
-                                    enriched += 1
-                                    # Commit the merge
-                                    conn.commit()
-                                    continue
-                                else:
-                                    logger.error(f"Failed to merge reform {reform['id']} into {existing_reform_id}")
-                                    failed += 1
-                                    continue
+                        failed += 1
+                        continue
                     
                     logger.warning(f"Failed to update reform {reform['id']}: {error_msg}")
                     failed += 1
@@ -721,6 +709,7 @@ def run_enrichment(limit: int = 100, reform_id: Optional[int] = None, force: boo
                     conn.commit()
             except:
                 pass
+        raise  # Re-raise to ensure script exits with non-zero code
     finally:
         close_db_connection(conn, cursor)
 
@@ -736,7 +725,11 @@ def main():
     args = parser.parse_args()
     
     limit = 999999 if args.all else args.limit
-    run_enrichment(limit=limit, reform_id=args.reform_id, force=args.force)
+    try:
+        run_enrichment(limit=limit, reform_id=args.reform_id, force=args.force)
+    except Exception as e:
+        logger.error(f"Script failed: {e}", exc_info=True)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
