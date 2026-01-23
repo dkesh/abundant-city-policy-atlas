@@ -16,6 +16,9 @@ from bs4 import BeautifulSoup
 
 from scripts.enrichment.utils import get_domain, BROWSER_USER_AGENT, get_browser_headers
 
+# Configure logger early so it's available for import error handling
+logger = logging.getLogger(__name__)
+
 # Try to import JavaScript renderer (optional)
 try:
     from scripts.enrichment.bill_scraper_js import (
@@ -32,8 +35,6 @@ except ImportError:
 
 # Disable SSL warnings when verification is disabled
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-logger = logging.getLogger(__name__)
 
 # File to log unknown sites
 UNKNOWN_SITES_LOG = os.path.join(

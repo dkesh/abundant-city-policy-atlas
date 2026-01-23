@@ -6,16 +6,20 @@ Uses Playwright to render JavaScript-heavy sites (SPAs) that require browser aut
 import os
 import logging
 import time
-from typing import Optional, Dict
+from typing import Optional, Dict, TYPE_CHECKING
 from datetime import datetime, timezone
+
+if TYPE_CHECKING:
+    from playwright.sync_api import Browser, Page
 
 try:
     from playwright.sync_api import sync_playwright, Browser, Page, TimeoutError as PlaywrightTimeoutError
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning("Playwright not available - JavaScript rendering disabled")
+    Browser = None  # type: ignore
+    Page = None  # type: ignore
+    PlaywrightTimeoutError = Exception  # type: ignore
 
 from scripts.enrichment.utils import get_domain, get_browser_headers
 from scripts.enrichment.bill_scraper import (
@@ -28,7 +32,7 @@ from scripts.enrichment.bill_scraper import (
 logger = logging.getLogger(__name__)
 
 # Browser instance (singleton)
-_browser: Optional[Browser] = None
+_browser: Optional['Browser'] = None
 _browser_initialized = False
 
 
