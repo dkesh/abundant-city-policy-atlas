@@ -45,7 +45,7 @@ def main():
             ["--file", "database/testdata/PRN-complete-data.json"]
         ),
         (
-            "berkeley_zoning_tracker.py",
+            "obi.py",
             ["--file", "database/testdata/zoning-tracker.csv"]
         ),
         (

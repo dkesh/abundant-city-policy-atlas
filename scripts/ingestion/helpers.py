@@ -4,7 +4,7 @@
 Shared helper functions for ingestion scripts.
 
 This module provides utility functions used by multiple ingestion scripts
-(prn_municipalities.py, berkeley_zoning_tracker.py, etc.)
+(prn_municipalities.py, obi.py, etc.)
 """
 
 from typing import Optional

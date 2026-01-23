@@ -66,7 +66,7 @@ ON CONFLICT (code) DO UPDATE SET
 
 INSERT INTO sources (name, short_name, description, website_url, logo_filename) VALUES
   ('Parking Reform Network', 'PRN', 'A grassroots advocacy organization working to eliminate parking mandates across North America', 'https://parkingreform.org/', 'prn-logo.svg'),
-  ('Zoning Reform Tracker, Othering and Belonging Institute', 'ZRT', 'Zoning reform tracking project by Othering & Belonging Institute, University of California, Berkeley', 'https://belonging.berkeley.edu/', 'zrt-logo.svg'),
+  ('Zoning Reform Tracker, Othering and Belonging Institute', 'ZRT', 'Zoning reform tracking project by Othering & Belonging Institute, University of California, Berkeley', 'https://belonging.berkeley.edu/', 'obi-logo.svg'),
   ('Center for Land Economics', 'CLE', 'Tracks land value tax reforms across North America', 'https://landeconomics.org/', 'cle-logo.svg'),
   ('Center for Building in North America', 'CBNA', 'The Center for Building is a non-profit that conducts research on building codes and standards, and advocates for reform in the United States and Canada.', 'https://www.centerforbuilding.org/', 'cbna-logo.svg')
 ON CONFLICT (short_name) DO UPDATE SET

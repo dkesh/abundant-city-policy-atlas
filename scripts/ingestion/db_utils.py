@@ -22,7 +22,7 @@ from psycopg2 import errorcodes
 PlaceKey = Tuple[str, str, str]  # (state_code, name_lower, place_type)
 
 # User-Agent string for HTTP requests
-USER_AGENT = 'urbanist-reform-map/1.0 (+https://github.com/dkesh/urbanist-reform-map)'
+USER_AGENT = 'abundant-city-policy-atlas/1.0 (+https://github.com/dkesh/abundant-city-policy-atlas)'
 
 # Type variable for retry decorator
 T = TypeVar('T')
