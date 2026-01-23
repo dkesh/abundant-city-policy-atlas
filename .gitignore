@@ -38,3 +38,4 @@ Thumbs.db
 archive/
 .env.branch
 .cursor/debug.log
+scripts/enrichment/unknown_sites.jsonl

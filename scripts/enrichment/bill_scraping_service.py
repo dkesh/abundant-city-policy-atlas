@@ -57,8 +57,8 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
         if not bill_info.get('text') and not bill_info.get('html'):
             return False, "Could not fetch bill text or HTML"
         
-        bill_text = bill_info.get('text', '')
-        html_content = bill_info.get('html', '')
+        bill_text = bill_info.get('text') or ''
+        html_content = bill_info.get('html') or ''
         domain = get_domain(document_url)
         
         # Extract structured data
@@ -166,7 +166,7 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
         conn.commit()
         
         logger.info(f"Successfully stored bill data for policy_doc {policy_doc_id}: "
-                   f"{len(bill_text)} chars text, {len(dates)} dates, {len(sponsors)} sponsors")
+                   f"{len(bill_text) if bill_text else 0} chars text, {len(dates)} dates, {len(sponsors)} sponsors")
         
         return True, None
         

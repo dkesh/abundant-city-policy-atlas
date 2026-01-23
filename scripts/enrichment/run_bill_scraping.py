@@ -125,9 +125,20 @@ Examples:
             logger.info(f"  Processed: {results['processed']}")
             logger.info(f"  Succeeded: {results['succeeded']}")
             logger.info(f"  Failed: {results['failed']}")
+            
+            # Calculate failure rate
+            if results['processed'] > 0:
+                failure_rate = results['failed'] / results['processed']
+                logger.info(f"  Failure Rate: {failure_rate:.1%}")
+            else:
+                failure_rate = 0.0
+                logger.info(f"  Failure Rate: N/A (no documents processed)")
+            
             logger.info("="*60)
             
-            if results['failed'] > 0:
+            # Exit with error only if failure rate exceeds 15%
+            if results['processed'] > 0 and failure_rate > 0.15:
+                logger.warning(f"Failure rate ({failure_rate:.1%}) exceeds 15% threshold")
                 sys.exit(1)
             else:
                 sys.exit(0)
