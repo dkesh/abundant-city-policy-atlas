@@ -96,13 +96,25 @@ BEGIN
   SELECT id INTO reduced_type_id FROM reform_types WHERE code = 'parking:reduced';
   
   IF new_type_id IS NOT NULL AND reduced_type_id IS NOT NULL THEN
-    -- Find reforms that need migration (not already migrated from eliminated)
-    -- Update reform_reform_types to point to new type
+    -- First, handle reforms that already have the new type (from STEP 3)
+    -- These are reforms that had both parking:eliminated AND parking:reduced
+    -- Delete the parking:reduced entry for these reforms since they already have the new type
+    DELETE FROM reform_reform_types
+    WHERE reform_type_id = reduced_type_id
+      AND reform_id IN (
+        SELECT reform_id 
+        FROM reform_reform_types 
+        WHERE reform_type_id = new_type_id
+      );
+    
+    -- Now update remaining parking:reduced entries to point to new type
+    -- These are reforms that ONLY had parking:reduced (not parking:eliminated)
     UPDATE reform_reform_types
     SET reform_type_id = new_type_id
     WHERE reform_type_id = reduced_type_id;
     
-    -- Set intensity = 'partial' for these reforms (only if not already set to 'complete')
+    -- Set intensity = 'partial' for reforms that were migrated from parking:reduced
+    -- Only if not already set to 'complete' (which would have been set in STEP 3)
     UPDATE reforms
     SET intensity = 'partial'
     WHERE id IN (
