@@ -130,7 +130,7 @@ async function pollSubmissionStatus(submissionId, originalUrl) {
                     showSubmissionStatus(
                         `<strong>Submission received!</strong><br><br>` +
                         `Your bill has been submitted and is being reviewed. ` +
-                        `You'll be notified once it's been processed and added to the atlas.`,
+                        `Your submission will be processed and added to the atlas if approved.`,
                         'info'
                     );
                 } else {
