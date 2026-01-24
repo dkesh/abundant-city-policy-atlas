@@ -247,6 +247,22 @@ exports.handler = async (event, context) => {
       if (existingSubmissionCheck.rows.length > 0) {
         const existing = existingSubmissionCheck.rows[0];
         
+        // First, check if it's attached to a visible reform (approved and visible)
+        const reformId = existing.reform_id || existing.reform_id_from_policy_doc || existing.existing_reform_id;
+        if (reformId) {
+          return {
+            statusCode: 200,
+            headers,
+            body: JSON.stringify({
+              success: true,
+              status: 'duplicate_found',
+              existing_reform_id: reformId,
+              title: existing.title || existing.reform_summary,
+              message: 'This bill already exists in the database'
+            })
+          };
+        }
+        
         // If it's been rejected, just thank them
         if (existing.review_decision === 'rejected') {
           return {
@@ -260,8 +276,8 @@ exports.handler = async (event, context) => {
           };
         }
         
-        // If it's in review queue (pending or approved), let them know
-        if (existing.review_decision === 'pending' || existing.review_decision === 'approved') {
+        // If it's in review queue (pending), let them know
+        if (existing.review_decision === 'pending') {
           return {
             statusCode: 200,
             headers,
@@ -270,22 +286,6 @@ exports.handler = async (event, context) => {
               status: 'already_submitted',
               in_review: true,
               message: 'Thank you for your submission! This bill is currently being reviewed.'
-            })
-          };
-        }
-        
-        // If it's attached to a visible reform, show them the link
-        const reformId = existing.reform_id || existing.reform_id_from_policy_doc || existing.existing_reform_id;
-        if (reformId) {
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({
-              success: true,
-              status: 'duplicate_found',
-              existing_reform_id: reformId,
-              title: existing.title || existing.reform_summary,
-              message: 'This bill already exists in the database'
             })
           };
         }
@@ -304,6 +304,17 @@ exports.handler = async (event, context) => {
             })
           };
         }
+        
+        // Fallback for any other status
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            status: 'already_submitted',
+            message: 'Thank you for your submission!'
+          })
+        };
       }
 
       // Check for existing bill in policy_documents (already processed and visible)

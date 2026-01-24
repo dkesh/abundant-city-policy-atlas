@@ -177,18 +177,12 @@ function handleSubmissionResponse(data, originalUrl) {
         
     } else if (data.status === 'already_submitted') {
         // Case: Already submitted (in review, rejected, or processing)
-        if (data.in_review) {
-            showSubmissionStatus(
-                data.message || 'Thank you for your submission! This bill is currently being reviewed.',
-                'info'
-            );
-        } else {
-            // Rejected or other status - just thank them
-            showSubmissionStatus(
-                data.message || 'Thank you for your submission!',
-                'info'
-            );
-        }
+        // If in_review is explicitly true, show review message
+        // Otherwise (rejected or unknown), just thank them
+        const message = data.in_review 
+            ? (data.message || 'Thank you for your submission! This bill is currently being reviewed.')
+            : (data.message || 'Thank you for your submission!');
+        showSubmissionStatus(message, 'info');
         urlInput.value = '';
         
     } else if (data.status === 'needs_confirmation') {
@@ -241,6 +235,7 @@ function handleSubmissionResponse(data, originalUrl) {
         urlInput.value = '';
         
     } else {
+        console.error('Unexpected submission status:', data.status, data);
         showSubmissionStatus(`Unexpected status: ${data.status}`, 'error');
     }
 }
