@@ -3,20 +3,13 @@
 // ============================================================================
 
 function switchView(view, skipUrlUpdate = false) {
-    // Hide all views
-    listView.classList.remove('active');
-    mapView.classList.remove('active');
-    explorePlacesView.classList.remove('active');
-    aboutView.classList.remove('active');
-    
-    // Remove active from all tabs
-    listViewTab.classList.remove('active');
-    mapViewTab.classList.remove('active');
-    explorePlacesViewTab.classList.remove('active');
-    aboutViewTab.classList.remove('active');
+    const views = [listView, mapView, explorePlacesView, contributeView, aboutView];
+    const tabs = [listViewTab, mapViewTab, explorePlacesViewTab, contributeViewTab, aboutViewTab];
+    views.forEach(el => { if (el) el.classList.remove('active'); });
+    tabs.forEach(el => { if (el) el.classList.remove('active'); });
     
     // Show/hide results banner based on view
-    if (view === 'about' || view === 'explorePlaces') {
+    if (view === 'about' || view === 'explorePlaces' || view === 'contribute') {
         if (resultsInfo) {
             resultsInfo.classList.add('container-hidden');
         }
@@ -24,23 +17,29 @@ function switchView(view, skipUrlUpdate = false) {
         // Results banner visibility is managed elsewhere for list/map views
     }
     
-    // Map view names to URLs
-    const urlMap = {
-        'list': '/list',
-        'map': '/map',
-        'explorePlaces': '/explore-places',
-        'about': '/about'
+    // Map view names to tab indices for MDC tab bar
+    const viewToTabIndex = {
+        'list': 0,
+        'map': 1,
+        'explorePlaces': 2,
+        'contribute': 3,
+        'about': 4
     };
     
+    // Activate the correct tab in the MDC tab bar
+    if (window.mdcComponents?.tabBar && viewToTabIndex.hasOwnProperty(view)) {
+        window.mdcComponents.tabBar.activateTab(viewToTabIndex[view]);
+    }
+    
     if (view === 'list') {
-        listView.classList.add('active');
-        listViewTab.classList.add('active');
+        listView?.classList.add('active');
+        listViewTab?.classList.add('active');
         if (!skipUrlUpdate) {
             window.history.pushState({}, '', '/list');
         }
     } else if (view === 'map') {
-        mapView.classList.add('active');
-        mapViewTab.classList.add('active');
+        mapView?.classList.add('active');
+        mapViewTab?.classList.add('active');
         // Show loading indicator when switching to map view
         showMapLoading(true);
         initializeMap();
@@ -52,8 +51,8 @@ function switchView(view, skipUrlUpdate = false) {
             window.history.pushState({}, '', '/map');
         }
     } else if (view === 'explorePlaces') {
-        explorePlacesView.classList.add('active');
-        explorePlacesViewTab.classList.add('active');
+        explorePlacesView?.classList.add('active');
+        explorePlacesViewTab?.classList.add('active');
         // Initialize explore places list view if not already loaded
         if (typeof loadExplorePlacesList === 'function') {
             loadExplorePlacesList();
@@ -61,9 +60,15 @@ function switchView(view, skipUrlUpdate = false) {
         if (!skipUrlUpdate) {
             window.history.pushState({}, '', '/explore-places');
         }
+    } else if (view === 'contribute') {
+        contributeView?.classList.add('active');
+        contributeViewTab?.classList.add('active');
+        if (!skipUrlUpdate) {
+            window.history.pushState({}, '', '/contribute');
+        }
     } else if (view === 'about') {
-        aboutView.classList.add('active');
-        aboutViewTab.classList.add('active');
+        aboutView?.classList.add('active');
+        aboutViewTab?.classList.add('active');
         // Load sources when About tab is opened
         if (typeof loadSources === 'function') {
             loadSources();
@@ -202,9 +207,10 @@ async function loadMapData() {
             throw new Error(data.error || 'Failed to fetch reforms for map');
         }
 
-        // Store lightweight data for map rendering
+        // Store lightweight data for map rendering (also used when switching "Color by" without refetch)
         // Note: This is separate from filteredReforms which has full data for list view
         const mapReforms = data.reforms || [];
+        lastMapReforms = mapReforms;
         
         // Render map with the lightweight data
         await renderMap(mapReforms);
@@ -218,6 +224,71 @@ async function loadMapData() {
     }
 }
 
+function getMapColorDimension() {
+    const sel = document.getElementById('mapColorBy');
+    return (sel && sel.value) ? sel.value : 'reform_type';
+}
+
+/** Returns { color, label } for a reform based on the current "Color by" dimension. */
+function getColorForDimension(reform) {
+    const dim = getMapColorDimension();
+    const r = reform.reform;
+
+    if (dim === 'reform_type') {
+        const color = getMarkerColor(r.type, r.color);
+        const label = r.type_name || r.type || 'Other';
+        return { color, label };
+    }
+
+    if (dim === 'intensity') {
+        const v = (r.intensity || 'unknown').toLowerCase();
+        if (v === 'complete') return { color: '#27ae60', label: 'Complete' };
+        if (v === 'partial') return { color: '#f39c12', label: 'Partial' };
+        return { color: '#95a5a6', label: 'Unknown / N/A' };
+    }
+
+    if (dim === 'year') {
+        const y = r.adoption_year;
+        if (y == null) return { color: '#95a5a6', label: 'Unknown' };
+        if (y < 2020) return { color: '#3498db', label: 'Before 2020' };
+        if (y <= 2021) return { color: '#9b59b6', label: '2020–2021' };
+        if (y <= 2023) return { color: '#e67e22', label: '2022–2023' };
+        return { color: '#e74c3c', label: '2024+' };
+    }
+
+    if (dim === 'status') {
+        const s = (r.status || 'adopted').toLowerCase();
+        if (s === 'adopted') return { color: '#27ae60', label: 'Adopted' };
+        if (s === 'proposed') return { color: '#3498db', label: 'Proposed' };
+        if (s === 'failed') return { color: '#e74c3c', label: 'Failed' };
+        return { color: '#95a5a6', label: (r.status || 'Adopted') };
+    }
+
+    return { color: getCssVariable('--color-secondary'), label: 'Other' };
+}
+
+function updateMapLegend(entries) {
+    const el = document.getElementById('mapLegend');
+    if (!el) return;
+    if (!entries || entries.length < 2) {
+        el.classList.add('container-hidden');
+        el.innerHTML = '';
+        return;
+    }
+    const dim = getMapColorDimension();
+    const titles = { reform_type: 'Reform type', intensity: 'Intensity', year: 'Year passed', status: 'Reform status' };
+    const title = titles[dim] || 'Legend';
+    el.innerHTML = `
+        <div class="map-legend-title">${title}</div>
+        <ul class="map-legend-list">
+            ${entries.map(({ label, color }) =>
+                `<li class="map-legend-item"><span class="map-legend-swatch" style="background-color:${color}"></span>${escapeHtml(label)}</li>`
+            ).join('')}
+        </ul>
+    `;
+    el.classList.remove('container-hidden');
+}
+
 async function renderMap(mapReforms = null) {
     if (!map || !map.isStyleLoaded()) return;
 
@@ -225,8 +296,8 @@ async function renderMap(mapReforms = null) {
     const reformsToRender = mapReforms || filteredReforms;
     
     if (!reformsToRender || reformsToRender.length === 0) {
-        // No reforms to render, but hide loading indicator
         showMapLoading(false);
+        updateMapLegend(null);
         return;
     }
 
@@ -256,7 +327,8 @@ async function renderMap(mapReforms = null) {
     // Group reforms by place and create GeoJSON for markers (city/county only)
     const placeReforms = {};
     reformsGeoJSON = [];
-    
+    const legendEntries = new Map(); // key: "label|color", value: { label, color }
+
     reformsToRender.forEach(reform => {
         // Only include city/county reforms for markers (state-level reforms are shown as polygons)
         if (reform.place.type !== 'state') {
@@ -268,23 +340,35 @@ async function renderMap(mapReforms = null) {
         }
     });
 
-    // Convert to GeoJSON features for clustering
+    // Convert to GeoJSON features for clustering (use current "Color by" dimension)
     Object.entries(placeReforms).forEach(([placeId, reforms]) => {
         const place = reforms[0].place;
         if (place.latitude && place.longitude) {
+            const { color, label } = getColorForDimension(reforms[0]);
+            const k = `${label}|${color}`;
+            if (!legendEntries.has(k)) legendEntries.set(k, { label, color });
             reformsGeoJSON.push({
                 type: 'Feature',
                 properties: {
                     placeId: placeId,
                     reforms: reforms,
                     reformCount: reforms.length,
-                    color: getMarkerColor(reforms[0].reform.type, reforms[0].reform.color)
+                    color: color
                 },
                 geometry: {
                     type: 'Point',
                     coordinates: [place.longitude, place.latitude]
                 }
             });
+        }
+    });
+
+    // Add state-level legend entries (same dimension)
+    Object.values(stateReformsByState).forEach(reforms => {
+        if (reforms.length > 0) {
+            const { color, label } = getColorForDimension(reforms[0]);
+            const k = `${label}|${color}`;
+            if (!legendEntries.has(k)) legendEntries.set(k, { label, color });
         }
     });
 
@@ -301,6 +385,9 @@ async function renderMap(mapReforms = null) {
     
     // Update markers for current viewport
     updateMarkersInViewport();
+
+    // Show legend when multiple distinct colors
+    updateMapLegend([...legendEntries.values()]);
 }
 
 function updateMarkersInViewport() {
@@ -511,9 +598,7 @@ function getStateColor(stateCode) {
     if (!reforms || reforms.length === 0) {
         return '#e0e0e0'; // Light gray for states without reforms
     }
-    
-    // Use the color from the first reform (or could aggregate if multiple types)
-    return getMarkerColor(reforms[0].reform.type, reforms[0].reform.color);
+    return getColorForDimension(reforms[0]).color;
 }
 
 async function loadAndRenderStateBoundaries() {

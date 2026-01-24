@@ -263,10 +263,10 @@ exports.handler = async (event, context) => {
       reformWhereClauses.push(`r.intensity = 'partial'`);
     }
 
-    // Combine reform filter clauses
-    const reformFilterClause = reformWhereClauses.length > 0 
-      ? `AND ${reformWhereClauses.join(' AND ')}`
-      : '';
+    // Combine reform filter clauses; always exclude hidden (rejected) reforms
+    const reformFilterClause = `AND (r.hidden IS NOT TRUE)` + (reformWhereClauses.length > 0 
+      ? ` AND ${reformWhereClauses.join(' AND ')}`
+      : '');
 
     // If reform types are filtered, we need to also filter categories to only show those from filtered reform types
     // This ensures that only categories containing the filtered reform types are shown

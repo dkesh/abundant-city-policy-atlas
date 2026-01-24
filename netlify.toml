@@ -34,6 +34,33 @@
   to = "/index.html"
   status = 200
 
+# Admin interface (hidden, no link from main app)
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/*"
+  to = "/admin.html"
+  status = 200
+
+# Client-side routes that should go to index.html (SPA routing)
+[[redirects]]
+  from = "/contribute"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/list"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/explore-places"
+  to = "/index.html"
+  status = 200
+
 # General pattern: map bare word paths to .html files (e.g., /about -> /about.html)
 [[redirects]]
   from = "/:word"

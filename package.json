@@ -5,7 +5,7 @@
     "postinstall": "node scripts/migrations/_helpers/patch-node-pg-migrate.js",
     "predev": "node scripts/migrations/_helpers/run-migrations.js",
     "build:html": "posthtml src/html/_index-template.html -o src/public/index.html",
-    "dev": "npm run build:html && npm run build:css && netlify dev",
+    "dev": "npm run build:html && npm run build:css && CHOKIDAR_USEPOLLING=true netlify dev",
     "build": "node scripts/migrations/_helpers/run-migrations.js && npm run build:html && npm run build:css && echo \"Build complete\"",
     "build:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --no-source-map --quiet-deps",
     "watch:css": "sass --load-path=node_modules src/styles/main.scss src/public/styles.css --watch --no-source-map --quiet-deps",
@@ -16,7 +16,9 @@
     "migrate:help": "node-pg-migrate --help",
     "migrate:verify": "node scripts/migrations/_helpers/verify-setup.js",
     "lin": "lin",
-    "linear:create-issues": "node scripts/create-linear-issues.js"
+    "linear:create-issues": "node scripts/create-linear-issues.js",
+    "process:submissions": "python scripts/enrichment/run_bill_submissions.py",
+    "process:submission": "python scripts/enrichment/process_single_submission.py"
   },
   "devDependencies": {
     "@linear/cli": "^0.0.5",

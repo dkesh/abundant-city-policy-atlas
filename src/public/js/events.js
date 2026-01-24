@@ -11,6 +11,16 @@ function setupEventListeners() {
     if (printMapButton) {
         printMapButton.addEventListener('click', printMap);
     }
+
+    // Map "Color by" dimension selector – re-render from cached data without refetch
+    const mapColorBy = document.getElementById('mapColorBy');
+    if (mapColorBy) {
+        mapColorBy.addEventListener('change', () => {
+            if (typeof lastMapReforms !== 'undefined' && lastMapReforms && lastMapReforms.length > 0 && typeof renderMap === 'function') {
+                renderMap(lastMapReforms);
+            }
+        });
+    }
     
     // Share Search button (combined save + share functionality)
     const shareSearchBtn = document.getElementById('shareSearch');

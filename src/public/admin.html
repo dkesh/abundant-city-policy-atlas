@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Review Queue</title>
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <!-- Material Design Icons and Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+  <!-- Material Components Web -->
+  <script src="https://unpkg.com/material-components-web@14.0.0/dist/material-components-web.min.js"></script>
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="/styles.css">
+  <style>
+    .admin-container { max-width: 1200px; margin: 0 auto; }
+    .login { max-width: 320px; margin: 4rem auto; padding: 2rem; }
+    .login input { width: 100%; padding: 0.5rem; margin-bottom: 0.75rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+    .login button { padding: 0.5rem 1rem; font-size: 1rem; cursor: pointer; background: #1976d2; color: white; border: none; border-radius: 4px; }
+    .error { color: #c00; margin-top: 0.5rem; }
+    .queue { margin-top: 2rem; }
+    .queue-item { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; background: white; }
+    .queue-item h3 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .queue-item a { color: #1976d2; text-decoration: none; }
+    .queue-item a:hover { text-decoration: underline; }
+    .queue-item .reason { color: #666; margin: 0.5rem 0; font-size: 0.9rem; }
+    .queue-item .meta { font-size: 0.85rem; color: #888; }
+    .queue-item .actions { margin-top: 0.75rem; }
+    .queue-item button { margin-right: 0.5rem; padding: 0.4rem 0.8rem; cursor: pointer; }
+    .queue-item button.approve { background: #0a0; color: #fff; border: none; border-radius: 4px; }
+    .queue-item button.reject { background: #c00; color: #fff; border: none; border-radius: 4px; }
+    .queue-item .badge { display: inline-block; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px; margin-left: 0.5rem; }
+    .queue-item .badge.visible { background: #e0f2e0; color: #0a0; }
+    .queue-item .badge.flagged { background: #fff3e0; color: #c60; }
+    .queue-item .badge.approved { background: #e0f2e0; color: #0a0; }
+    .queue-item .badge.rejected { background: #ffe0e0; color: #c00; }
+    .queue-intro { color: #666; font-size: 0.9rem; margin-bottom: 1rem; padding: 1rem; background: #f5f5f5; border-radius: 4px; }
+    .empty { color: #666; text-align: center; padding: 2rem; }
+    .logout { margin-top: 1.5rem; text-align: right; }
+    .logout button { padding: 0.4rem 0.8rem; cursor: pointer; background: #666; color: white; border: none; border-radius: 4px; }
+    .content-area { padding: 1rem; }
+    .view-container { display: none; }
+    .view-container.active { display: block; }
+  </style>
+</head>
+<body>
+  <div class="admin-container">
+    <header>
+      <div class="header-icon-wrapper">
+        <img src="icon.svg" alt="" class="header-icon" aria-hidden="true">
+      </div>
+      <img src="banner.svg" alt="The Abundant City Policy Atlas - Changing Cities By Design" class="banner-img">
+      <!-- Hidden text for accessibility -->
+      <div class="sr-only">
+        <h1>The Abundant City Policy Atlas - Admin</h1>
+        <p>Review Queue</p>
+      </div>
+    </header>
+
+    <div id="login" class="login">
+      <form id="loginForm">
+        <input type="password" name="password" placeholder="Password" required autocomplete="current-password">
+        <button type="submit">Log in</button>
+      </form>
+      <div id="loginError" class="error" hidden></div>
+      <p id="loading" style="margin-top:0.75rem;color:#666;" hidden>Checking…</p>
+    </div>
+
+    <div id="app" class="content-area" hidden>
+      <!-- View Tabs -->
+      <div class="mdc-tab-bar" role="tablist">
+        <div class="mdc-tab-scroller">
+          <div class="mdc-tab-scroller__scroll-area">
+            <div class="mdc-tab-scroller__scroll-content">
+              <button class="mdc-tab mdc-tab--active" role="tab" aria-selected="true" tabindex="0" id="heldTab">
+                <span class="mdc-tab__content">
+                  <span class="mdc-tab__icon material-icons" aria-hidden="true">pending</span>
+                  <span class="mdc-tab__text-label">Held for Review</span>
+                </span>
+                <span class="mdc-tab-indicator mdc-tab-indicator--active">
+                  <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                </span>
+                <span class="mdc-tab__ripple"></span>
+              </button>
+              <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="acceptedTab">
+                <span class="mdc-tab__content">
+                  <span class="mdc-tab__icon material-icons" aria-hidden="true">check_circle</span>
+                  <span class="mdc-tab__text-label">Accepted</span>
+                </span>
+                <span class="mdc-tab-indicator">
+                  <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                </span>
+                <span class="mdc-tab__ripple"></span>
+              </button>
+              <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="completedTab">
+                <span class="mdc-tab__content">
+                  <span class="mdc-tab__icon material-icons" aria-hidden="true">done_all</span>
+                  <span class="mdc-tab__text-label">Completed</span>
+                </span>
+                <span class="mdc-tab-indicator">
+                  <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                </span>
+                <span class="mdc-tab__ripple"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Held View -->
+      <div id="heldView" class="view-container active">
+        <p class="queue-intro">
+          <strong>Reject</strong> → moves to completed queue, reform (if any) is hidden from users and never shown.<br>
+          <strong>Accept</strong> → moves to completed queue, reform is shown to users (or created from flagged submission).
+        </p>
+        <div id="heldQueue" class="queue"></div>
+        <div id="heldEmpty" class="empty" hidden>No items held for review.</div>
+      </div>
+
+      <!-- Accepted View -->
+      <div id="acceptedView" class="view-container">
+        <p class="queue-intro">
+          These submissions have been accepted and are pending final review.
+        </p>
+        <div id="acceptedQueue" class="queue"></div>
+        <div id="acceptedEmpty" class="empty" hidden>No accepted items.</div>
+      </div>
+
+      <!-- Completed View -->
+      <div id="completedView" class="view-container">
+        <p class="queue-intro">
+          These submissions have been fully reviewed and processed.
+        </p>
+        <div id="completedQueue" class="queue"></div>
+        <div id="completedEmpty" class="empty" hidden>No completed items.</div>
+      </div>
+
+      <div class="logout">
+        <button type="button" id="logoutBtn">Log out</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const credentials = 'include';
+    let currentView = 'held';
+    let tabBar = null;
+
+    function show(el, on) {
+      if (!el) return;
+      el.hidden = !on;
+    }
+
+    function showLogin(err) {
+      show(document.getElementById('login'), true);
+      show(document.getElementById('app'), false);
+      show(document.getElementById('loading'), false);
+      const errEl = document.getElementById('loginError');
+      if (err) {
+        errEl.textContent = err;
+        show(errEl, true);
+      } else {
+        show(errEl, false);
+      }
+    }
+
+    function showApp() {
+      show(document.getElementById('login'), false);
+      show(document.getElementById('app'), true);
+      initializeTabs();
+    }
+
+    function initializeTabs() {
+      if (tabBar) return;
+      const tabBarEl = document.querySelector('.mdc-tab-bar');
+      tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
+      
+      tabBar.listen('MDCTabBar:activated', (event) => {
+        const index = event.detail.index;
+        const views = ['held', 'accepted', 'completed'];
+        switchView(views[index]);
+      });
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
+      document.getElementById(view + 'View').classList.add('active');
+      loadQueue(view);
+    }
+
+    async function checkAuth() {
+      const loading = document.getElementById('loading');
+      show(loading, true);
+      const r = await fetch('/api/get-review-queue?status=pending', { credentials });
+      show(loading, false);
+      if (r.ok) {
+        showApp();
+        return true;
+      }
+      if (r.status === 401) {
+        showLogin();
+        return false;
+      }
+      showLogin('Request failed');
+      return false;
+    }
+
+    async function loadQueue(view = 'held') {
+      let status;
+      if (view === 'held') status = 'pending';
+      else if (view === 'accepted') status = 'approved';
+      else if (view === 'completed') status = 'completed';
+
+      const r = await fetch(`/api/get-review-queue?status=${status}`, { credentials });
+      if (r.status === 401) {
+        showLogin();
+        return;
+      }
+      if (!r.ok) {
+        const container = document.getElementById(view + 'Queue');
+        container.innerHTML = '<p class="error">Failed to load queue.</p>';
+        return;
+      }
+      const data = await r.json();
+      const items = data.items || [];
+      const container = document.getElementById(view + 'Queue');
+      const emptyEl = document.getElementById(view + 'Empty');
+      
+      if (items.length === 0) {
+        container.innerHTML = '';
+        show(emptyEl, true);
+        return;
+      }
+      show(emptyEl, false);
+      
+      container.innerHTML = items.map((item) => {
+        const sub = (item.submitted_url || '').replace(/"/g, '&quot;');
+        const reason = (item.reason || '—').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const prob = item.assessment?.probability != null ? (item.assessment.probability * 100).toFixed(0) + '%' : '—';
+        const submitted = item.submitted_at || '—';
+        const reviewed = item.reviewed_at || '—';
+        const href = sub || '#';
+        const visible = !!item.submission_reform_id;
+        
+        let badge = '';
+        if (view === 'held') {
+          badge = visible
+            ? '<span class="badge visible">Visible while pending</span>'
+            : '<span class="badge flagged">Flagged; hidden until accepted</span>';
+        } else if (view === 'accepted') {
+          badge = '<span class="badge approved">Approved</span>';
+        } else if (view === 'completed') {
+          const decision = item.review_decision;
+          if (decision === 'approved') {
+            badge = '<span class="badge approved">Approved</span>';
+          } else if (decision === 'rejected') {
+            badge = '<span class="badge rejected">Rejected</span>';
+          }
+        }
+
+        let actions = '';
+        if (view === 'held') {
+          actions = `
+            <div class="actions">
+              <button type="button" class="approve" data-id="${item.id}">Accept</button>
+              <button type="button" class="reject" data-id="${item.id}">Reject</button>
+            </div>
+          `;
+        }
+
+        let metaInfo = view === 'held' 
+          ? `Submitted ${submitted} · Score ${prob}`
+          : `Submitted ${submitted} · Reviewed ${reviewed}`;
+
+        return (
+          '<div class="queue-item" data-id="' + item.id + '">' +
+          '<h3><a href="' + href + '" target="_blank" rel="noopener">' + (sub || 'No URL') + '</a>' + badge + '</h3>' +
+          '<div class="meta">' + metaInfo + '</div>' +
+          '<div class="reason">' + reason + '</div>' +
+          actions +
+          '</div>'
+        );
+      }).join('');
+
+      if (view === 'held') {
+        container.querySelectorAll('button.approve, button.reject').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const id = Number(btn.dataset.id);
+            const decision = btn.classList.contains('approve') ? 'approved' : 'rejected';
+            const res = await fetch('/api/update-review-decision', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials,
+              body: JSON.stringify({ queue_id: id, decision })
+            });
+            const body = await res.json();
+            if (body.success) {
+              const row = container.querySelector(`[data-id="${id}"]`);
+              if (row) row.remove();
+              if (container.children.length === 0) show(emptyEl, true);
+            }
+          });
+        });
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const pw = form.password.value;
+      const errEl = document.getElementById('loginError');
+      show(errEl, false);
+      const r = await fetch('/api/admin-auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials,
+        body: JSON.stringify({ password: pw })
+      });
+      const data = await r.json();
+      if (data.success) {
+        showApp();
+        loadQueue('held');
+      } else {
+        errEl.textContent = data.error || 'Login failed';
+        show(errEl, true);
+      }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await fetch('/api/admin-auth', { method: 'GET', credentials });
+      showLogin();
+    });
+
+    (async () => {
+      const ok = await checkAuth();
+      if (ok) loadQueue('held');
+    })();
+  </script>
+</body>
+</html>

@@ -103,7 +103,7 @@ exports.handler = async (event, context) => {
     const place = placeResult.rows[0];
 
     // Build reform filter WHERE clauses
-    let reformWhereClauses = ['r.place_id = $1'];
+    let reformWhereClauses = ['r.place_id = $1', '(r.hidden IS NOT TRUE)'];
     let reformQueryParams = [placeId];
     let reformParamCount = 2;
 
@@ -360,6 +360,7 @@ exports.handler = async (event, context) => {
         JOIN reform_types rt ON rrt.reform_type_id = rt.id
         LEFT JOIN categories c ON rt.category_id = c.id
         WHERE r.place_id IN (SELECT id FROM similar_places)
+          AND (r.hidden IS NOT TRUE)
           ${todoFilterClause}
         GROUP BY rt.id, rt.code, rt.name, c.name
         HAVING COUNT(DISTINCT r.place_id) >= 3
@@ -370,6 +371,7 @@ exports.handler = async (event, context) => {
         WHERE NOT EXISTS (
           SELECT 1 FROM reforms r
           WHERE r.place_id = $5
+            AND (r.hidden IS NOT TRUE)
             AND EXISTS (
               SELECT 1 FROM reform_reform_types rrt2
               WHERE rrt2.reform_id = r.id

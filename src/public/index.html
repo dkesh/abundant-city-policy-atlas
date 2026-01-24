@@ -442,6 +442,16 @@
                                     </span>
                                     <span class="mdc-tab__ripple"></span>
                                 </button>
+                                <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="contributeViewTab">
+                                    <span class="mdc-tab__content">
+                                        <span class="mdc-tab__icon material-icons" aria-hidden="true">add_circle</span>
+                                        <span class="mdc-tab__text-label">Contribute</span>
+                                    </span>
+                                    <span class="mdc-tab-indicator">
+                                        <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                                    </span>
+                                    <span class="mdc-tab__ripple"></span>
+                                </button>
                                 <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="aboutViewTab">
                                     <span class="mdc-tab__content">
                                         <span class="mdc-tab__icon material-icons" aria-hidden="true">info</span>
@@ -551,6 +561,16 @@
                         </div>
                         <p class="mdc-typography--body1">Loading map data...</p>
                     </div>
+                    <div class="map-controls">
+                        <label for="mapColorBy" class="map-controls-label">Color by</label>
+                        <select id="mapColorBy" class="map-color-by-select" aria-label="Choose which dimension colors the map">
+                            <option value="reform_type">Reform type</option>
+                            <option value="intensity">Intensity</option>
+                            <option value="year">Year passed</option>
+                            <option value="status">Reform status</option>
+                        </select>
+                    </div>
+                    <div id="mapLegend" class="map-legend container-hidden" aria-label="Map legend"></div>
                     <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
                         <i class="material-icons mdc-icon-button__icon">print</i>
                     </button>
@@ -712,26 +732,6 @@
 
                         <div id="reformTypesGrid" class="sources-grid container-hidden" style="display: none;"></div>
 
-                        <h2>How to Contribute</h2>
-                        
-                        <h3>Report a New Reform or change to an existing reform</h3>
-                        <p>The Atlas doesn't collect data itself, but through our partner organizations. If you know of a reform that's not on the map, identify
-                            which of the partners would be good places to track this reform, then view the data in that tracker and follow that tracker's submission policy:
-                        </p>
-                        <ol>
-                            <li><strong>For parking reforms:</strong> Submit to the <a href="https://parkingreform.org/" target="_blank">Parking Reform Network</a></li>
-                            <li><strong>For building code reforms:</strong> Submit to the <a href="https://centerforbuilding.org/" target="_blank">Center for Building in North America</a></li>
-                            <li><strong>For zoning reforms:</strong> Check if it's already tracked by <a href="https://belonging.berkeley.edu/zoning-reform-tracker" target="_blank">Berkeley's Zoning Reform Tracker</a></li>
-                        </ol>
-
-                        <h3>Improve the Atlas</h3>
-                        <p>The code for the atlas is open source. You can contribute bug reports, bug fixes, feature requests, or new features via <a href="https://github.com/dkesh/abundant-city-policy-atlas/issues">GitHub issues</a>.
-
-                        </p><p>
-                            For more general questions reach out to the project's author at <a href="mailto:dan@austinonyourfeet.org">dan@austinonyourfeet.org</a>.
-                        </p>
-
-
                         <h2>Our Team</h2>
                         <div class="biography">
                             <div class="biography-content">
@@ -763,6 +763,63 @@
                     </div>
                 </div>
 
+
+                            <!-- CONTRIBUTE VIEW -->
+                <div id="contributeView" class="view-container">
+                    <div class="about-content">
+                        <h2>How to Contribute</h2>
+                        
+                        <h3>Submit a New Bill</h3>
+                        <p>
+                            You can help expand the Atlas by submitting new bills or legislative documents for tracking.
+                            Simply provide the URL to a legislative tracker (such as a state legislative site, city legislative site, or similar),
+                            and our system will:
+                        </p>
+                        <ol>
+                            <li><strong>Check for duplicates:</strong> Verify if the bill already exists in our database</li>
+                            <li><strong>Scrape and extract:</strong> Pull the bill text and key information</li>
+                            <li><strong>Assess relevance:</strong> Use AI to determine if it's related to urbanist reforms</li>
+                            <li><strong>Enrich with AI:</strong> Generate descriptions and categorization</li>
+                            <li><strong>Add to review queue:</strong> Flag for review before publishing</li>
+                        </ol>
+                        <p>
+                            <strong>Note:</strong> Processing typically takes 30-60 seconds. The system will provide real-time updates as it works through each step.
+                        </p>
+                        
+                        <div id="billSubmissionForm" style="margin: 2rem 0; padding: 1.5rem; border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
+                            <h4 style="margin-top: 0;">Submit a Bill URL</h4>
+                            <form id="submitBillForm">
+                                <div style="margin-bottom: 1rem;">
+                                    <label for="billUrl" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Bill URL:</label>
+                                    <input type="url" id="billUrl" name="url" required="" placeholder="https://legislature.example.gov/bills/2024/AB1234" style="width: 100%; padding: 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem;">
+                                </div>
+                                <button type="submit" style="padding: 0.75rem 1.5rem; background: #1976d2; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500;">
+                                    Submit Bill
+                                </button>
+                            </form>
+                            <div id="submissionStatus" style="margin-top: 1rem; display: none;"></div>
+                        </div>
+                        
+                        <h3>Report a New Reform or change to an existing reform</h3>
+                        <p>The Atlas doesn't collect data itself, but through our partner organizations. If you know of a reform that's not on the map, identify
+                            which of the partners would be good places to track this reform, then view the data in that tracker and follow that tracker's submission policy:
+                        </p>
+                        <ol>
+                            <li><strong>For parking reforms:</strong> Submit to the <a href="https://parkingreform.org/" target="_blank">Parking Reform Network</a></li>
+                            <li><strong>For building code reforms:</strong> Submit to the <a href="https://centerforbuilding.org/" target="_blank">Center for Building in North America</a></li>
+                            <li><strong>For zoning reforms:</strong> Check if it's already tracked by <a href="https://belonging.berkeley.edu/zoning-reform-tracker" target="_blank">Berkeley's Zoning Reform Tracker</a></li>
+                        </ol>
+
+                        <h3>Improve the Atlas</h3>
+                        <p>The code for the atlas is open source. You can contribute bug reports, bug fixes, feature requests, or new features via <a href="https://github.com/dkesh/abundant-city-policy-atlas/issues">GitHub issues</a>.
+                        </p>
+
+                        <p>
+                            For more general questions reach out to the project's author at <a href="mailto:dan@austinonyourfeet.org">dan@austinonyourfeet.org</a>.
+                        </p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -783,6 +840,7 @@
     <script src="/js/events.js"></script>
     <script src="/js/explore-places.js"></script>
     <script src="/js/policy-profile-detail.js"></script>
+    <script src="/js/contribute.js"></script>
     <script src="/js/init.js"></script>
 
 

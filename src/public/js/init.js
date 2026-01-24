@@ -127,9 +127,11 @@ function initializeMDCComponents() {
     if (tabBarEl) {
         mdcComponents.tabBar = new mdc.tabBar.MDCTabBar(tabBarEl);
         mdcComponents.tabBar.listen('MDCTabBar:activated', (e) => {
-            const views = ['list', 'map', 'explorePlaces', 'about'];
+            const views = ['list', 'map', 'explorePlaces', 'contribute', 'about'];
             const view = views[e.detail.index];
-            switchView(view);
+            if (view && typeof switchView === 'function') {
+                switchView(view);
+            }
         });
     }
 
@@ -182,6 +184,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const loadedFromUrl = await loadFiltersFromUrl();
         applyFilters(true);
         return;
+    } else if (path === '/contribute' && typeof switchView === 'function') {
+        switchView('contribute', true);
+        return;
     } else if (path === '/about' && typeof switchView === 'function') {
         switchView('about', true);
         return;
@@ -225,12 +230,15 @@ window.addEventListener('popstate', async () => {
         return;
     }
 
-    // Handle view routes (list, map, about, explore-places)
+    // Handle view routes (list, map, contribute, about, explore-places)
     if (path === '/list' && typeof switchView === 'function') {
         switchView('list', true);
         return;
     } else if (path === '/map' && typeof switchView === 'function') {
         switchView('map', true);
+        return;
+    } else if (path === '/contribute' && typeof switchView === 'function') {
+        switchView('contribute', true);
         return;
     } else if (path === '/about' && typeof switchView === 'function') {
         switchView('about', true);

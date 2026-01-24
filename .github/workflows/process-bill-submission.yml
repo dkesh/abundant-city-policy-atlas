@@ -1,13 +1,17 @@
-name: Bill Scraping
+name: Process Bill Submission
 
 on:
-  schedule:
-    # Run daily at 05:00 UTC (after ingestion completes)
-    - cron: '0 5 * * *'
   workflow_dispatch:
+    inputs:
+      submission_id:
+        description: 'Bill submission ID to process'
+        required: true
+        type: string
+  repository_dispatch:
+    types: [process-bill-submission]
 
 jobs:
-  scrape-bills:
+  process-submission:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,20 +29,13 @@ jobs:
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         
-    - name: Process Bill Submissions
+    - name: Process Bill Submission
       env:
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
         AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
-        echo "Processing pending bill submissions..."
-        python scripts/enrichment/run_bill_submissions.py --limit 100
-        
-    - name: Run Bill Scraping
-      env:
-        DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      run: python scripts/enrichment/run_bill_scraping.py --all
+        SUBMISSION_ID="${{ github.event.inputs.submission_id || github.event.client_payload.submission_id }}"
+        echo "Processing submission ID: $SUBMISSION_ID"
+        python scripts/enrichment/process_single_submission.py "$SUBMISSION_ID"

@@ -74,7 +74,7 @@ exports.handler = async (event, context) => {
     const intensityLimitation = params.intensity_limitation || null;
 
     // Build dynamic query with filters (same WHERE clause logic as get-reforms.js)
-    let whereClauses = ['1=1'];
+    let whereClauses = ['1=1', '(r.hidden IS NOT TRUE)'];
     let queryParams = [];
     let paramCount = 1;
 
@@ -233,6 +233,9 @@ exports.handler = async (event, context) => {
     const query = `
       SELECT
         r.id,
+        r.intensity,
+        r.adoption_date,
+        r.status,
         p.id as place_id,
         p.name as place_name,
         p.place_type,
@@ -246,11 +249,12 @@ exports.handler = async (event, context) => {
             SELECT json_agg(
               json_build_object(
                 'code', rt_sub.code,
+                'name', rt_sub.name,
                 'color_hex', rt_sub.color_hex
               ) ORDER BY rt_sub.sort_order
             )
             FROM (
-              SELECT DISTINCT rt2.code, rt2.color_hex, rt2.sort_order
+              SELECT DISTINCT rt2.code, rt2.name, rt2.color_hex, rt2.sort_order
               FROM reform_reform_types rrt2
               JOIN reform_types rt2 ON rrt2.reform_type_id = rt2.id
               WHERE rrt2.reform_id = r.id
@@ -262,7 +266,7 @@ exports.handler = async (event, context) => {
       JOIN places p ON r.place_id = p.id
       JOIN top_level_division tld ON p.state_code = tld.state_code
       WHERE ${whereClause}
-      GROUP BY r.id, p.id, p.name, p.place_type, p.latitude, p.longitude, tld.state_code, tld.state_name, tld.country
+      GROUP BY r.id, r.intensity, r.adoption_date, r.status, p.id, p.name, p.place_type, p.latitude, p.longitude, tld.state_code, tld.state_name, tld.country
       ORDER BY tld.state_name, p.name
     `;
 
@@ -286,7 +290,10 @@ exports.handler = async (event, context) => {
     // Transform results for API response (minimal structure)
     const reforms = result.rows.map(row => {
       const reformType = row.reform_types && row.reform_types.length > 0 ? row.reform_types[0] : null;
-      
+      const adoptionYear = row.adoption_date
+        ? new Date(row.adoption_date).getFullYear()
+        : null;
+
       return {
         id: row.id,
         place: {
@@ -301,7 +308,11 @@ exports.handler = async (event, context) => {
         },
         reform: {
           type: reformType ? reformType.code : null,
-          color: reformType ? reformType.color_hex : null
+          type_name: reformType ? reformType.name : null,
+          color: reformType ? reformType.color_hex : null,
+          intensity: row.intensity || null,
+          adoption_year: adoptionYear,
+          status: (row.status || 'adopted').toLowerCase()
         }
       };
     });

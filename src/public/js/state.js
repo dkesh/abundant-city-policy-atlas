@@ -11,6 +11,7 @@ let reformsGeoJSON = [];
 let stateBoundariesGeoJSON = null;
 let stateReformsByState = {}; // Maps state_code to array of state-level reforms
 let stateBoundariesSourceAdded = false;
+let lastMapReforms = null; // Cached map data for re-render when "Color by" changes
 
 // Pagination state for infinite scroll
 let currentOffset = 0;

@@ -85,7 +85,7 @@ exports.handler = async (event, context) => {
     const intensityLimitation = params.intensity_limitation || null;
 
     // Build dynamic query with filters
-    let whereClauses = ['1=1']; // Start with always-true condition
+    let whereClauses = ['1=1', '(r.hidden IS NOT TRUE)']; // Exclude rejected submission-based reforms
     let queryParams = [];
     let paramCount = 1;
 
