@@ -24,11 +24,46 @@ from scripts.enrichment.bill_data_extractor import (
     extract_structured_dates,
     extract_vote_counts,
     extract_sponsors,
-    extract_legislative_history
+    extract_legislative_history,
+    extract_full_bill_text,
 )
 from scripts.enrichment.ai_bill_extractor import extract_bill_data_with_fallback
 
 logger = logging.getLogger(__name__)
+
+
+def _record_scrape_failure(
+    conn, policy_doc_id: int, error_type: str, *, detail: Optional[str] = None
+) -> None:
+    """Record a failed scrape attempt in scraping_metadata so we skip re-scraping."""
+    if not conn:
+        return
+    cur = None
+    try:
+        cur = conn.cursor()
+        metadata = {
+            "last_scrape_attempt_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "status": "failed",
+            "error_type": error_type,
+        }
+        if detail:
+            metadata["error_detail"] = detail[:500]  # cap length
+        cur.execute(
+            """
+            UPDATE policy_documents
+            SET scraping_metadata = %s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %s
+            """,
+            (json.dumps(metadata), policy_doc_id),
+        )
+        conn.commit()
+    except Exception as e:
+        logger.warning(f"Could not record scrape failure for policy_doc {policy_doc_id}: {e}")
+        if conn:
+            conn.rollback()
+    finally:
+        if cur:
+            cur.close()
 
 
 def scrape_and_store_bill_data(policy_doc_id: int, document_url: str, 
@@ -65,13 +100,26 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
                 error_type = "404_not_found"
             elif '523' in str(bill_info.get('html', '')) or '523' in str(bill_info.get('text', '')):
                 error_type = "523_cloudflare"
-            
+
+            _record_scrape_failure(conn, policy_doc_id, error_type)
             logger.warning(f"Failed to scrape policy_doc {policy_doc_id} ({domain}): {error_type}")
             return False, f"Could not fetch bill text or HTML ({error_type})"
         
         bill_text = bill_info.get('text') or ''
         html_content = bill_info.get('html') or ''
         domain = get_domain(document_url)
+
+        # If we have HTML but no raw text (e.g. JS-rendered page), extract text from HTML.
+        # Otherwise we "succeed" but store bill_text=NULL and get re-selected every run.
+        if not (bill_text and bill_text.strip()) and html_content:
+            extracted = extract_full_bill_text(html_content, document_url)
+            if extracted and extracted.strip():
+                bill_text = extracted
+                logger.info(f"Extracted {len(bill_text)} chars bill text from HTML for policy_doc {policy_doc_id}")
+            else:
+                _record_scrape_failure(conn, policy_doc_id, "no_extractable_text")
+                logger.warning(f"No extractable bill text from HTML for policy_doc {policy_doc_id} ({domain})")
+                return False, "Could not extract bill text from HTML (no_extractable_text)"
         
         # Extract structured data
         if html_content:
@@ -156,9 +204,15 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
         """
         
         bill_text_source = 'scraper' if structured_data.get('extraction_method') == 'scraper' else 'ai'
+
+        # Never store success with bill_text NULL: doc would stay "pending" and be re-scraped every run.
+        if not (bill_text and bill_text.strip()):
+            _record_scrape_failure(conn, policy_doc_id, "no_extractable_text")
+            logger.warning(f"No bill text to store for policy_doc {policy_doc_id} (would re-scrape indefinitely)")
+            return False, "No bill text extracted (no_extractable_text)"
         
         cursor.execute(update_sql, (
-            bill_text if bill_text else None,
+            bill_text,
             bill_text_source,
             date_filed,
             date_introduced,
@@ -186,18 +240,22 @@ def scrape_and_store_bill_data(policy_doc_id: int, document_url: str,
         logger.error(f"Error scraping bill data for policy_doc {policy_doc_id}: {e}", exc_info=True)
         if conn:
             conn.rollback()
+            _record_scrape_failure(conn, policy_doc_id, "exception", detail=str(e))
         return False, str(e)
     finally:
         close_db_connection(conn, cursor)
 
 
-def scrape_pending_policy_documents(limit: int = 100, use_ai_fallback: bool = True) -> Dict[str, int]:
+def scrape_pending_policy_documents(
+    limit: int = 100, use_ai_fallback: bool = True, retry_failed: bool = False
+) -> Dict[str, int]:
     """
     Scrape bill data for policy documents that haven't been scraped yet.
     
     Args:
         limit: Maximum number of documents to process
         use_ai_fallback: Whether to use AI fallback
+        retry_failed: If True, include docs with scraping_metadata->>'status' = 'failed'
     
     Returns:
         Dict with counts: processed, succeeded, failed, and error breakdown
@@ -211,16 +269,22 @@ def scrape_pending_policy_documents(limit: int = 100, use_ai_fallback: bool = Tr
         conn, cursor = get_db_connection()
         cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        # Find policy documents with URLs but no bill text
-        cursor.execute("""
+        # Find policy documents with URLs but no bill text.
+        # By default exclude previously failed scrapes; use retry_failed to include them.
+        exclude_failed = "" if retry_failed else " AND (scraping_metadata IS NULL OR scraping_metadata->>'status' != 'failed')"
+        cursor.execute(
+            f"""
             SELECT id, document_url
             FROM policy_documents
-            WHERE document_url IS NOT NULL 
+            WHERE document_url IS NOT NULL
               AND document_url != ''
               AND (bill_text IS NULL OR bill_text = '')
+              {exclude_failed}
             ORDER BY created_at DESC
             LIMIT %s
-        """, (limit,))
+            """,
+            (limit,),
+        )
         
         docs = cursor.fetchall()
         logger.info(f"Found {len(docs)} policy documents to scrape")

@@ -51,6 +51,9 @@ Examples:
   
   # Disable AI fallback (use only configured scrapers)
   python run_bill_scraping.py --no-ai-fallback
+
+  # Retry previously failed scrapes
+  python run_bill_scraping.py --retry-failed --all
         """
     )
     
@@ -77,6 +80,12 @@ Examples:
         '--no-ai-fallback',
         action='store_true',
         help='Disable AI fallback for sites without scraper configs'
+    )
+    
+    parser.add_argument(
+        '--retry-failed',
+        action='store_true',
+        help='Include previously failed scrapes in the pending set (retry them)'
     )
     
     args = parser.parse_args()
@@ -164,8 +173,10 @@ Examples:
                 sys.exit(1)
         else:
             # Scrape pending policy documents
-            logger.info(f"Scraping pending policy documents (limit: {limit}, AI fallback: {use_ai_fallback})...")
-            results = scrape_pending_policy_documents(limit=limit, use_ai_fallback=use_ai_fallback)
+            logger.info(f"Scraping pending policy documents (limit: {limit}, AI fallback: {use_ai_fallback}, retry_failed: {args.retry_failed})...")
+            results = scrape_pending_policy_documents(
+                limit=limit, use_ai_fallback=use_ai_fallback, retry_failed=args.retry_failed
+            )
             
             duration = int((datetime.now() - start_time).total_seconds())
             
