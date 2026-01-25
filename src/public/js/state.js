@@ -30,4 +30,4 @@ const REGIONS = {
 };
 
 const MIN_POPULATION = 0;
-const MAX_POPULATION = 20000000; // 20 million - nearest million above largest cities
+const MAX_POPULATION = 40000000; // 40 million - max for population slider (covers largest states)
