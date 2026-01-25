@@ -2,6 +2,99 @@
 // MAP FUNCTIONALITY
 // ============================================================================
 
+// Print countries state - track which countries are selected for export
+let printCountries = {
+    US: true,
+    CA: true
+};
+
+// Update disabled state of checkboxes based on selection
+function updatePrintCountriesDisabledState() {
+    const checkboxes = document.querySelectorAll('.print-country-checkbox');
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    
+    checkboxes.forEach(checkbox => {
+        const checkboxWrapper = checkbox.closest('.mdc-checkbox');
+        const isChecked = checkbox.checked;
+        const shouldDisable = isChecked && checkedCount === 1;
+        
+        // Disable/enable the checkbox
+        checkbox.disabled = shouldDisable;
+        
+        // Update MDC checkbox disabled state
+        if (checkboxWrapper && checkboxWrapper.mdcCheckbox) {
+            checkboxWrapper.mdcCheckbox.disabled = shouldDisable;
+        }
+        
+        // Update visual state - add disabled class to wrapper
+        if (shouldDisable) {
+            checkboxWrapper.classList.add('mdc-checkbox--disabled');
+        } else {
+            checkboxWrapper.classList.remove('mdc-checkbox--disabled');
+        }
+    });
+}
+
+// Initialize print countries checkboxes
+function initializePrintCountriesCheckboxes() {
+    const checkboxes = document.querySelectorAll('.print-country-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        // Initialize MDC checkbox if not already initialized
+        const checkboxWrapper = checkbox.closest('.mdc-checkbox');
+        if (checkboxWrapper && !checkboxWrapper.mdcCheckbox) {
+            checkboxWrapper.mdcCheckbox = new mdc.checkbox.MDCCheckbox(checkboxWrapper);
+        }
+        
+        // Set initial state
+        checkbox.checked = printCountries[checkbox.value] || false;
+        if (checkboxWrapper.mdcCheckbox) {
+            checkboxWrapper.mdcCheckbox.checked = checkbox.checked;
+        }
+        
+        // Add change event listener
+        checkbox.addEventListener('change', (e) => {
+            const country = e.target.value;
+            const isChecked = e.target.checked;
+            
+            // Count how many will be checked after this change
+            const checkedCount = Array.from(checkboxes).filter(cb => {
+                if (cb === e.target) {
+                    return isChecked; // Use the new state for this checkbox
+                }
+                return cb.checked; // Use current state for others
+            }).length;
+            
+            // If trying to uncheck the last one, prevent it
+            if (!isChecked && checkedCount === 0) {
+                e.preventDefault();
+                e.target.checked = true;
+                if (checkboxWrapper.mdcCheckbox) {
+                    checkboxWrapper.mdcCheckbox.checked = true;
+                }
+                if (typeof showToast === 'function') {
+                    showToast('At least one country must be selected');
+                }
+                return;
+            }
+            
+            // Update state
+            printCountries[country] = isChecked;
+            
+            // Update disabled states after change
+            updatePrintCountriesDisabledState();
+        });
+    });
+    
+    // Set initial disabled state
+    updatePrintCountriesDisabledState();
+}
+
+// Get selected print countries
+function getSelectedPrintCountries() {
+    return Object.keys(printCountries).filter(country => printCountries[country]);
+}
+
 function switchView(view, skipUrlUpdate = false) {
     const views = [listView, mapView, explorePlacesView, contributeView, aboutView];
     const tabs = [listViewTab, mapViewTab, explorePlacesViewTab, contributeViewTab, aboutViewTab];
@@ -1154,10 +1247,13 @@ function createSimpleStateMapSVG(geoJSON) {
     const width = 1200;
     const height = 800;
     
-    // Filter to only US and Canada (exclude Mexico, oceans, etc.)
+    // Get selected countries for printing
+    const selectedCountries = getSelectedPrintCountries();
+    
+    // Filter to only selected countries (exclude Mexico, oceans, etc.)
     const usCaFeatures = geoJSON.features.filter(f => {
         const country = f.properties.country;
-        return country === 'US' || country === 'CA';
+        return selectedCountries.includes(country);
     });
     
     if (usCaFeatures.length === 0) {
@@ -1178,8 +1274,11 @@ function createSimpleStateMapSVG(geoJSON) {
     let projection;
     
     if (hasUS && hasCA) {
-        // Albers USA works well for both US and Canada
-        projection = d3.geoAlbersUsa();
+        // When both US and Canada are selected, use a regular Albers projection
+        // that can be properly fitted to both countries (Albers USA doesn't work well with fitSize)
+        projection = d3.geoAlbers()
+            .parallels([45, 55])  // Good for both US and Canada
+            .rotate([-95, 0]);     // Center on North America
     } else if (hasUS) {
         // Albers USA for US only
         projection = d3.geoAlbersUsa();
@@ -1190,30 +1289,47 @@ function createSimpleStateMapSVG(geoJSON) {
             .rotate([-95, 0]);
     }
     
-    // Set initial projection parameters
-    // Albers USA has built-in defaults that work well for US and US+Canada
-    if (hasUS) {
-        // Albers USA - use default scale and center, adjust translate
-        projection.scale(1070).translate([width / 2, height / 2]);
-    } else {
-        // For Canada only with custom Albers
-        const bounds = d3.geoBounds(filteredGeoJSON);
-        const [[x0, y0], [x1, y1]] = bounds;
-        const dx = x1 - x0;
-        const dy = y1 - y0;
-        const x = (x0 + x1) / 2;
-        const y = (y0 + y1) / 2;
-        const scale = 0.9 / Math.max(dx / (width - 40), dy / (height - 40));
-        projection.scale(scale * 1000).translate([width / 2, height / 2]).center([x, y]);
-    }
-    
-    // Try to use fitSize if available (d3-geo v3+)
+    // Use fitSize to properly center and scale the projection for the selected countries
+    // This ensures both US and Canada are visible when both are selected
     if (typeof projection.fitSize === 'function') {
         try {
             projection.fitSize([width - 40, height - 40], filteredGeoJSON);
         } catch (e) {
-            // If fitSize fails, use the manually set values above
-            console.log('fitSize not available, using manual projection');
+            // If fitSize fails, fall back to manual projection setup
+            console.log('fitSize failed, using manual projection:', e);
+            const bounds = d3.geoBounds(filteredGeoJSON);
+            const [[x0, y0], [x1, y1]] = bounds;
+            const dx = x1 - x0;
+            const dy = y1 - y0;
+            const x = (x0 + x1) / 2;
+            const y = (y0 + y1) / 2;
+            const scale = 0.85 / Math.max(dx / (width - 40), dy / (height - 40));
+            
+            if (hasUS && !hasCA) {
+                // US only - use Albers USA defaults
+                projection = d3.geoAlbersUsa();
+                projection.scale(1070).translate([width / 2, height / 2]);
+            } else {
+                // Both countries or Canada only - use calculated scale and center
+                projection.scale(scale * 1000).translate([width / 2, height / 2]).center([x, y]);
+            }
+        }
+    } else {
+        // Fallback if fitSize is not available
+        if (hasUS && !hasCA) {
+            // US only
+            projection = d3.geoAlbersUsa();
+            projection.scale(1070).translate([width / 2, height / 2]);
+        } else {
+            // Both countries or Canada only - manually calculate bounds and scale
+            const bounds = d3.geoBounds(filteredGeoJSON);
+            const [[x0, y0], [x1, y1]] = bounds;
+            const dx = x1 - x0;
+            const dy = y1 - y0;
+            const x = (x0 + x1) / 2;
+            const y = (y0 + y1) / 2;
+            const scale = 0.85 / Math.max(dx / (width - 40), dy / (height - 40));
+            projection.scale(scale * 1000).translate([width / 2, height / 2]).center([x, y]);
         }
     }
     
@@ -1235,7 +1351,7 @@ function createSimpleStateMapSVG(geoJSON) {
         // Render the path
         const pathData = path(feature);
         if (pathData) {
-            svg += `<path d="${pathData}" fill="${color}" fill-opacity="${opacity}" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.9"/>`;
+            svg += `<path d="${pathData}" fill="${color}" fill-opacity="${opacity}" stroke="#000000" stroke-width="1.5" stroke-opacity="0.8"/>`;
         }
     });
     

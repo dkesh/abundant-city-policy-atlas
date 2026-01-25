@@ -530,17 +530,52 @@
                             <!-- MAP VIEW -->
                 <div id="mapView" class="view-container">
                     <div class="map-controls">
-                        <label for="mapColorBy" class="map-controls-label">Color by</label>
-                        <select id="mapColorBy" class="map-color-by-select" aria-label="Choose which dimension colors the map">
-                            <option value="none" selected="">None</option>
-                            <option value="reform_type">Reform type</option>
-                            <option value="intensity">Intensity</option>
-                            <option value="year">Year passed</option>
-                            <option value="status">Reform status</option>
-                        </select>
-                        <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
-                            <i class="material-icons mdc-icon-button__icon">print</i>
-                        </button>
+                        <div class="map-controls-left">
+                            <label for="mapColorBy" class="map-controls-label">Color by</label>
+                            <select id="mapColorBy" class="map-color-by-select" aria-label="Choose which dimension colors the map">
+                                <option value="none" selected="">None</option>
+                                <option value="reform_type">Reform type</option>
+                                <option value="intensity">Intensity</option>
+                                <option value="year">Year passed</option>
+                                <option value="status">Reform status</option>
+                            </select>
+                        </div>
+                        <div class="map-controls-right">
+                            <div class="map-print-countries">
+                                <label class="map-controls-label">Print Countries</label>
+                                <div class="map-print-countries-checkboxes">
+                                    <div class="mdc-form-field">
+                                        <div class="mdc-checkbox">
+                                            <input type="checkbox" class="mdc-checkbox__native-control print-country-checkbox" id="print-country-us" value="US" checked="">
+                                            <div class="mdc-checkbox__background">
+                                                <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
+                                                </svg>
+                                                <div class="mdc-checkbox__mixedmark"></div>
+                                            </div>
+                                            <div class="mdc-checkbox__ripple"></div>
+                                        </div>
+                                        <label for="print-country-us">United States</label>
+                                    </div>
+                                    <div class="mdc-form-field">
+                                        <div class="mdc-checkbox">
+                                            <input type="checkbox" class="mdc-checkbox__native-control print-country-checkbox" id="print-country-ca" value="CA" checked="">
+                                            <div class="mdc-checkbox__background">
+                                                <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                                    <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"></path>
+                                                </svg>
+                                                <div class="mdc-checkbox__mixedmark"></div>
+                                            </div>
+                                            <div class="mdc-checkbox__ripple"></div>
+                                        </div>
+                                        <label for="print-country-ca">Canada</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
+                                <i class="material-icons mdc-icon-button__icon">print</i>
+                            </button>
+                        </div>
                     </div>
                     <div id="map"></div>
                     <!-- Map Loading Overlay -->

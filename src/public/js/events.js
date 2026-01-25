@@ -11,6 +11,11 @@ function setupEventListeners() {
     if (printMapButton) {
         printMapButton.addEventListener('click', printMap);
     }
+    
+    // Initialize print countries checkboxes
+    if (typeof initializePrintCountriesCheckboxes === 'function') {
+        initializePrintCountriesCheckboxes();
+    }
 
     // Map "Color by" dimension selector – re-render from cached data without refetch
     const mapColorBy = document.getElementById('mapColorBy');
