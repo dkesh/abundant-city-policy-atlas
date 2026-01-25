@@ -9,6 +9,9 @@
                             <option value="year">Year passed</option>
                             <option value="status">Reform status</option>
                         </select>
+                        <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
+                            <i class="material-icons mdc-icon-button__icon">print</i>
+                        </button>
                     </div>
                     <div id="map"></div>
                     <!-- Map Loading Overlay -->
@@ -43,9 +46,6 @@
                         <p class="mdc-typography--body1">Loading map data...</p>
                     </div>
                     <div id="mapLegend" class="map-legend container-hidden" aria-label="Map legend"></div>
-                    <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">
-                        <i class="material-icons mdc-icon-button__icon">print</i>
-                    </button>
                     <div id="mapOverlay" class="map-overlay mdc-card">
                         <button class="mdc-icon-button map-overlay-close" id="closeOverlay">
                             <i class="material-icons mdc-icon-button__icon">close</i>
