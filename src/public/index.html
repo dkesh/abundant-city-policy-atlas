@@ -529,6 +529,16 @@
 
                             <!-- MAP VIEW -->
                 <div id="mapView" class="view-container">
+                    <div class="map-controls">
+                        <label for="mapColorBy" class="map-controls-label">Color by</label>
+                        <select id="mapColorBy" class="map-color-by-select" aria-label="Choose which dimension colors the map">
+                            <option value="none" selected="">None</option>
+                            <option value="reform_type">Reform type</option>
+                            <option value="intensity">Intensity</option>
+                            <option value="year">Year passed</option>
+                            <option value="status">Reform status</option>
+                        </select>
+                    </div>
                     <div id="map"></div>
                     <!-- Map Loading Overlay -->
                     <div id="mapLoadingOverlay" class="map-loading-overlay container-hidden">
@@ -560,15 +570,6 @@
                             </div>
                         </div>
                         <p class="mdc-typography--body1">Loading map data...</p>
-                    </div>
-                    <div class="map-controls">
-                        <label for="mapColorBy" class="map-controls-label">Color by</label>
-                        <select id="mapColorBy" class="map-color-by-select" aria-label="Choose which dimension colors the map">
-                            <option value="reform_type">Reform type</option>
-                            <option value="intensity">Intensity</option>
-                            <option value="year">Year passed</option>
-                            <option value="status">Reform status</option>
-                        </select>
                     </div>
                     <div id="mapLegend" class="map-legend container-hidden" aria-label="Map legend"></div>
                     <button class="mdc-icon-button map-print-button" id="printMapButton" title="Print map" aria-label="Print map">

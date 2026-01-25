@@ -21,8 +21,17 @@ function showLoading(show) {
         if (resultsInfo && resultsInfo.classList.contains('container-hidden')) {
             resultsInfo.classList.remove('container-hidden');
         }
+        // Only open the banner if there's at least one visible focusable element
+        // MDC Banner's FocusTrap requires at least one focusable child
         if (resultsBanner) {
-            resultsBanner.open();
+            // Check if there's at least one visible focusable element in the banner
+            const isDownloadBtnVisible = downloadBtn && window.getComputedStyle(downloadBtn).display !== 'none';
+            const isShareBtnVisible = shareBtn && window.getComputedStyle(shareBtn).display !== 'none';
+            if (isDownloadBtnVisible || isShareBtnVisible) {
+                resultsBanner.open();
+            }
+            // If no buttons are visible, just show the banner with CSS (don't call open())
+            // The banner will be visible but won't have focus trap issues
         }
     } else {
         // Restore action buttons visibility (they'll be shown/hidden based on results)

@@ -61,6 +61,11 @@
   to = "/index.html"
   status = 200
 
+[[redirects]]
+  from = "/map"
+  to = "/index.html"
+  status = 200
+
 # General pattern: map bare word paths to .html files (e.g., /about -> /about.html)
 [[redirects]]
   from = "/:word"
