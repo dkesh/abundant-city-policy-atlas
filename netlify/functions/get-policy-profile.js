@@ -278,7 +278,51 @@ exports.handler = async (event, context) => {
     `;
 
     const reformsResult = await client.query(reformsQuery, reformQueryParams);
-    const reforms = reformsResult.rows;
+    
+    // Deduplicate reforms: the query returns one row per reform-reform_type combination
+    // Group by reform.id and collect all reform_types
+    const reformMap = new Map();
+    reformsResult.rows.forEach(row => {
+      const reformId = row.id;
+      
+      if (!reformMap.has(reformId)) {
+        // First time seeing this reform - initialize with this row's data
+        reformMap.set(reformId, {
+          ...row,
+          reform_types: row.reform_type_id ? [{
+            id: row.reform_type_id,
+            code: row.reform_code,
+            name: row.reform_name,
+            category: row.category
+          }] : []
+        });
+      } else {
+        // Already seen this reform - add this reform_type if it's not already present
+        const existing = reformMap.get(reformId);
+        if (row.reform_type_id) {
+          const typeExists = existing.reform_types.some(rt => rt.id === row.reform_type_id);
+          if (!typeExists) {
+            existing.reform_types.push({
+              id: row.reform_type_id,
+              code: row.reform_code,
+              name: row.reform_name,
+              category: row.category
+            });
+          }
+        }
+      }
+    });
+    
+    // Convert map to array and use first reform_type for display fields
+    const reforms = Array.from(reformMap.values()).map(r => {
+      const firstReformType = r.reform_types.length > 0 ? r.reform_types[0] : null;
+      return {
+        ...r,
+        reform_name: firstReformType?.name || r.reform_name || 'Unclassified Reform',
+        reform_code: firstReformType?.code || r.reform_code || null,
+        category: firstReformType?.category || r.category || 'Uncategorized'
+      };
+    });
 
     // Get all reform types by category for domain overview
     const reformTypesQuery = `

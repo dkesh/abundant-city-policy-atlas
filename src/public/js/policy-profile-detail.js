@@ -342,7 +342,7 @@ function renderTimelineItem(reform, isUnknownDate = false, place = null) {
     }
 
     return `
-        <div class="timeline-item">
+        <div class="timeline-item" id="reform-${reform.id}">
             <div class="timeline-item-date">${dateStr}</div>
             <div class="timeline-item-content">
                 <div class="timeline-item-header">
