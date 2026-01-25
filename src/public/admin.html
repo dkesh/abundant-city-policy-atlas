@@ -41,6 +41,23 @@
     .content-area { padding: 1rem; }
     .view-container { display: none; }
     .view-container.active { display: block; }
+    .queue-item button.merge-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; }
+    .queue-item button.distinguish { background: #666; color: #fff; border: none; border-radius: 4px; }
+    .merge-pair-header { font-weight: 600; margin-bottom: 0.5rem; }
+    .merge-pair-reform { font-size: 0.9rem; color: #444; margin-bottom: 0.25rem; }
+    .merge-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: none; align-items: center; justify-content: center; }
+    .merge-modal-overlay.open { display: flex; }
+    .merge-modal { background: white; border-radius: 8px; max-width: 640px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 1.5rem; }
+    .merge-modal h3 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .merge-form label { display: block; margin-top: 0.75rem; font-weight: 500; font-size: 0.9rem; }
+    .merge-form input[type="text"], .merge-form textarea, .merge-form select { width: 100%; padding: 0.4rem; margin-top: 0.25rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+    .merge-form textarea { min-height: 60px; }
+    .merge-form .keep-choice { margin: 0.75rem 0; }
+    .merge-form .keep-choice label { display: inline; margin-right: 1rem; font-weight: normal; }
+    .merge-form-actions { margin-top: 1.5rem; display: flex; gap: 0.5rem; }
+    .merge-form-actions button { padding: 0.5rem 1rem; cursor: pointer; border: none; border-radius: 4px; }
+    .merge-form-actions button.save-merge { background: #0a0; color: #fff; }
+    .merge-form-actions button.cancel-merge { background: #666; color: #fff; }
   </style>
 </head>
 <body>
@@ -102,6 +119,16 @@
                 </span>
                 <span class="mdc-tab__ripple"></span>
               </button>
+              <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="mergeTab">
+                <span class="mdc-tab__content">
+                  <span class="mdc-tab__icon material-icons" aria-hidden="true">merge_type</span>
+                  <span class="mdc-tab__text-label">Merge</span>
+                </span>
+                <span class="mdc-tab-indicator">
+                  <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                </span>
+                <span class="mdc-tab__ripple"></span>
+              </button>
             </div>
           </div>
         </div>
@@ -135,9 +162,48 @@
         <div id="completedEmpty" class="empty" hidden>No completed items.</div>
       </div>
 
+      <!-- Merge View -->
+      <div id="mergeView" class="view-container">
+        <p class="queue-intro">
+          Suspected duplicates (same place, same day). <strong>Distinguish</strong> → mark as distinct. <strong>Merge</strong> → combine two reforms into one.
+        </p>
+        <div id="mergeQueue" class="queue"></div>
+        <div id="mergeEmpty" class="empty" hidden>No suspected duplicate pairs.</div>
+      </div>
+
       <div class="logout">
         <button type="button" id="logoutBtn">Log out</button>
       </div>
+    </div>
+  </div>
+
+  <div id="mergeModalOverlay" class="merge-modal-overlay" aria-hidden="true">
+    <div class="merge-modal" role="dialog" aria-labelledby="mergeModalTitle">
+      <h3 id="mergeModalTitle">Merge reforms</h3>
+      <form id="mergeForm" class="merge-form" onsubmit="return false;">
+        <div class="keep-choice">
+          <span>Keep reform:</span>
+          <label><input type="radio" name="keep" value="a"> <span id="keepLabelA">A</span></label>
+          <label><input type="radio" name="keep" value="b"> <span id="keepLabelB">B</span></label>
+        </div>
+        <label>Summary <textarea name="summary" rows="3"></textarea></label>
+        <label>Notes <textarea name="notes" rows="2"></textarea></label>
+        <label>Scope (comma‑separated) <input type="text" name="scope" placeholder="e.g. citywide"></label>
+        <label>Land use (comma‑separated) <input type="text" name="land_use" placeholder="e.g. all uses"></label>
+        <label>Requirements (comma‑separated) <input type="text" name="requirements" placeholder="e.g. by right"></label>
+        <label>Status <select name="status"><option value="">—</option><option value="adopted">adopted</option><option value="proposed">proposed</option></select></label>
+        <label>Intensity <select name="intensity"><option value="">—</option><option value="complete">complete</option><option value="partial">partial</option></select></label>
+        <label>Reform mechanism <input type="text" name="reform_mechanism"></label>
+        <label>Reform phase <input type="text" name="reform_phase"></label>
+        <label>Legislative number <input type="text" name="legislative_number"></label>
+        <label>Link URL <input type="text" name="link_url" placeholder="https://"></label>
+        <label>Policy document <select name="policy_document_id"><option value="">—</option></select></label>
+        <label>Reform types <div id="mergeReformTypesCheckboxes"></div></label>
+        <div class="merge-form-actions">
+          <button type="button" class="save-merge">Save merge</button>
+          <button type="button" class="cancel-merge">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -177,7 +243,7 @@
       
       tabBar.listen('MDCTabBar:activated', (event) => {
         const index = event.detail.index;
-        const views = ['held', 'accepted', 'completed'];
+        const views = ['held', 'accepted', 'completed', 'merge'];
         switchView(views[index]);
       });
     }
@@ -186,7 +252,8 @@
       currentView = view;
       document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
       document.getElementById(view + 'View').classList.add('active');
-      loadQueue(view);
+      if (view === 'merge') loadMergeCandidates();
+      else loadQueue(view);
     }
 
     async function checkAuth() {
@@ -206,11 +273,12 @@
       return false;
     }
 
-    async function loadQueue(view = 'held') {
+    async function loadQueue(view) {
       let status;
       if (view === 'held') status = 'pending';
       else if (view === 'accepted') status = 'approved';
       else if (view === 'completed') status = 'completed';
+      else return;
 
       const r = await fetch(`/api/get-review-queue?status=${status}`, { credentials });
       if (r.status === 401) {
@@ -304,6 +372,199 @@
         });
       }
     }
+
+    let mergePairs = [];
+    let allReformTypes = [];
+
+    async function loadMergeCandidates() {
+      const container = document.getElementById('mergeQueue');
+      const emptyEl = document.getElementById('mergeEmpty');
+      const r = await fetch('/api/get-merge-candidates', { credentials });
+      if (r.status === 401) { showLogin(); return; }
+      if (!r.ok) {
+        container.innerHTML = '<p class="error">Failed to load merge candidates.</p>';
+        show(emptyEl, false);
+        return;
+      }
+      const data = await r.json();
+      mergePairs = data.pairs || [];
+      if (mergePairs.length === 0) {
+        container.innerHTML = '';
+        show(emptyEl, true);
+        return;
+      }
+      show(emptyEl, false);
+      container.innerHTML = mergePairs.map((p, idx) => {
+        const place = p.place || {};
+        const loc = [place.place_name, place.state_name].filter(Boolean).join(', ');
+        const date = p.adoption_date || '—';
+        const a = p.reform_a || {};
+        const b = p.reform_b || {};
+        const sumA = (a.summary || '').slice(0, 120) + ((a.summary || '').length > 120 ? '…' : '');
+        const sumB = (b.summary || '').slice(0, 120) + ((b.summary || '').length > 120 ? '…' : '');
+        const typesA = (a.reform_types || []).map((t) => t.name).join(', ') || '—';
+        const typesB = (b.reform_types || []).map((t) => t.name).join(', ') || '—';
+        const key = `${p.reform_id_1}-${p.reform_id_2}`;
+        return (
+          '<div class="queue-item" data-pair-key="' + key + '">' +
+          '<div class="merge-pair-header">' + (loc || '—') + ' · ' + date + '</div>' +
+          '<div class="merge-pair-reform"><strong>A</strong> (id ' + a.id + '): ' + (sumA || '—') + ' | ' + typesA + '</div>' +
+          '<div class="merge-pair-reform"><strong>B</strong> (id ' + b.id + '): ' + (sumB || '—') + ' | ' + typesB + '</div>' +
+          '<div class="actions">' +
+          '<button type="button" class="distinguish" data-id1="' + p.reform_id_1 + '" data-id2="' + p.reform_id_2 + '">Distinguish</button>' +
+          '<button type="button" class="merge-btn" data-pair-index="' + idx + '">Merge</button>' +
+          '</div></div>'
+        );
+      }).join('');
+
+      container.querySelectorAll('button.distinguish').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          if (!confirm('Mark this pair as distinct? They will no longer appear as merge candidates.')) return;
+          const id1 = Number(btn.dataset.id1);
+          const id2 = Number(btn.dataset.id2);
+          const res = await fetch('/api/distinguish-reforms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials,
+            body: JSON.stringify({ reform_id_1: id1, reform_id_2: id2 })
+          });
+          const body = await res.json();
+          if (body.success) loadMergeCandidates();
+        });
+      });
+
+      container.querySelectorAll('button.merge-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.pairIndex, 10);
+          openMergeModal(mergePairs[idx]);
+        });
+      });
+    }
+
+    function getKeptAndOther(pair) {
+      const form = document.getElementById('mergeForm');
+      const keepA = form.querySelector('input[name="keep"]:checked')?.value === 'a';
+      const a = pair.reform_a;
+      const b = pair.reform_b;
+      return keepA ? { kept: a, other: b } : { kept: b, other: a };
+    }
+
+    function refillMergeFormFromKept(kept, other, pair) {
+      const form = document.getElementById('mergeForm');
+      form.querySelector('[name="summary"]').value = kept.summary || '';
+      form.querySelector('[name="notes"]').value = kept.notes || '';
+      form.querySelector('[name="scope"]').value = (kept.scope || []).join(', ');
+      form.querySelector('[name="land_use"]').value = (kept.land_use || []).join(', ');
+      form.querySelector('[name="requirements"]').value = (kept.requirements || []).join(', ');
+      form.querySelector('[name="status"]').value = kept.status || '';
+      form.querySelector('[name="intensity"]').value = kept.intensity || '';
+      form.querySelector('[name="reform_mechanism"]').value = kept.reform_mechanism || '';
+      form.querySelector('[name="reform_phase"]').value = kept.reform_phase || '';
+      form.querySelector('[name="legislative_number"]').value = kept.legislative_number || '';
+      form.querySelector('[name="link_url"]').value = kept.link_url || '';
+      const pdSelect = form.querySelector('[name="policy_document_id"]');
+      pdSelect.innerHTML = '<option value="">—</option>';
+      const a = pair.reform_a;
+      const b = pair.reform_b;
+      const pds = [];
+      if (a.policy_document_id) pds.push({ id: a.policy_document_id, label: 'A (id ' + a.id + '): ' + (a.policy_document?.reference_number || a.policy_document?.title || 'doc') });
+      if (b.policy_document_id && b.policy_document_id !== a.policy_document_id) pds.push({ id: b.policy_document_id, label: 'B (id ' + b.id + '): ' + (b.policy_document?.reference_number || b.policy_document?.title || 'doc') });
+      pds.forEach((pd) => { const o = document.createElement('option'); o.value = pd.id; o.textContent = pd.label; pdSelect.appendChild(o); });
+      pdSelect.value = kept.policy_document_id || '';
+      renderMergeReformTypes(kept, other);
+    }
+
+    function openMergeModal(pair) {
+      const overlay = document.getElementById('mergeModalOverlay');
+      const form = document.getElementById('mergeForm');
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      window._mergePair = pair;
+      const a = pair.reform_a;
+      const b = pair.reform_b;
+      document.getElementById('keepLabelA').textContent = 'A (id ' + a.id + ')';
+      document.getElementById('keepLabelB').textContent = 'B (id ' + b.id + ')';
+      const keepLower = (a.id < b.id);
+      form.querySelector('input[name="keep"][value="' + (keepLower ? 'a' : 'b') + '"]').checked = true;
+      const kept = keepLower ? a : b;
+      const other = keepLower ? b : a;
+      refillMergeFormFromKept(kept, other, pair);
+    }
+
+    async function renderMergeReformTypes(kept, other) {
+      const box = document.getElementById('mergeReformTypesCheckboxes');
+      if (allReformTypes.length === 0) {
+        const r = await fetch('/api/get-reform-types');
+        const d = await r.json();
+        allReformTypes = d.reformTypes || [];
+      }
+      const keptIds = new Set((kept.reform_types || []).map((t) => t.id));
+      const otherIds = new Set((other.reform_types || []).map((t) => t.id));
+      const union = new Set([...keptIds, ...otherIds]);
+      box.innerHTML = allReformTypes.map((rt) => {
+        const checked = union.has(rt.id);
+        return '<label style="display:block;font-weight:normal;margin:0.25rem 0"><input type="checkbox" name="reform_type_ids" value="' + rt.id + '"' + (checked ? ' checked' : '') + '> ' + (rt.name || rt.code) + '</label>';
+      }).join('');
+    }
+
+    function closeMergeModal() {
+      const overlay = document.getElementById('mergeModalOverlay');
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      window._mergePair = null;
+    }
+
+    document.getElementById('mergeForm').querySelector('button.cancel-merge').addEventListener('click', closeMergeModal);
+    document.getElementById('mergeModalOverlay').addEventListener('click', (e) => { if (e.target.id === 'mergeModalOverlay') closeMergeModal(); });
+
+    document.getElementById('mergeForm').querySelectorAll('input[name="keep"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const pair = window._mergePair;
+        if (!pair) return;
+        const { kept, other } = getKeptAndOther(pair);
+        refillMergeFormFromKept(kept, other, pair);
+      });
+    });
+
+    document.getElementById('mergeForm').querySelector('button.save-merge').addEventListener('click', async () => {
+      const pair = window._mergePair;
+      if (!pair) return;
+      const form = document.getElementById('mergeForm');
+      const keepA = form.querySelector('input[name="keep"]:checked')?.value === 'a';
+      const keepId = keepA ? pair.reform_a.id : pair.reform_b.id;
+      const mergeId = keepA ? pair.reform_b.id : pair.reform_a.id;
+      const scope = form.querySelector('[name="scope"]').value.trim().split(',').map((s) => s.trim()).filter(Boolean);
+      const landUse = form.querySelector('[name="land_use"]').value.trim().split(',').map((s) => s.trim()).filter(Boolean);
+      const req = form.querySelector('[name="requirements"]').value.trim().split(',').map((s) => s.trim()).filter(Boolean);
+      const pdVal = form.querySelector('[name="policy_document_id"]').value;
+      const policyDocId = pdVal === '' ? null : parseInt(pdVal, 10);
+      const typeCheckboxes = form.querySelectorAll('input[name="reform_type_ids"]:checked');
+      const reformTypeIds = Array.from(typeCheckboxes).map((cb) => parseInt(cb.value, 10)).filter((n) => !Number.isNaN(n));
+      const updates = {
+        summary: form.querySelector('[name="summary"]').value.trim() || null,
+        notes: form.querySelector('[name="notes"]').value.trim() || null,
+        scope,
+        land_use: landUse,
+        requirements: req,
+        status: form.querySelector('[name="status"]').value || null,
+        intensity: form.querySelector('[name="intensity"]').value || null,
+        reform_mechanism: form.querySelector('[name="reform_mechanism"]').value.trim() || null,
+        reform_phase: form.querySelector('[name="reform_phase"]').value.trim() || null,
+        legislative_number: form.querySelector('[name="legislative_number"]').value.trim() || null,
+        link_url: form.querySelector('[name="link_url"]').value.trim() || null,
+        policy_document_id: policyDocId,
+        reform_type_ids: reformTypeIds
+      };
+      const res = await fetch('/api/merge-reforms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials,
+        body: JSON.stringify({ keep_reform_id: keepId, merge_reform_id: mergeId, updates })
+      });
+      const body = await res.json();
+      if (body.success) { closeMergeModal(); loadMergeCandidates(); }
+      else alert(body.error || 'Merge failed');
+    });
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
