@@ -160,6 +160,26 @@ exports.handler = async (event) => {
       await client.query('DELETE FROM reforms WHERE id = $1', [mergeId]);
       await client.query('COMMIT');
 
+      // Log admin action (after successful commit)
+      try {
+        const logMetadata = {
+          keep_reform_id: keepId,
+          merge_reform_id: mergeId,
+          admin_user: 'admin'
+        };
+        console.log('Logging merge action:', logMetadata);
+        const result = await client.query(`
+          INSERT INTO activity_logs (log_type, action, status, metadata)
+          VALUES ('admin_action', 'merge_reforms', 'success', $1::jsonb)
+          RETURNING id
+        `, [JSON.stringify(logMetadata)]);
+        console.log('Merge action logged successfully, log ID:', result.rows[0].id);
+      } catch (logError) {
+        // Don't fail the merge if logging fails, but log to console
+        console.error('Failed to log merge action:', logError);
+        console.error('Error details:', logError.message, logError.stack);
+      }
+
       return json(event, { success: true });
     } catch (e) {
       await client.query('ROLLBACK').catch(() => {});

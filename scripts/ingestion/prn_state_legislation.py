@@ -45,6 +45,7 @@ from db_utils import (
     USER_AGENT,
     initialize_environment
 )
+from scripts.utils.logging_config import setup_database_logging
 
 # Load environment variables from .env file
 initialize_environment()
@@ -259,6 +260,16 @@ def ingest_prn_state_legislation(csv_file: Optional[str] = None, database_url: O
     start_time = datetime.now()
     conn = cursor = None
     
+    # Log start of ingestion
+    logger.info(
+        "Starting PRN state legislation ingestion",
+        extra={
+            "log_type": "ingestion",
+            "action": "prn_state_legislation",
+            "status": "running"
+        }
+    )
+    
     try:
         conn, cursor = get_db_connection(database_url)
         reform_type_map = load_reform_type_map(cursor)
@@ -363,6 +374,29 @@ def ingest_prn_state_legislation(csv_file: Optional[str] = None, database_url: O
         )
         
         duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.info(
+            "PRN state legislation ingestion complete",
+            extra={
+                "log_type": "ingestion",
+                "action": "prn_state_legislation",
+                "status": "success",
+                "metadata": {
+                    "source_name": SOURCE_NAME,
+                    "records_processed": len(rows),
+                    "places_created": places_created,
+                    "places_updated": places_updated,
+                    "reforms_created": total_created,
+                    "reforms_updated": total_updated,
+                    "docs_created": docs_created,
+                    "docs_updated": docs_updated,
+                    "source_url": PRN_STATE_LEGISLATION_CSV_URL
+                },
+                "duration_seconds": duration
+            }
+        )
+        
         logger.info("\n" + "="*60)
         logger.info("✓ Ingestion complete!")
         logger.info(f"  Total records processed: {len(rows)}")
@@ -377,6 +411,20 @@ def ingest_prn_state_legislation(csv_file: Optional[str] = None, database_url: O
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
         traceback.print_exc()
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "PRN state legislation ingestion failed",
+            extra={
+                "log_type": "ingestion",
+                "action": "prn_state_legislation",
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         try:
             if conn and cursor:
                 log_ingestion(

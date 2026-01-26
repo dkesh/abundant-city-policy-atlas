@@ -39,6 +39,7 @@
     .logout { margin-top: 1.5rem; text-align: right; }
     .logout button { padding: 0.4rem 0.8rem; cursor: pointer; background: #666; color: white; border: none; border-radius: 4px; }
     .content-area { padding: 1rem; }
+    .content-area[hidden] { display: none !important; }
     .view-container { display: none; }
     .view-container.active { display: block; }
     .queue-item button.merge-btn { background: #1976d2; color: #fff; border: none; border-radius: 4px; }
@@ -58,6 +59,20 @@
     .merge-form-actions button { padding: 0.5rem 1rem; cursor: pointer; border: none; border-radius: 4px; }
     .merge-form-actions button.save-merge { background: #0a0; color: #fff; }
     .merge-form-actions button.cancel-merge { background: #666; color: #fff; }
+    .logs-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .logs-filters select, .logs-filters input { padding: 0.4rem; font-size: 0.9rem; border: 1px solid #ccc; border-radius: 4px; }
+    .logs-filters button { padding: 0.4rem 0.8rem; cursor: pointer; background: #1976d2; color: white; border: none; border-radius: 4px; }
+    .logs-list { margin-top: 1rem; }
+    .log-item { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; margin-bottom: 0.75rem; background: white; }
+    .log-item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .log-item-title { font-weight: 600; font-size: 1rem; }
+    .log-item-meta { font-size: 0.85rem; color: #666; }
+    .log-item-metadata { margin-top: 0.5rem; padding: 0.5rem; background: #f5f5f5; border-radius: 4px; font-size: 0.85rem; font-family: monospace; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+    .log-item-error { color: #c00; margin-top: 0.5rem; font-size: 0.9rem; }
+    .logs-pagination { margin-top: 1rem; display: flex; gap: 0.5rem; align-items: center; justify-content: center; }
+    .logs-pagination button { padding: 0.4rem 0.8rem; cursor: pointer; background: #666; color: white; border: none; border-radius: 4px; }
+    .logs-pagination button:disabled { background: #ccc; cursor: not-allowed; }
+    .logs-pagination span { font-size: 0.9rem; color: #666; }
   </style>
 </head>
 <body>
@@ -129,6 +144,16 @@
                 </span>
                 <span class="mdc-tab__ripple"></span>
               </button>
+              <button class="mdc-tab" role="tab" aria-selected="false" tabindex="-1" id="logsTab">
+                <span class="mdc-tab__content">
+                  <span class="mdc-tab__icon material-icons" aria-hidden="true">list_alt</span>
+                  <span class="mdc-tab__text-label">Logs</span>
+                </span>
+                <span class="mdc-tab-indicator">
+                  <span class="mdc-tab-indicator__content mdc-tab-indicator__content--underline"></span>
+                </span>
+                <span class="mdc-tab__ripple"></span>
+              </button>
             </div>
           </div>
         </div>
@@ -169,6 +194,32 @@
         </p>
         <div id="mergeQueue" class="queue"></div>
         <div id="mergeEmpty" class="empty" hidden>No suspected duplicate pairs.</div>
+      </div>
+
+      <!-- Logs View -->
+      <div id="logsView" class="view-container">
+        <div class="logs-filters">
+          <select id="logTypeFilter">
+            <option value="">All Types</option>
+            <option value="ingestion">Ingestion</option>
+            <option value="bill_scraping">Bill Scraping</option>
+            <option value="ai_enrichment">AI Enrichment</option>
+            <option value="bill_submission">Bill Submission</option>
+            <option value="admin_action">Admin Action</option>
+          </select>
+          <select id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="running">Running</option>
+            <option value="partial">Partial</option>
+          </select>
+          <input type="text" id="actionFilter" placeholder="Filter by action...">
+          <button type="button" id="refreshLogsBtn">Refresh</button>
+        </div>
+        <div id="logsList" class="logs-list"></div>
+        <div id="logsEmpty" class="empty" hidden>No logs found.</div>
+        <div id="logsPagination" class="logs-pagination"></div>
       </div>
 
       <div class="logout">
@@ -243,17 +294,44 @@
       
       tabBar.listen('MDCTabBar:activated', (event) => {
         const index = event.detail.index;
-        const views = ['held', 'accepted', 'completed', 'merge'];
-        switchView(views[index]);
+        const views = ['held', 'accepted', 'completed', 'merge', 'logs'];
+        if (index >= 0 && index < views.length) {
+          switchView(views[index]);
+        } else {
+          console.error(`Invalid tab index: ${index}, views array length: ${views.length}`);
+        }
       });
     }
 
     function switchView(view) {
       currentView = view;
-      document.querySelectorAll('.view-container').forEach(el => el.classList.remove('active'));
-      document.getElementById(view + 'View').classList.add('active');
-      if (view === 'merge') loadMergeCandidates();
-      else loadQueue(view);
+      const viewId = view + 'View';
+      console.log(`Switching to view: ${view}, looking for element: ${viewId}`);
+      
+      // Remove active class from all views
+      document.querySelectorAll('.view-container').forEach(el => {
+        if (el) el.classList.remove('active');
+      });
+      
+      // Find and activate the target view
+      const viewElement = document.getElementById(viewId);
+      if (!viewElement) {
+        console.error(`View element not found: ${viewId}. Available views:`, 
+          Array.from(document.querySelectorAll('.view-container')).map(el => el.id));
+        return;
+      }
+      
+      viewElement.classList.add('active');
+      console.log(`Activated view: ${viewId}`);
+      
+      // Load data for the view
+      if (view === 'merge') {
+        loadMergeCandidates();
+      } else if (view === 'logs') {
+        loadLogs();
+      } else {
+        loadQueue(view);
+      }
     }
 
     async function checkAuth() {
@@ -591,6 +669,140 @@
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await fetch('/api/admin-auth', { method: 'GET', credentials });
       showLogin();
+    });
+
+    // Logs functionality
+    let currentLogsOffset = 0;
+    let currentLogsLimit = 100;
+    let currentLogsFilters = {};
+
+    async function loadLogs() {
+      const logType = document.getElementById('logTypeFilter').value;
+      const status = document.getElementById('statusFilter').value;
+      const action = document.getElementById('actionFilter').value;
+
+      const params = new URLSearchParams();
+      if (logType) params.append('log_type', logType);
+      if (status) params.append('status', status);
+      if (action) params.append('action', action);
+      params.append('limit', currentLogsLimit);
+      params.append('offset', currentLogsOffset);
+
+      console.log('Loading logs with params:', params.toString());
+      const r = await fetch(`/api/get-logs?${params.toString()}`, { credentials });
+      console.log('Logs API response status:', r.status);
+      if (r.status === 401) {
+        showLogin();
+        return;
+      }
+      if (!r.ok) {
+        const container = document.getElementById('logsList');
+        const errorText = await r.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { error: errorText || 'Failed to load logs' };
+        }
+        container.innerHTML = `<p class="error">Failed to load logs: ${errorData.error || 'Unknown error'}</p>`;
+        if (errorData.details) {
+          container.innerHTML += `<p class="error" style="font-size: 0.8rem; margin-top: 0.5rem;">${errorData.details}</p>`;
+        }
+        show(emptyEl, false);
+        return;
+      }
+
+      const data = await r.json();
+      
+      if (!data.success) {
+        const container = document.getElementById('logsList');
+        container.innerHTML = `<p class="error">Error: ${data.error || 'Unknown error'}</p>`;
+        if (data.details) {
+          container.innerHTML += `<p class="error" style="font-size: 0.8rem; margin-top: 0.5rem;">${data.details}</p>`;
+        }
+        show(emptyEl, false);
+        return;
+      }
+      const logs = data.logs || [];
+      const total = data.total || 0;
+      console.log('Processing logs:', { logsCount: logs.length, total, logs });
+      
+      const container = document.getElementById('logsList');
+      const emptyEl = document.getElementById('logsEmpty');
+      const paginationEl = document.getElementById('logsPagination');
+
+      if (logs.length === 0) {
+        console.log('No logs to display, showing empty message');
+        container.innerHTML = '';
+        show(emptyEl, true);
+        paginationEl.innerHTML = '';
+        return;
+      }
+
+      console.log(`Rendering ${logs.length} logs`);
+
+      show(emptyEl, false);
+
+      try {
+        container.innerHTML = logs.map(log => {
+          console.log('Rendering log:', log);
+          const date = log.created_at ? new Date(log.created_at).toLocaleString() : '—';
+          const duration = log.duration_seconds ? `${log.duration_seconds}s` : '—';
+          const metadata = log.metadata ? JSON.stringify(log.metadata, null, 2) : '';
+          const error = log.error_message ? `<div class="log-item-error"><strong>Error:</strong> ${log.error_message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : '';
+          const statusBadge = log.status === 'success' ? '<span class="badge approved">Success</span>' :
+                             log.status === 'failed' ? '<span class="badge rejected">Failed</span>' :
+                             log.status === 'running' ? '<span class="badge visible">Running</span>' :
+                             '<span class="badge flagged">Partial</span>';
+
+          return (
+            '<div class="log-item">' +
+            '<div class="log-item-header">' +
+            `<div><span class="log-item-title">${log.action || 'Unknown'}</span> ${statusBadge}</div>` +
+            `<div class="log-item-meta">${date} · ${duration}</div>` +
+            '</div>' +
+            `<div class="log-item-meta">Type: ${log.log_type || 'Unknown'} | Action: ${log.action || 'Unknown'} | Status: ${log.status || 'Unknown'}</div>` +
+            (metadata ? `<div class="log-item-metadata">${metadata.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : '') +
+            error +
+            '</div>'
+          );
+        }).join('');
+        console.log('Logs rendered successfully');
+      } catch (renderError) {
+        console.error('Error rendering logs:', renderError);
+        container.innerHTML = `<p class="error">Error rendering logs: ${renderError.message}</p>`;
+      }
+
+      // Pagination
+      const totalPages = Math.ceil(total / currentLogsLimit);
+      const currentPage = Math.floor(currentLogsOffset / currentLogsLimit) + 1;
+      paginationEl.innerHTML = `
+        <button type="button" ${currentPage === 1 ? 'disabled' : ''} onclick="currentLogsOffset = ${currentLogsOffset - currentLogsLimit}; loadLogs();">Previous</button>
+        <span>Page ${currentPage} of ${totalPages} (${total} total)</span>
+        <button type="button" ${currentPage >= totalPages ? 'disabled' : ''} onclick="currentLogsOffset = ${currentLogsOffset + currentLogsLimit}; loadLogs();">Next</button>
+      `;
+    }
+
+    document.getElementById('refreshLogsBtn').addEventListener('click', () => {
+      currentLogsOffset = 0;
+      loadLogs();
+    });
+
+    document.getElementById('logTypeFilter').addEventListener('change', () => {
+      currentLogsOffset = 0;
+      loadLogs();
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', () => {
+      currentLogsOffset = 0;
+      loadLogs();
+    });
+
+    document.getElementById('actionFilter').addEventListener('keyup', (e) => {
+      if (e.key === 'Enter') {
+        currentLogsOffset = 0;
+        loadLogs();
+      }
     });
 
     (async () => {

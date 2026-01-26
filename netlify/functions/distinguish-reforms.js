@@ -64,6 +64,22 @@ exports.handler = async (event) => {
          ON CONFLICT (reform_id_1, reform_id_2) DO NOTHING`,
         [id1, id2]
       );
+      
+      // Log admin action (after successful insert)
+      try {
+        await client.query(`
+          INSERT INTO activity_logs (log_type, action, status, metadata)
+          VALUES ('admin_action', 'distinguish_reforms', 'success', $1::jsonb)
+        `, [JSON.stringify({
+          reform_id_1: id1,
+          reform_id_2: id2,
+          admin_user: 'admin'
+        })]);
+      } catch (logError) {
+        // Don't fail the distinguish if logging fails, but log to console
+        console.error('Failed to log distinguish action:', logError);
+      }
+      
       return json(event, { success: true });
     } finally {
       client.release();

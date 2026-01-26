@@ -53,6 +53,9 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# Setup database logging for activity logs
+setup_database_logging()
+
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
@@ -326,6 +329,16 @@ def main():
     conn = cursor = None
     temp_dir = None
 
+    # Log start of ingestion
+    logger.info(
+        "Starting PRN municipalities ingestion",
+        extra={
+            "log_type": "ingestion",
+            "action": "prn_municipalities",
+            "status": "running"
+        }
+    )
+
     try:
         # Get JSON data
         if args.file:
@@ -379,7 +392,7 @@ def main():
         # Geocode places without coordinates
         geocode_missing_places(conn, cursor)
 
-        # Log
+        # Log to data_ingestion table (existing)
         log_ingestion(
             conn,
             cursor,
@@ -395,6 +408,26 @@ def main():
         )
 
         duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table (new)
+        logger.info(
+            "PRN municipalities ingestion complete",
+            extra={
+                "log_type": "ingestion",
+                "action": "prn_municipalities",
+                "status": "success",
+                "metadata": {
+                    "source_name": "PRN",
+                    "records_processed": len(normalized_data),
+                    "places_created": total_places_created,
+                    "places_updated": total_places_updated,
+                    "reforms_created": total_reforms_created,
+                    "reforms_updated": total_reforms_updated,
+                    "source_url": PRN_DATA_URL
+                },
+                "duration_seconds": duration
+            }
+        )
 
         logger.info(
             f"\n{'='*60}\n"
@@ -407,6 +440,20 @@ def main():
 
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "PRN municipalities ingestion failed",
+            extra={
+                "log_type": "ingestion",
+                "action": "prn_municipalities",
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         try:
             if conn and cursor:
                 log_ingestion(

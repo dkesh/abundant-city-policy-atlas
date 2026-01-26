@@ -48,6 +48,7 @@ from db_utils import (
     read_csv_file,
     USER_AGENT
 )
+from scripts.utils.logging_config import setup_database_logging
 
 # Load environment variables from .env file
 initialize_environment()
@@ -65,6 +66,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 # Batch size for bulk inserts
 BATCH_SIZE = 100
@@ -244,6 +248,16 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
     start_time = datetime.now()
     conn = cursor = None
 
+    # Log start of ingestion
+    logger.info(
+        "Starting ZRT ingestion",
+        extra={
+            "log_type": "ingestion",
+            "action": "obi",
+            "status": "running"
+        }
+    )
+
     try:
         conn, cursor = get_db_connection(database_url)
         reform_type_map = load_reform_type_map(cursor)
@@ -322,6 +336,20 @@ def ingest_zoning_tracker(csv_file: Optional[str] = None, database_url: Optional
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
         traceback.print_exc()
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "ZRT ingestion failed",
+            extra={
+                "log_type": "ingestion",
+                "action": "obi",
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         try:
             if conn and cursor:
                 log_ingestion(

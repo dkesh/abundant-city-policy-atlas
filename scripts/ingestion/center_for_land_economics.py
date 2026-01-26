@@ -47,6 +47,7 @@ from db_utils import (
     USER_AGENT,
     initialize_environment
 )
+from scripts.utils.logging_config import setup_database_logging
 
 # Load environment variables from .env file
 initialize_environment()
@@ -70,6 +71,9 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 # Batch size for bulk inserts
 BATCH_SIZE = 100
@@ -336,6 +340,16 @@ def ingest_cle_data(csv_file: Optional[str] = None, database_url: Optional[str] 
     start_time = datetime.now()
     conn = cursor = None
     
+    # Log start of ingestion
+    logger.info(
+        "Starting CLE ingestion",
+        extra={
+            "log_type": "ingestion",
+            "action": "center_for_land_economics",
+            "status": "running"
+        }
+    )
+    
     try:
         conn, cursor = get_db_connection(database_url)
         reform_type_map = load_reform_type_map(cursor)
@@ -477,6 +491,20 @@ def ingest_cle_data(csv_file: Optional[str] = None, database_url: Optional[str] 
     except Exception as e:
         logger.error(f"✗ Ingestion failed: {e}")
         traceback.print_exc()
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "CLE ingestion failed",
+            extra={
+                "log_type": "ingestion",
+                "action": "center_for_land_economics",
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         try:
             if conn and cursor:
                 log_ingestion(

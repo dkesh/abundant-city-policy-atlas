@@ -224,8 +224,29 @@ exports.handler = async (event) => {
          WHERE id = $2`,
         [d, queue_id]
       );
-
+      
       await client.query('COMMIT');
+      
+      // Log admin action (after successful commit)
+      try {
+        await client.query(`
+          INSERT INTO activity_logs (log_type, action, status, metadata)
+          VALUES ('admin_action', $1, 'success', $2::jsonb)
+        `, [
+          d === 'approved' ? 'accept_submission' : 'reject_submission',
+          JSON.stringify({
+            queue_id: queue_id,
+            submission_id: submission.submission_id,
+            decision: d,
+            reform_id: submission.reform_id,
+            policy_document_id: submission.policy_document_id,
+            admin_user: 'admin'
+          })
+        ]);
+      } catch (logError) {
+        // Don't fail the review decision if logging fails, but log to console
+        console.error('Failed to log review decision:', logError);
+      }
 
       return json(event, {
         success: true,

@@ -26,12 +26,16 @@ from scripts.enrichment.bill_scraping_service import scrape_and_store_bill_data
 from scripts.enrichment.bill_assessment import assess_bill_relevance, should_track_bill
 from scripts.enrichment.ai_enrichment import enrich_reform, update_reform_enrichment, get_reform_type_id
 from scripts.enrichment.utils import get_domain
+from scripts.utils.logging_config import setup_database_logging
 import re
 
 # Load environment variables
 initialize_environment()
 
 logger = logging.getLogger(__name__)
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 
 def extract_state_from_url(url: str) -> Optional[str]:
@@ -438,6 +442,7 @@ def process_bill_submission(submission_id: int) -> bool:
         bool: True if successful
     """
     conn = cursor = None
+    start_time = datetime.now(timezone.utc)
     
     try:
         conn, cursor = get_db_connection()
@@ -452,6 +457,21 @@ def process_bill_submission(submission_id: int) -> bool:
             return False
         
         url = submission['submitted_url']
+        
+        # Log start of processing
+        logger.info(
+            f"Processing submission {submission_id} for {url}",
+            extra={
+                "log_type": "bill_submission",
+                "action": "process",
+                "status": "running",
+                "metadata": {
+                    "submission_id": submission_id,
+                    "url": url
+                }
+            }
+        )
+        
         logger.info(f"Processing submission {submission_id} for {url}")
         
         # Step 1: Check for duplicates
@@ -466,6 +486,24 @@ def process_bill_submission(submission_id: int) -> bool:
                 existing_reform_id=existing['reform_id'],
                 policy_doc_id=existing['policy_document_id']
             )
+            
+            duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+            logger.info(
+                "Bill submission processed (duplicate found)",
+                extra={
+                    "log_type": "bill_submission",
+                    "action": "process",
+                    "status": "success",
+                    "metadata": {
+                        "submission_id": submission_id,
+                        "url": url,
+                        "existing_reform_id": existing['reform_id'],
+                        "result": "duplicate_found"
+                    },
+                    "duration_seconds": duration
+                }
+            )
+            
             return True
         
         # Step 2: Create policy document (placeholder, will be updated by scraper)
@@ -671,9 +709,49 @@ def process_bill_submission(submission_id: int) -> bool:
                 # Needs user confirmation
                 update_submission_status(submission_id, 'needs_confirmation', policy_doc_id=policy_doc_id)
         
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        
+        # Get final status
+        cursor.execute("SELECT status, reform_id, policy_document_id FROM bill_submissions WHERE id = %s", (submission_id,))
+        final_status = cursor.fetchone()
+        
+        logger.info(
+            "Bill submission processed",
+            extra={
+                "log_type": "bill_submission",
+                "action": "process",
+                "status": "success",
+                "metadata": {
+                    "submission_id": submission_id,
+                    "url": url,
+                    "final_status": final_status['status'] if final_status else 'unknown',
+                    "reform_id": final_status.get('reform_id') if final_status else None,
+                    "policy_document_id": final_status.get('policy_document_id') if final_status else None
+                },
+                "duration_seconds": duration
+            }
+        )
+        
         return True
         
     except Exception as e:
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        
+        logger.error(
+            "Bill submission processing failed",
+            extra={
+                "log_type": "bill_submission",
+                "action": "process",
+                "status": "failed",
+                "error_message": str(e),
+                "metadata": {
+                    "submission_id": submission_id,
+                    "url": url if 'url' in locals() else None
+                },
+                "duration_seconds": duration
+            }
+        )
+        
         logger.error(f"Error processing submission {submission_id}: {e}", exc_info=True)
         update_submission_status(submission_id, 'failed', error_message=str(e))
         return False

@@ -25,6 +25,10 @@ from scripts.ingestion.db_utils import get_db_connection, close_db_connection, i
 initialize_environment()
 from scripts.enrichment.ai_providers import get_ai_provider, parse_json_response
 from scripts.enrichment.prompts import build_enrichment_prompt, SYSTEM_PROMPT
+from scripts.utils.logging_config import setup_database_logging
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 # Configuration
 ENRICHMENT_VERSION = int(os.getenv('ENRICHMENT_VERSION', '1'))
@@ -575,9 +579,31 @@ def run_enrichment(limit: int = 100, reform_id: Optional[int] = None, force: boo
         
         if not reforms:
             logger.info("No reforms to enrich")
-            update_enrichment_run(cursor, run_id, status='completed', completed_at=datetime.now(timezone.utc))
-            conn.commit()
-            return
+        update_enrichment_run(cursor, run_id, status='completed', completed_at=datetime.now(timezone.utc))
+        conn.commit()
+        
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.info(
+            "AI enrichment complete (no reforms to enrich)",
+            extra={
+                "log_type": "ai_enrichment",
+                "action": action_name,
+                "status": "success",
+                "metadata": {
+                    "reforms_processed": 0,
+                    "reforms_enriched": 0,
+                    "reforms_failed": 0,
+                    "ai_provider": AI_PROVIDER,
+                    "ai_model": ai_provider.get_model_name(),
+                    "enrichment_version": ENRICHMENT_VERSION
+                },
+                "duration_seconds": duration
+            }
+        )
+        
+        return
         
         # Process reforms
         processed = 0
@@ -698,9 +724,46 @@ def run_enrichment(limit: int = 100, reform_id: Optional[int] = None, force: boo
         )
         
         conn.commit()
+        
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.info(
+            "AI enrichment complete",
+            extra={
+                "log_type": "ai_enrichment",
+                "action": action_name,
+                "status": "success",
+                "metadata": {
+                    "reforms_processed": processed,
+                    "reforms_enriched": enriched,
+                    "reforms_failed": failed,
+                    "policy_docs_enriched": policy_docs_enriched,
+                    "ai_provider": AI_PROVIDER,
+                    "ai_model": ai_provider.get_model_name(),
+                    "enrichment_version": ENRICHMENT_VERSION
+                },
+                "duration_seconds": duration
+            }
+        )
+        
         logger.info(f"Enrichment complete: {enriched} enriched, {failed} failed out of {processed} processed")
         
     except Exception as e:
+        duration = int((datetime.now(timezone.utc) - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "AI enrichment failed",
+            extra={
+                "log_type": "ai_enrichment",
+                "action": action_name,
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         logger.error(f"Enrichment failed: {e}", exc_info=True)
         if run_id and cursor:
             try:

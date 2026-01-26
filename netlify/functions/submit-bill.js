@@ -358,6 +358,16 @@ exports.handler = async (event, context) => {
 
       const submission = result.rows[0];
       const submissionId = submission.id;
+      
+      // Log bill submission
+      await client.query(`
+        INSERT INTO activity_logs (log_type, action, status, metadata)
+        VALUES ('bill_submission', 'submit', 'pending', $1::jsonb)
+      `, [JSON.stringify({
+        submission_id: submissionId,
+        url: url,
+        confirmed: !!confirm
+      })]);
 
       // Trigger background processing
       await triggerBackgroundProcessing(submissionId);

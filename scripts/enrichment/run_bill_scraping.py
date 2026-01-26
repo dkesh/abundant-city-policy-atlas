@@ -8,6 +8,7 @@ import os
 import sys
 import argparse
 import logging
+from datetime import datetime
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,9 +17,13 @@ if project_root not in sys.path:
 
 from scripts.ingestion.db_utils import initialize_environment
 from scripts.enrichment.bill_scraping_service import scrape_pending_policy_documents, scrape_and_store_bill_data
+from scripts.utils.logging_config import setup_database_logging
 
 # Load environment variables from .env file
 initialize_environment()
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 # Configure logging
 logging.basicConfig(
@@ -79,6 +84,19 @@ Examples:
     use_ai_fallback = not args.no_ai_fallback
     limit = 999999 if args.all else args.limit
     
+    start_time = datetime.now()
+    
+    # Log start of scraping run
+    action_name = f"scrape_policy_doc_{args.policy_doc_id}" if args.policy_doc_id else "scrape_all"
+    logger.info(
+        f"Starting bill scraping (limit: {limit}, AI fallback: {use_ai_fallback})",
+        extra={
+            "log_type": "bill_scraping",
+            "action": action_name,
+            "status": "running"
+        }
+    )
+    
     try:
         if args.policy_doc_id:
             # Scrape specific policy document
@@ -109,10 +127,39 @@ Examples:
                 use_ai_fallback=use_ai_fallback
             )
             
+            duration = int((datetime.now() - start_time).total_seconds())
+            
             if success:
+                logger.info(
+                    f"Successfully scraped policy document {args.policy_doc_id}",
+                    extra={
+                        "log_type": "bill_scraping",
+                        "action": action_name,
+                        "status": "success",
+                        "metadata": {
+                            "policy_doc_id": args.policy_doc_id,
+                            "url": doc['document_url']
+                        },
+                        "duration_seconds": duration
+                    }
+                )
                 logger.info(f"✓ Successfully scraped policy document {args.policy_doc_id}")
                 sys.exit(0)
             else:
+                logger.error(
+                    f"Failed to scrape policy document {args.policy_doc_id}",
+                    extra={
+                        "log_type": "bill_scraping",
+                        "action": action_name,
+                        "status": "failed",
+                        "error_message": error,
+                        "metadata": {
+                            "policy_doc_id": args.policy_doc_id,
+                            "url": doc['document_url']
+                        },
+                        "duration_seconds": duration
+                    }
+                )
                 logger.error(f"✗ Failed to scrape policy document {args.policy_doc_id}: {error}")
                 sys.exit(1)
         else:
@@ -120,18 +167,44 @@ Examples:
             logger.info(f"Scraping pending policy documents (limit: {limit}, AI fallback: {use_ai_fallback})...")
             results = scrape_pending_policy_documents(limit=limit, use_ai_fallback=use_ai_fallback)
             
+            duration = int((datetime.now() - start_time).total_seconds())
+            
+            # Calculate failure rate
+            if results['processed'] > 0:
+                failure_rate = results['failed'] / results['processed']
+            else:
+                failure_rate = 0.0
+            
+            # Log to activity_logs table
+            status = "success" if failure_rate <= 0.15 else "partial"
+            logger.info(
+                "Bill scraping complete",
+                extra={
+                    "log_type": "bill_scraping",
+                    "action": action_name,
+                    "status": status,
+                    "metadata": {
+                        "processed": results['processed'],
+                        "succeeded": results['succeeded'],
+                        "failed": results['failed'],
+                        "failure_rate": failure_rate,
+                        "failures_by_domain": results.get('failures_by_domain', {}),
+                        "failures_by_error_type": results.get('failures_by_error_type', {}),
+                        "use_ai_fallback": use_ai_fallback
+                    },
+                    "duration_seconds": duration
+                }
+            )
+            
             logger.info("="*60)
             logger.info("Bill Scraping Complete")
             logger.info(f"  Processed: {results['processed']}")
             logger.info(f"  Succeeded: {results['succeeded']}")
             logger.info(f"  Failed: {results['failed']}")
             
-            # Calculate failure rate
             if results['processed'] > 0:
-                failure_rate = results['failed'] / results['processed']
                 logger.info(f"  Failure Rate: {failure_rate:.1%}")
             else:
-                failure_rate = 0.0
                 logger.info(f"  Failure Rate: N/A (no documents processed)")
             
             logger.info("="*60)
@@ -144,6 +217,20 @@ Examples:
                 sys.exit(0)
                 
     except Exception as e:
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "Bill scraping failed",
+            extra={
+                "log_type": "bill_scraping",
+                "action": action_name,
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         logger.error(f"Bill scraping failed: {e}", exc_info=True)
         sys.exit(1)
 

@@ -30,6 +30,7 @@ from db_utils import (
     place_key,
     read_csv_file
 )
+from scripts.utils.logging_config import setup_database_logging
 
 # Load environment variables
 initialize_environment()
@@ -37,6 +38,9 @@ initialize_environment()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Setup database logging for activity logs
+setup_database_logging()
 
 MERCATUS_SOURCE = 'Mercatus (2025 Housing Bills)'
 MERCATUS_REFORM_TRACKER_URL = 'https://www.quorum.us/spreadsheet/external/vehiYnJcriswPJrHpUKe/'
@@ -160,6 +164,18 @@ def main():
     if not csv_path or not os.path.exists(csv_path):
         logger.info("No local CSV provided or file not found; fetching from web...")
         csv_path = download_file(args.url, args.out)
+
+    start_time = datetime.now()
+    
+    # Log start of ingestion
+    logger.info(
+        "Starting Mercatus ingestion",
+        extra={
+            "log_type": "ingestion",
+            "action": "mercatus",
+            "status": "running"
+        }
+    )
 
     conn, cursor = get_db_connection()
     
@@ -316,6 +332,8 @@ def main():
         geocode_missing_places(conn, cursor)
         
         # 9. Log Ingestion
+        duration = int((datetime.now() - start_time).total_seconds())
+        
         log_ingestion(
             conn, cursor,
             source_name=MERCATUS_SOURCE,
@@ -325,13 +343,46 @@ def main():
             reforms_created=r_created,
             reforms_updated=r_updated,
             status='success',
-            start_time=datetime.now()
+            start_time=start_time
+        )
+        
+        # Log to activity_logs table
+        logger.info(
+            "Mercatus ingestion complete",
+            extra={
+                "log_type": "ingestion",
+                "action": "mercatus",
+                "status": "success",
+                "metadata": {
+                    "source_name": MERCATUS_SOURCE,
+                    "records_processed": len(bill_data),
+                    "places_created": p_created,
+                    "places_updated": p_updated,
+                    "reforms_created": r_created,
+                    "reforms_updated": r_updated
+                },
+                "duration_seconds": duration
+            }
         )
         
         logger.info("Ingestion complete.")
         
     except Exception as e:
         conn.rollback()
+        duration = int((datetime.now() - start_time).total_seconds())
+        
+        # Log to activity_logs table
+        logger.error(
+            "Mercatus ingestion failed",
+            extra={
+                "log_type": "ingestion",
+                "action": "mercatus",
+                "status": "failed",
+                "error_message": str(e),
+                "duration_seconds": duration
+            }
+        )
+        
         logger.exception("Ingestion failed")
         sys.exit(1)
     finally:
