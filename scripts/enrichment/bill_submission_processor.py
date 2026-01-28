@@ -116,12 +116,21 @@ def create_or_get_state_place(state_code: str, state_name: str) -> Optional[int]
         if result:
             return result['id']
         
+        # Get population from top_level_division if available
+        cursor.execute("""
+            SELECT population FROM top_level_division
+            WHERE state_code = %s
+        """, (state_code,))
+        
+        tld_result = cursor.fetchone()
+        population = tld_result['population'] if tld_result else None
+        
         # Create place
         places = [{
             'name': state_name,
             'place_type': 'state',
             'state_code': state_code,
-            'population': None,
+            'population': population,
             'latitude': None,
             'longitude': None,
             'encoded_name': None

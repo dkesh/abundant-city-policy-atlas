@@ -263,7 +263,7 @@ exports.handler = async (event, context) => {
         p.id as place_id,
         p.name as place_name,
         p.place_type,
-        COALESCE(p.population, CASE WHEN p.place_type = 'state' THEN tld.population ELSE NULL END) as population,
+        p.population,
         p.latitude,
         p.longitude,
         p.encoded_name,
@@ -340,7 +340,7 @@ exports.handler = async (event, context) => {
       LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
       LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
       WHERE ${whereClause}
-      GROUP BY r.id, p.id, p.name, p.place_type, p.population, tld.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
+      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
                tld.state_code, tld.state_name, tld.country, tld.region,
                r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.intensity, r.created_at,
                r.ai_enriched_fields, r.ai_enrichment_version,

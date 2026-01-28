@@ -75,10 +75,6 @@ exports.handler = async (event, context) => {
 
     const client = await pool.connect();
 
-    const populationExpr = placeType === 'state'
-      ? 'COALESCE(p.population, tld.population)'
-      : 'p.population';
-
     // Build WHERE clause
     // For cities/counties, require population to be set
     let whereClauses = [];
@@ -90,12 +86,9 @@ exports.handler = async (event, context) => {
       queryParams.push(placeType);
       paramCount++;
       
-      // Only require population for cities and counties
-      if (placeType === 'city' || placeType === 'county') {
+      // Require population for all place types
+      if (placeType === 'city' || placeType === 'county' || placeType === 'state') {
         whereClauses.push('p.population IS NOT NULL AND p.population > 0');
-      } else if (placeType === 'state') {
-        // States may store population in top_level_division; use that for sizing and basic sanity.
-        whereClauses.push(`${populationExpr} IS NOT NULL AND ${populationExpr} > 0`);
       }
     } else {
       // If no place type specified, require population (defaults to cities/counties)
@@ -106,9 +99,9 @@ exports.handler = async (event, context) => {
       if (placeType === 'state') {
         // State size ranges (intentionally different from cities)
         const stateSizeRanges = {
-          'small': `${populationExpr} < 2000000`,
-          'mid': `${populationExpr} >= 2000000 AND ${populationExpr} < 10000000`,
-          'large': `${populationExpr} >= 10000000`
+          'small': 'p.population < 2000000',
+          'mid': 'p.population >= 2000000 AND p.population < 10000000',
+          'large': 'p.population >= 10000000'
         };
         if (stateSizeRanges[sizeCategory]) {
           whereClauses.push(stateSizeRanges[sizeCategory]);
@@ -116,10 +109,10 @@ exports.handler = async (event, context) => {
       } else {
         // City/County size ranges
         const sizeRanges = {
-          'small': `${populationExpr} < 50000`,
-          'mid': `${populationExpr} >= 50000 AND ${populationExpr} < 500000`,
-          'large': `${populationExpr} >= 500000 AND ${populationExpr} < 2000000`,
-          'very_large': `${populationExpr} >= 2000000`
+          'small': 'p.population < 50000',
+          'mid': 'p.population >= 50000 AND p.population < 500000',
+          'large': 'p.population >= 500000 AND p.population < 2000000',
+          'very_large': 'p.population >= 2000000'
         };
         if (sizeRanges[sizeCategory]) {
           whereClauses.push(sizeRanges[sizeCategory]);
@@ -292,7 +285,7 @@ exports.handler = async (event, context) => {
           p.name,
           p.place_type,
           p.state_code,
-          ${populationExpr} AS population_effective,
+          p.population AS population_effective,
           tld.state_name,
           tld.region,
           COUNT(DISTINCT rrt.reform_type_id) FILTER (WHERE r.id IS NOT NULL) AS reform_types_count,
@@ -312,8 +305,7 @@ exports.handler = async (event, context) => {
           p.state_code,
           p.population,
           tld.state_name,
-          tld.region,
-          tld.population
+          tld.region
       ),
       top_picks AS (
         SELECT *

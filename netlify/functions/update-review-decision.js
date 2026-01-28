@@ -80,15 +80,16 @@ async function createReformFromFlagged(client, submission) {
 
   if (!placeId) {
     const tld = await client.query(
-      `SELECT state_name FROM top_level_division WHERE state_code = $1`,
+      `SELECT state_name, population FROM top_level_division WHERE state_code = $1`,
       [stateCode]
     );
     const stateName = tld.rows[0]?.state_name || stateCode;
+    const population = tld.rows[0]?.population || null;
     const ins = await client.query(
-      `INSERT INTO places (name, place_type, state_code) VALUES ($1, 'state', $2)
-       ON CONFLICT (name, state_code, place_type) DO UPDATE SET name = places.name
+      `INSERT INTO places (name, place_type, state_code, population) VALUES ($1, 'state', $2, $3)
+       ON CONFLICT (name, state_code, place_type) DO UPDATE SET name = places.name, population = COALESCE(places.population, EXCLUDED.population)
        RETURNING id`,
-      [stateName, stateCode]
+      [stateName, stateCode, population]
     );
     placeId = ins.rows[0]?.id;
   }
