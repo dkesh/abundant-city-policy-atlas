@@ -255,97 +255,125 @@ exports.handler = async (event, context) => {
     console.log('Query params:', JSON.stringify(queryParams));
     console.log('============================');
 
-    // Query reforms with all related data including sources and policy documents
-    // For states, use population from top_level_division if places.population is null
+    // Query reforms with importance-based sort across full filtered set (CTE)
     const query = `
-      SELECT
-        r.id,
-        p.id as place_id,
-        p.name as place_name,
-        p.place_type,
-        p.population,
-        p.latitude,
-        p.longitude,
-        p.encoded_name,
-        r.link_url,
-        tld.state_code,
-        tld.state_name,
-        tld.country,
-        tld.region,
-        COALESCE(
-          (
-            SELECT json_agg(
-              json_build_object(
-                'code', rt_sub.code,
-                'name', rt_sub.name,
-                'color_hex', rt_sub.color_hex,
-                'sort_order', rt_sub.sort_order
-              ) ORDER BY rt_sub.sort_order
-            )
-            FROM (
-              SELECT DISTINCT rt2.code, rt2.name, rt2.color_hex, rt2.sort_order
-              FROM reform_reform_types rrt2
-              JOIN reform_types rt2 ON rrt2.reform_type_id = rt2.id
-              WHERE rrt2.reform_id = r.id
-            ) rt_sub
-          ),
-          '[]'::json
-        ) as reform_types,
-        r.status,
-        r.scope,
-        r.land_use,
-        r.adoption_date,
-        r.summary,
-        r.requirements,
-        r.notes,
-        r.intensity,
-        r.created_at,
-        r.ai_enriched_fields,
-        r.ai_enrichment_version,
-        r.summary as original_summary,
-        r.scope as original_scope,
-        r.land_use as original_land_use,
-        r.requirements as original_requirements,
-        pd.id as policy_document_id,
-        pd.title as policy_document_title,
-        pd.reference_number as policy_document_reference,
-        pd.ai_enriched_fields as policy_doc_ai_fields,
-        pd.key_points as original_key_points,
-        pd.analysis as original_analysis,
-        COALESCE(
-          (
-            SELECT json_agg(
-              json_build_object(
-                'id', s.id,
-                'name', s.name,
-                'short_name', s.short_name,
-                'logo', s.logo_filename,
-                'website_url', s.website_url,
-                'reporter', rs.reporter,
-                'source_url', rs.source_url,
-                'notes', rs.notes,
-                'is_primary', rs.is_primary
-              ) ORDER BY rs.is_primary DESC, s.name
-            )
-            FROM reform_sources rs
-            JOIN sources s ON rs.source_id = s.id
-            WHERE rs.reform_id = r.id
-          ),
-          '[]'::json
-        ) as sources
-      FROM reforms r
-      JOIN places p ON r.place_id = p.id
-      JOIN top_level_division tld ON p.state_code = tld.state_code
-      LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
-      LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
-      LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
-      WHERE ${whereClause}
-      GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.latitude, p.longitude, p.encoded_name, r.link_url,
-               tld.state_code, tld.state_name, tld.country, tld.region,
-               r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.intensity, r.created_at,
-               r.ai_enriched_fields, r.ai_enrichment_version,
-               pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
-      ORDER BY tld.state_name, p.name, r.adoption_date DESC
+      WITH filtered AS (
+        SELECT
+          r.id,
+          p.id as place_id,
+          p.name as place_name,
+          p.place_type,
+          p.population,
+          p.latitude,
+          p.longitude,
+          p.encoded_name,
+          r.link_url,
+          tld.state_code,
+          tld.state_name,
+          tld.country,
+          tld.region,
+          COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'code', rt_sub.code,
+                  'name', rt_sub.name,
+                  'color_hex', rt_sub.color_hex,
+                  'sort_order', rt_sub.sort_order
+                ) ORDER BY rt_sub.sort_order
+              )
+              FROM (
+                SELECT DISTINCT rt2.code, rt2.name, rt2.color_hex, rt2.sort_order
+                FROM reform_reform_types rrt2
+                JOIN reform_types rt2 ON rrt2.reform_type_id = rt2.id
+                WHERE rrt2.reform_id = r.id
+              ) rt_sub
+            ),
+            '[]'::json
+          ) as reform_types,
+          r.status,
+          r.scope,
+          r.land_use,
+          r.adoption_date,
+          r.summary,
+          r.requirements,
+          r.notes,
+          r.intensity,
+          r.created_at,
+          r.ai_enriched_fields,
+          r.ai_enrichment_version,
+          r.summary as original_summary,
+          r.scope as original_scope,
+          r.land_use as original_land_use,
+          r.requirements as original_requirements,
+          pd.id as policy_document_id,
+          pd.title as policy_document_title,
+          pd.reference_number as policy_document_reference,
+          pd.ai_enriched_fields as policy_doc_ai_fields,
+          pd.key_points as original_key_points,
+          pd.analysis as original_analysis,
+          COALESCE(
+            (
+              SELECT json_agg(
+                json_build_object(
+                  'id', s.id,
+                  'name', s.name,
+                  'short_name', s.short_name,
+                  'logo', s.logo_filename,
+                  'website_url', s.website_url,
+                  'reporter', rs.reporter,
+                  'source_url', rs.source_url,
+                  'notes', rs.notes,
+                  'is_primary', rs.is_primary
+                ) ORDER BY rs.is_primary DESC, s.name
+              )
+              FROM reform_sources rs
+              JOIN sources s ON rs.source_id = s.id
+              WHERE rs.reform_id = r.id
+            ),
+            '[]'::json
+          ) as sources,
+          r.impact_score,
+          p.population_log
+        FROM reforms r
+        JOIN places p ON r.place_id = p.id
+        JOIN top_level_division tld ON p.state_code = tld.state_code
+        LEFT JOIN reform_reform_types rrt ON r.id = rrt.reform_id
+        LEFT JOIN reform_types rt ON rrt.reform_type_id = rt.id
+        LEFT JOIN policy_documents pd ON r.policy_document_id = pd.id
+        WHERE ${whereClause}
+        GROUP BY r.id, p.id, p.name, p.place_type, p.population, p.population_log, p.latitude, p.longitude, p.encoded_name, r.link_url,
+                 tld.state_code, tld.state_name, tld.country, tld.region,
+                 r.status, r.scope, r.land_use, r.adoption_date, r.summary, r.requirements, r.notes, r.intensity, r.created_at,
+                 r.ai_enriched_fields, r.ai_enrichment_version, r.impact_score,
+                 pd.id, pd.title, pd.reference_number, pd.ai_enriched_fields, pd.key_points, pd.analysis
+      ),
+      scored AS (
+        SELECT
+          f.*,
+          (0.6 * COALESCE(
+            (COALESCE(f.population_log, 0) - MIN(COALESCE(f.population_log, 0)) OVER ()) / NULLIF(MAX(COALESCE(f.population_log, 0)) OVER () - MIN(COALESCE(f.population_log, 0)) OVER (), 0),
+            0
+          ) +
+           0.25 * COALESCE(
+             (COALESCE(f.impact_score, 0) - MIN(COALESCE(f.impact_score, 0)) OVER ()) / NULLIF(MAX(COALESCE(f.impact_score, 0)) OVER () - MIN(COALESCE(f.impact_score, 0)) OVER (), 0),
+             0
+           ) +
+           0.15 * CASE
+             WHEN f.adoption_date IS NULL THEN 0.1
+             ELSE GREATEST(0, 1 - (EXTRACT(EPOCH FROM (CURRENT_DATE::timestamp - f.adoption_date::timestamp)) / 86400.0) / NULLIF(MAX(EXTRACT(EPOCH FROM (CURRENT_DATE::timestamp - f.adoption_date::timestamp)) / 86400.0) FILTER (WHERE f.adoption_date IS NOT NULL) OVER (), 0))
+           END
+          ) AS importance_composite
+        FROM filtered f
+      )
+      SELECT id, place_id, place_name, place_type, population, latitude, longitude, encoded_name, link_url,
+             state_code, state_name, country, region, reform_types, status, scope, land_use, adoption_date,
+             summary, requirements, notes, intensity, created_at, ai_enriched_fields, ai_enrichment_version,
+             original_summary, original_scope, original_land_use, original_requirements,
+             policy_document_id, policy_document_title, policy_document_reference, policy_doc_ai_fields,
+             original_key_points, original_analysis, sources
+      FROM scored
+      ORDER BY importance_composite DESC NULLS LAST
       LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
